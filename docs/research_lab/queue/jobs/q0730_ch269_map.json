@@ -1,0 +1,44 @@
+{
+ "id": "q0730_ch269_map",
+ "title": "CH269 one-shot census and tails map (counts only, uncounted, nothing tested): one read-only pass over the last 8 days of sidecars plus the engine's quotes/, features/, predictions/ and resolution logs and the gamma_rules stream, printing proposal-window counts (CH263), the overdue-mid population (CH264), close-window and rule-class counts (CH267), the tails and crossing counts (CH266), the champion's top-decile split, tenure and unavailable share (CH262), the residual autocorrelation (CH265) and the fr_unavail_12 distribution (CH268), with the declared decision lines",
+ "family": "creative_hypotheses",
+ "priority": 62,
+ "expected_value": "measured planning counts that decide which of LT14 (CH262), M1 (CH263), M2 (CH264), LT15 (CH267) and CH266's sketch are drafted (CREATIVE_HYPOTHESES_2026-11-02.md section 2 F, CH269)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots, signal_engine (quotes, features, predictions, logs), stream_gamma_rules (all read-only)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ch269_map.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--rules-root",
+  "../data-dumps/research_lab/stream_gamma_rules",
+  "--last-days",
+  "8",
+  "--quote-days",
+  "45",
+  "--prediction-days",
+  "35",
+  "--out",
+  "../data-dumps/research_lab/ch269_map/CH269_map.json",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ch269_map/CH269_map.json (counts only)"
+ ],
+ "next_action": "read the decisions block (lt14_ch262, m1_ch263, m2_ch264, lt15_ch267, ch266_sketch) and the not_mapped block; copy the counts into the CH269 census table (reported, not tuned); a decision of null means its count was unavailable, not a pass",
+ "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-11-02.md section 2 F). Read-only on every store; refuses roots outside research_lab, missing roots and an existing output; exits 75 above the 50 GiB dumps guard or under 1 GiB free. Lane cpu as the CH261 map (section F says net; the reader is local-store only and CPU-bound on the csv parse). The address-space cap is virtual memory (pyarrow, numpy); RSS target below 450 MB, the output records peak_rss_mb. Sidecar span: the latest complete capture minus 8 days, declared in the output. Missing captures are listed (quotes, features, predictions, sidecar gaps), never reconstructed. open_interest is empty on the sampled sidecar: CH264 terciles fall back to a labelled liquidity proxy. The rule class is a placeholder lexicon of the map, not CH239's parser. Not mapped (printed with reasons): sweep ask_size_1 coverage, rung constants / MDE / VIF, the CH267 identification gate."
+}

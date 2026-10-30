@@ -1,0 +1,47 @@
+{
+ "tag": "data-20261015-dsheikh",
+ "selected": 23,
+ "restored_ok": 23,
+ "bytes": 102466864,
+ "hash_mismatch": [],
+ "missing": [],
+ "parts": [
+  {
+   "name": "arepo-data-20261015-dsheikh.tar.zst.part-aa",
+   "bytes": 1900000000,
+   "sha256": "529165769c4228689438cb19ba1c8fd117511503dba73b39959c7665f7f8b7fc",
+   "ok": true
+  },
+  {
+   "name": "arepo-data-20261015-dsheikh.tar.zst.part-ab",
+   "bytes": 1706919938,
+   "sha256": "fac5f6a9e7dcb1cf22090d2321dcbb4ce9ddb1d93effa6ac0595fce92b662910",
+   "ok": true
+  }
+ ],
+ "zstd_rc": 0,
+ "tar_rc": 0,
+ "feeder_error": null,
+ "selectors": {
+  "experiment": null,
+  "dir": null,
+  "since": null,
+  "until": null,
+  "path_glob": [
+   "data-dumps/research_lab/snapshots/20261014T163101Z_6e0d303d/*",
+   "data-dumps/research_lab/book_sweeps/20261014T163919Z_c3811200/*",
+   "data-dumps/research_lab/trade_samples/20261014T164046Z_97bbc2a3/*",
+   "data-dumps/research_lab/forecasts/20261014T163101Z_6e0d303d/*",
+   "data-dumps/research_lab/cross_venue_live/*",
+   "data-dumps/research_lab/live_trades/trades-20261012.jsonl",
+   "data-dumps/research_lab/flow_screen/flowscreen-ffcdee3436/*",
+   "data-dumps/research_lab/e004/*",
+   "data-dumps/research_lab/cross_venue/series/KXWTA-26-TOW.npz"
+  ]
+ },
+ "compare_with": "/home/opc/arepo",
+ "identical_to_live": 23,
+ "differs_from_live": [],
+ "live_copy_absent": 0,
+ "passed": true
+}

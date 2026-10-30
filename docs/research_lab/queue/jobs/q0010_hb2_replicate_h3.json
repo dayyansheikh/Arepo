@@ -1,0 +1,40 @@
+{
+ "id": "q0010_hb2_replicate_h3",
+ "title": "SB2-J2b: frozen replication of advanced HB2 tests on h3_power (Holm)",
+ "family": "flow",
+ "priority": 66,
+ "expected_value": "Q2/Q3: development-replicated or not; gate for any prospective registration",
+ "data": [
+  "history/h3_power/battery1_rep/features.parquet",
+  "history/h3_power/battery2/features2*.parquet",
+  "model_specs/hb2_v1.json",
+  "history/h2_main/battery2/results_hb2.json"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0009_hb2_features_h3"
+ ],
+ "argv": [
+  "scripts/run_hypothesis_battery2.py",
+  "replicate",
+  "--run-id",
+  "h3_power",
+  "--from",
+  "h2_main",
+  "--family",
+  "F,L",
+  "--n-boot",
+  "2000"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h3_power/battery2/results_hb2_replication.json",
+  "docs/research_lab/trials.jsonl"
+ ],
+ "next_action": "Claude session: verdicts, costs in favourable tercile, ledger; registration draft only for replicated tests",
+ "notes": "4th read of h3_power; frozen signs, scalings and cuts; weighted and without-66-shared-events secondaries"
+}

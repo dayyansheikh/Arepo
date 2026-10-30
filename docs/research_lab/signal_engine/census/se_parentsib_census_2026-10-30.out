@@ -1,0 +1,23 @@
+run start 2026-10-30T12:17:21.237679Z; parent_sib sha256 e3b4e85fd62e33c04a829bb944c8ba114767fac0921a4c5aa4eeac18ff8f634f
+capture 20261030T103101Z_c1803a16; eligible rows 53973; previous slot capture 20261030T083102Z_87d95e82; sidecar v3 columns present
+  sidecar 20261029T123102Z_04471029: None
+  sidecar 20261029T143102Z_a083e57e: None
+  sidecar 20261029T163102Z_609d6e54: None
+  sidecar 20261029T183101Z_aa0b12be: None
+  sidecar 20261029T203102Z_bf335dca: None
+  sidecar 20261029T223101Z_e12b1fcd: None
+  sidecar 20261030T003102Z_e883d896: None
+  sidecar 20261030T023102Z_100247db: None
+  sidecar 20261030T043102Z_240ccd1e: None
+  sidecar 20261030T063102Z_e595297a: None
+  sidecar 20261030T083102Z_87d95e82: None
+  sidecar 20261030T103101Z_c1803a16: None
+ps_has_parent: known 1.0000; share 1 all 0.4634; non-sports 0.0014 (n 16958); sports 0.6750
+ps_sib_d2h finite 14963 (0.2772); ps_sib_moving > 0 on 12782 -> keep
+FAMILY KILLED (parent share line FAIL; d2h coverage line ok)
+child events seen per parent row: {np.int64(4): 9939, np.int64(3): 7945, np.int64(6): 5194, np.int64(2): 1464, np.int64(9): 272, np.int64(1): 107, np.int64(5): 53, np.int64(7): 35}; >= 2 seen 0.9957
+parent rows 25009; with >= 2 child events seen but no d2h (clock or share rule) 9939
+by category (has_parent share, d2h coverage, n): {'crypto': (0.0, 0.0, 4537), 'other:zero_fees': (0.0016, 0.0006, 10838), 'sports': (0.675, 0.4039, 37015), 'unknown': (0.0048, 0.0041, 1446)}
+corr(ps_sib_d2h, ev_sib_d2h) 0.016 (n 9685)
+run end 2026-10-30T12:17:25.188234Z
+rss_kb 388756 wall 4.49

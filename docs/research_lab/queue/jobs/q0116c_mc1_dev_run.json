@@ -1,0 +1,39 @@
+{
+ "id": "q0116c_mc1_dev_run",
+ "title": "MC1 multi-signal dev: REAL development run (M0, elastic net, LightGBM 20-config, M3_eb; clustered bootstrap; OOF SHAP; trials logged) once the 40-consecutive-capture gate is met",
+ "family": "ml_multi_signal",
+ "priority": 95,
+ "expected_value": "first MC1 development read (log-loss vs M0, incremental families) before the 8-day snapshot deletion (captures from 10-14T12:31Z pass 8 days at 10-23 03:30Z); caches the panel parquet that also unblocks the book_sweeps retention rule",
+ "data": [
+  "research_lab/snapshots (70 complete; longest consecutive run 30 at 2026-10-16T23Z)",
+  "research_lab/book_sweeps",
+  "research_lab/trade_samples"
+ ],
+ "resources": {
+  "mem_mb": 2600,
+  "as_cap_mb": 16000,
+  "exclusive": true,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ml_dev.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--cache-root",
+  "../data-dumps/research_lab/ml_cache",
+  "--out-dir",
+  "../data-dumps/research_lab/ml_dev"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ml_dev/ reports",
+  "ml_cache/<panel hash>/panel.parquet",
+  "trials.jsonl DEVELOPMENT rows"
+ ],
+ "next_action": "Claude session: write up the dev run in MULTI_SIGNAL_PIPELINE_DESIGN.md / ledger (development, not evidence); record the panel hash; then the book_sweeps rule may move to rules once q0035 is done",
+ "notes": "q0116c 2026-10-20 (owner: prioritise the memory-blocked ML run). Same argv/code as q0116b (parked, kept). q0116b died in ~16 s at the 2 x 3200 MB ADDRESS-SPACE cap (_ArrayMemoryError) while ~4 GB was physically free: numpy/Arrow reserve far more virtual memory than they touch. q0116c runs EXCLUSIVE (queue drains, nothing else starts while it runs), as_cap_mb 16000 (virtual), start gate mem_mb 2600 + 1200 reserve; oom_score_adj 1000 means the kernel kills this job before the collector/monitors under real pressure. No scientific change. | Created 2026-10-17 (autopilot). Design MULTI_SIGNAL_PIPELINE_DESIGN.md (reviewed twice, amendment A1). run_ml_dev.py now exits 75 (not 2) when the gate is unmet, so the queue waits 30 min per try without burning attempts (48 tempfails ~ 24 h; gate expected ~2026-10-17T19Z). mem_mb 2500 pending the q0115 measured peak; adjust before it starts if q0115 shows more. | q0116b 2026-10-17: q0116 FAILED twice (ArrowMemoryError). Attempt 1 built and cached the 2.10M-row x 123-col panel (ml_cache/fdee618b...; panel.parquet 535 MB); attempt 2 died reading it back whole: pandas consolidated the 109 float64 columns into one 1.83 GB block on top of the Arrow table plus 12 string columns as per-row Python strs, over the 2 x 2500 MB address-space cap. Fix (no scientific change; value- and dtype-identical, tests/test_run_ml_dev_compact_read.py): read_panel_compact (split blocks, self-destruct, shared string objects; local peak 3.5 -> 2.1 GB on a 2.0M x 121 synthetic), panel summary computed on the slim column subset, labelled frame built column-by-column while the full frame is freed. mem_mb 2500 -> 3200 (cap 6.4 GB; mem+1200 = 4400). The cached panel is reused (same hash), so no rebuild is expected."
+}

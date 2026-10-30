@@ -1,0 +1,198 @@
+{
+ "data_rules_sha256": "5fe7f6b3ec1b971e138e3480d796e4c312066da06b133122e04220e316c157b6",
+ "declared": {
+  "decision": {
+   "alpha1": 0.01,
+   "alpha2": 0.05,
+   "batch_holm_k1": 3,
+   "by_q": 0.1,
+   "floor": 0.005,
+   "g_min": 15,
+   "min_event_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "route_gate": "mean mo(exit) >= 0.005 (no rebate)",
+   "seed_boot": 818,
+   "sign": 1,
+   "ways": [
+    "event",
+    "day (A-C1)",
+    "holder"
+   ]
+  },
+  "definitions": {
+   "conc_low": 0.2,
+   "conc_min": 0.5,
+   "control_window_s": 21600,
+   "exit_from_s": 60,
+   "exit_to_s": 86400,
+   "horizon_s": 7200,
+   "mark_max_spread": 0.05,
+   "mark_window_s": 9000.0,
+   "ready_after_end_s": 108000,
+   "size_bands": [
+    [
+     0.5,
+     2.0
+    ],
+    [
+     0.25,
+     4.0
+    ]
+   ],
+   "top_excluded": 5,
+   "usable": [
+    0.03,
+    0.97
+   ]
+  },
+  "freeze": "screen and replicate need a committed model_specs/cb8_v1.json carrying h_analysis_rules_sha256 and h_data_rules_sha256 equal to the code's",
+  "gh": {
+   "min_days": 15,
+   "min_events": 50,
+   "min_holders": 30,
+   "min_pairs": 150
+  },
+  "interpretations": [
+   "Market-days: snapshot rows with status 'ok' whose snapshot time h lies in the stage's window; the print request status must be 'ok' (capped / failed -> unavailable, counted). c_j is recomputed from the stored top-20 holders and the stored /oi value at t_f with cb8_holders.concentration (the hashed data rule).",
+   "Exit: taker SELL (side -1) of token j by the rank-1 holder of j at h, ts in (h + 60 s, h + 24 h], c_j >= 0.5, token price in [0.03, 0.97]. A print that qualifies under two consecutive snapshots (overlapping windows) is ONE exit, kept with the earliest snapshot.",
+   "Control: from the exit's own market-day stored prints (stored in full because c_j >= 0.5): taker SELL of token j, price in [0.03, 0.97] (the exit's price rule, applied to controls too), wallet hash present and not among the top-5 holders of either token at h, |ts - ts_exit| <= 6 h; nearest in time within 0.5x-2x of the exit's size, else within 0.25x-4x, else none (exit excluded, counted); ties by earlier ts; without replacement per market, exits in time order.",
+   "Mark M_j(u): the FIRST complete capture of the market-day's marks with received_utc in [u, u + 2.5 h]; if its spread (ask - bid of YES) exceeds 5c or a quote is missing, the mark is unavailable (the literal 'spread <= 5c at that capture'; no search for a tighter later capture). Token 1 mid = 1 - YES mid.",
+   "mo(x) = M_j(ts_x + 2 h) - p_x; unit = matched pair, value mo(exit) - mo(control); a pair with either mark unavailable is unavailable (counted; worst case).",
+   "Cluster ways: Gamma event (event id, else market id), UTC day of the exit, holder (exit wallet hash). Day way under A-C1.",
+   "Route gate (binding at the point estimate): mean mo(exit) >= +0.5c with no rebate. The with-rebate version is NOT computable: the H data store no fee category (reported as unavailable).",
+   "GH (>= 150 matched exits with both marks, >= 50 events, >= 15 days, >= 30 holders; non-sports) is applied at both stages on the stage's own units; a fail -> not testable, p = 1, counted; no window extension. If no rank-1 hash of a concentrated token ever appears among the stored print wallets -> not testable (source).",
+   "Label-shuffle placebo: one fair coin per holder x market x snapshot-day block flips the sign of every pair in the block (label swap); advance = the p condition (floor off); 200 draws, seed 8183; calibrated iff the advance rate <= 1.5%.",
+   "Concentration attribution: H1_low = the same contrast for rank-1 exits of tokens with c < 0.2. Controls exist only where the market-day was stored in full (the other token had c >= 0.5), so H1_low may have few or no units; none -> unverified (never credited; does not block).",
+   "Robustness (i): the next-but-one capture as the mark (the SECOND capture with received_utc >= u in the market-day's marks, spread <= 5c at that capture); sign and >= half of H1. (ii) top 5 events / days dropped: p condition and floor. (iii) exit-size-weighted sign. (iv) months with >= 50 pairs: reported only. (v) worst case: unavailable pairs enter with contrast 0; sign and p condition. (vi) exits only from h + 15 min (controls re-matched): sign and >= half of H1.",
+   "Stage 2 uses p < alpha2 / k_used wherever Stage 1 uses 0.01; k_used = 1 + the other CB8 tests that advanced or have no final Stage-1 file yet. Window 2 must start at or after the first commit of the freeze spec + 2 h (checked when committed files are required).",
+   "BY triage label: p <= q / (m H_m), m = battery2.cumulative_count() at run time. Batch-Holm label k1 = 3, alpha 0.01; tests without a final file enter as p = 1.",
+   "MDE: (z_0.99 + z_0.80) x 6c x sqrt(2 / n_pairs) (design SD and deff); never used to change a floor."
+  ],
+  "mde": {
+   "alpha": 0.01,
+   "deff": 2.0,
+   "power": 0.8,
+   "sd": 0.06
+  },
+  "outputs": {
+   "census": "census_H.json",
+   "output_cap_gb": 0.01,
+   "stage1": "results_H1.json",
+   "stage1_copy": "cb8_h1_stage1.json",
+   "stage2": "results_H1_rep.json"
+  },
+  "placebo": {
+   "concentration_attribution": {
+    "c_low": 0.2,
+    "share": 0.5
+   },
+   "label_shuffle": {
+    "block": "holder x market x snapshot day",
+    "draws": 200,
+    "max_rate": 0.015,
+    "seed": 8183
+   }
+  },
+  "reported": {
+   "ranks": [
+    2,
+    3
+   ]
+  },
+  "robustness": {
+   "exit_from_robust_s": 900,
+   "half": 0.5,
+   "month_min_units": 50,
+   "month_sign_binding": false,
+   "next_but_one_capture": true,
+   "top_k": 5,
+   "worst_case": "unavailable pairs at contrast 0"
+  },
+  "scope": "CB8-H analysis: census (q0172), H1 Stage 1 (q0173, window 1), H1-rep Stage 2 (q0176, window 2)",
+  "wallet_key_fingerprint": "80ce5e81a539a570"
+ },
+ "func_sources_sha256": {
+  "HoldersView.__init__": "9e8cfd28b1769131c24acd6c802714afb49d647002db9010702bfb760d27d360",
+  "HoldersView._read": "545d8a3baf9727eb7305287e52d72f01a5cc0edba242aa10e42823148d05846e",
+  "HoldersView.day_markers": "ef54490240188d3ea085abe2064544222d6fb8530319b70e80e70c4bdfc013b9",
+  "HoldersView.days": "7a99adde828fb75355088bec2ca2524c09982e5d3622a94e85f44a092133792c",
+  "HoldersView.markbook": "0e17eefd4163e7bfdaf570a7607042a14669bd9233e5d6da4ee8dc42d5c0b942",
+  "HoldersView.prints": "8d1358f0b5aacfbec8a83d22ca61d86ed600f88878387ba39b9459fc7a56568f",
+  "HoldersView.prints_status": "9484b4519ed9578aebfd6304ea045dcf0c8502feef1bbfeaca7c56415cb4dbda",
+  "HoldersView.prints_terminal": "c961e3ebee0048f5b0fed8e7897307b5b081fe6b20fb0b9b103cd3434d6b767f",
+  "HoldersView.snapshot": "ed69bc36a4f161dd182f09dfaac7df4332b6928d0f5caa79713c6365f0db0692",
+  "HoldersView.window_record": "8f1a61488318bf45ebf8f4b9ebe9a57652d057fcf79d245d1788f7502e3f9779",
+  "MarkBook.__init__": "67565796744701a20f8d8c8536d90fe7ce7467fe3f1cc5597477288c20d5217b",
+  "MarkBook._pick": "331b78c2b9de10431b25c82550145517eb93ee18455fd3d359f6c20041d2ac74",
+  "MarkBook.available": "8d662738404c008d8a1a831559ea7be0793e49ba4fea9d55329e6b40b7cf9a61",
+  "MarkBook.mid": "3c0b005057255dc047ea499c0fc01685e4e98ce1239cb2267627cf94b00fdcf3",
+  "MarkBook.spreads": "9624c3e380a1bed62211a56a530de9bce76715386347596f96f7c7490bec194e",
+  "_books": "4b2639b5b3a649e35f26b2c9e1753594b3c8687bd323363eefe933eaf25af634",
+  "_clean": "09506effde6de659ec4b14268560be744d7a2f7a6928689530124437c7166e69",
+  "_cluster_sums": "f5f61ce926b7e7e9fd8223d2dd667341d37f67b44318e3c67c48f6eee6b83b97",
+  "_day": "2acf3daadfa6f270ed80d6f6b5c897ce9654dac65ee3debc105b4c838e9e8f31",
+  "_days_between": "b77422645633b755842b82d2186cca4ece31b4781ac4771f1697324ea080e329",
+  "_descriptive": "a36206b7720bd22020f0768af3957de6551cd051b517f354473ea0da8f726e5c",
+  "_f": "49a288f063100cbc7fce8128122720819f5b840f6f3b736c0d88788159a9160a",
+  "_fp": "ef6050224b11218b1c022001134794ae16724943fa6f0cc0445340f49b64746a",
+  "_manifest": "b1a07ef6e3cf522bb6b1d30bc56900e73269af7cfe4699d063481af6ec20e021",
+  "_mde_z": "a3356a5278ee5c0a14f2953198760c1659f1492ced6a5679cce91f82eee8a030",
+  "_other_stage1": "21f502b18fadab2811ddd0c1e4f33193ce580a1c1f51278225c084dc995b42ca",
+  "_parse_ts": "0374ff26a4136a5014bd076cf29a6d512c1ca6e53d437fcaece6ff608dfdb0a4",
+  "_test": "125eee88b2384446b06090ac6099c8a8d9c589f6bc4877634d8ebd36b1471197",
+  "_usable": "7ca7c4d3be7735a39309d0db548d60c95bd164ef6f0374221dfd8fd9866c19b2",
+  "attribution": "583b057fd85743964586851294b606b01b4a0aed6857af7888533173ebcb39c5",
+  "batch_holm_label": "9834b72a37acd028dcc1823dd4d6e59b1fface6aebd02f3f5f85d6af8c78f4c6",
+  "boot_ci": "8e893e257ca684cb0e6e8cfcf95c09a2c547bba285eb48a9b2aa8af58df61ebc",
+  "by_label": "2f82aee43a2ab5e5a7b5074178cf92bb0a8a37b2462380a60fdd82c485f1e40e",
+  "census_h": "c6557a21c3fb474fddd617f48729b171a66a32ce009261bf16b32f44d32291ae",
+  "concentration": "9b636a3d9297992eec041d913f70ef607f2c77d485329e715ea3d18131232375",
+  "core_ok": "5443bca7a29f73f73a4e9ec0d3f335c249cf1a679125c84d837626f921049f16",
+  "data_rules_sha": "ec1395754f2319cbc069c60ed61c2c13a63c4fd8971b3eecc8d44db5bd79b8ca",
+  "declared": "d8f027547ce0ae89fcabd0787d41c22f9fd93f772b3dae8a3adb95f995a1334d",
+  "drop_top": "b0fa2c2c427c22a47a81e8664a7f4cc0042bdca27c83a9922ad04c1a5a8b7915",
+  "evaluate_h1": "2b2fe7fbbba1df3b6b16b72a49f8edb3a28e2ff2f8630f56a001ac3607f37f44",
+  "exits": "98fc16007c9435c5a46f94f783204e6c2dbbae9d55045cd21671e7d68c1b2818",
+  "floor_ok": "d4f84f006db950efbee7440f9db458fbd2bf5740066e64929a32550441b34e51",
+  "freeze_commit_epoch": "db1c344a1b0820c2b8c95d1867ed9bc380009a792a5ccd10f1057bd52af48435",
+  "gh_gate": "23620cfd0d1fa1ab546f54faa7c2d301d6d721c281546f1185ef43fdc5ded258",
+  "half_magnitude_ok": "e1315e49a2151023b4f25d82520aa1a5303dd2d9887500f5805d637c68d1427f",
+  "hash_join": "f5bac0de6f42189caa9410449e9225c831a1536bbdb266ff7bc4b7848a28a02d",
+  "holm": "fe14782d210c45e8ea79e986c38d7ce04d1f75d5104477f4776f7d2ed99b9b83",
+  "label_shuffle_placebo": "2a81281eee80a6ef9eddacfa36df18a2570df746bd70236fbd1f7571b8ef5a08",
+  "lodo_sign": "a0008a6f75f1493c206c9bee47183c18c51bb5c81d07e109bb5d99bde98d6f74",
+  "log_trials": "d4d75554480ee5283d20bf83d88eb2e1ac5816c398d90cd6b1abbda81b9c09d9",
+  "make_rules_doc": "1406f37fe2b105b9603c265b51c61d087bda74431ef8ee2dbd73acb70cf3ecd1",
+  "market_days": "72285d0d0517767c745f5292f47e4b684cf7f0989e4e8d325bca8ad3be3396ef",
+  "match_controls": "e53c48c0155c863b05d154c5e9d314dbe20b15177dad5629ceb12077c44649e1",
+  "mde": "0742a6c1406ccce41aea04b9fd0c34f933a2bcc80d2f738d61be3c467f6c1d6a",
+  "mde_scaled": "cbe9bbe61deb38b19cd51c47b33fcd66d434e7e2dac85fcb151db5506a3828ec",
+  "month_sign": "ffa31a5a1a0291f2781b524eaa2990cfb60f65623ec0c9134f5eb5d00e748a0d",
+  "p_ok": "8431e8dd89c9dc464900f56223b396ff9468317a961df34fb0ee624161347190",
+  "pair_units": "01cdee4c834804dc9f43c9a6ecb86412ac7ce5dbaacd02ea6e99ad9ec200f3ef",
+  "placebo_summary": "ccef3be6edfb0af6415159b91c27df966aa67a056543e5557633666cd56e9996",
+  "read_pins": "489b401814199b65fdf00433daf09a0f140c1fa0e15a0e51dc528ef5fc685073",
+  "replicate_h": "a052a2f01ccb67a3dea808a97a765b3e98f125edbe1ba9bb6ef681c46e3cd764",
+  "reported": "2339f0acacfcc63efb861298fc5d1da19a55493bf60f16d28fb07db84e973047",
+  "require_freeze": "47571660237363ccfb8ccd401386be92b882181479307a9a588af653e4cc6ac6",
+  "require_ready": "d1a23f02f0af33994df6b534dc4022ab8e0369921020a3e6ff421841ff5fb170",
+  "require_stage1_advanced": "0504582ac9c5433025287c7200087c76ba5da84eaea6af96865aef7fd76cff66",
+  "robustness": "6d4ee6b31bb396081470d510a2d6cf2fe02c358e31a42b500e49b46e8995a951",
+  "run_census": "0238ed7beba86289aa053cf59ce72aa789f463496a1a5415c298413ae05f6063",
+  "screen_h": "66388ada9d666f82fc7f2a4283dd7f74e0f5d8a3f1b4901e8ac68a638073dcbc",
+  "sha256_file": "4f94a914e8c0a61c8bdc51d167b632ac747c159c6cad4eb1256f7953a234cbe9",
+  "small_g_pvalue": "1a94b013ef2dbe475942d7c041c355f6c36411d4eac5c60a95816dfd1f71cd91",
+  "stage2_k": "f92502755c155e0972ae4113c96e773b0ad6bd9aa8cf0aa6d0cbe1d05d9d2d6d",
+  "verify_rules_file": "a0fefae80d0b1277e4768107d998b722d2795da9cac426a7baed57901f5125c4",
+  "ways_test": "705019c050849fc6cb82d67662590cec5a9e480e28b5affd2b0bdaec393271fb",
+  "weighted_sign": "f9a3804c12e7a3c10ef8f38b954d5edcea7e5908c2e9c180fa3baea60ea3b4b3",
+  "window_of": "93509ff5da1f9af7dc75f25f3d19490e6ac2fbfeba52bde78906d559a7bba78e",
+  "write_results": "ec861d0c7645e3b729001e45458dd22c7e421e6fd148776f6aff1668dd2830bd",
+  "write_stage1_copy": "a077502f22be64a3d6ad3908644150f68d150aebe2475de0eb9a776abc730168"
+ },
+ "funcs_sha256": "cd8ed8bdf62807ece4b816e3bbf9e922e64e2fde8a2960534e08f57b03503358",
+ "rules_sha256": "193ab064711b68f3033d2c167343479522b2a75198e1e69a1340c2e0132616dd",
+ "rules_version": "cb8-h-analysis-rules-v3"
+}

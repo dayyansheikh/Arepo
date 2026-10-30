@@ -1,0 +1,33 @@
+{
+ "id": "q0148_cb7_screen_S",
+ "title": "CB7-S: S1 not-testable mode (writes the counted S1 line at p = 1 from the census gate GS; no sealed data opened, no slope analysis)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "whether CH63 advances to the prospective Stage 2",
+ "data": [
+  "model_specs/cb7_v1.json",
+  "creative_batch7/census.json (pinned by the freeze spec)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "screen",
+  "--family",
+  "S"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/results_S1.json",
+  "seals/cb7_s1_stage1.json (write-once Stage-1 copy; commit it)",
+  "trials.jsonl (count line + per-test, placebo and descriptive lines)"
+ ],
+ "next_action": "none: S1 is counted not testable; q0152 is not committed",
+ "notes": "CREATIVE_BATCH_7.md CB7-S, code-freeze check 2026-10-30. DRAFT, promote first of three after the CB7 freeze. Not-testable mode only: screen_s refuses unless the census records GS false (or a terminal h8_text state); it counts S1 at p = 1 and does not wait on q0156 (text-edit audit not required, no slope analysis). No network. Run order q0148, q0150, q0149. not_before is null in this draft: the CB7 freeze commit sets it to model_specs/cb7_v1.json dates.screen_not_before_utc when the draft is promoted (the screen also refuses before that time by itself). Operator: run scripts/oracle/union_jsonl.py on the host before the screen and pass --union-recorded-utc <time> in argv, otherwise the cumulative count in the result is labelled 'pre-union lower bound' (feeds only the BY triage label). Crash recovery: if the job dies after results_<T>.json is written but before the trial lines, a re-run refuses (write-once) and the test stays uncounted; the operator then appends the four trial lines by hand from the results file (see CB7_ANALYSIS_CODE_NOTE section 6b), never rewriting the results.",
+ "not_before": "2026-10-31T06:00:00Z"
+}

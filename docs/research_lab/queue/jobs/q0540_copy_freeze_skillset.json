@@ -1,0 +1,28 @@
+{
+ "id": "q0540_copy_freeze_skillset",
+ "title": "E026 freeze: build the frozen skilled-wallet set ONCE from the HB1 history panels (h1_first, h2_main, h3_power) with the frozen wallet-skill spec at t_freeze = REGISTERED_UTC; write-once skillset.csv.gz + manifest (sha256 goes into the spec pin); refuses at/after t_freeze or if a set exists",
+ "family": "copy_skilled",
+ "priority": 36,
+ "expected_value": "the fixed wallet list E026 copies; nothing is scored",
+ "data": [
+  "research_lab/history/{h1_first,h2_main,h3_power} (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1800,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_copy_skilled.py",
+  "freeze"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/copy_skilled/skillset/{skillset.csv.gz,skillset_manifest.json}"
+ ],
+ "next_action": "copy the manifest sha256 into model_specs/copy_skilled_v1.json skillset_sha256, then pin SPEC_SHA256 and register",
+ "notes": "PROMOTED 2026-10-21 ~14:55Z (autopilot): census q0544 done (register_k2), challenger R1 ACCEPT_WITH_FIXES -> fixes d11ba0a0 + e68ff67a -> R1 re-check R1_FIXES_OK_WITH_NOTES (no required item). Priority 36: runs after the q0545 memory check (37). The pins (skillset_sha256, code_sha256, impact_table_sha256, SPEC_SHA256) follow only after q0545 confirms the recorder memory. | (LIVE_TESTS_COPY.md 3 and 9, E026.) Promote only after the census q0544 (gate decision recorded), the challenger review and its fixes; it runs BEFORE the spec fill and the pin (its manifest sha256 becomes skillset_sha256). Must finish before REGISTERED_UTC (the code refuses at or after t_freeze) and before the registration commit (>= 24 h before REGISTERED_UTC). History load + profiles: WS1 measured 0.96 GB peak on the Mac; q0544 measures the same load on the host (LIVE_TESTS_COPY.md 8.2). Wallet hashes only; the file is never committed. Host dry run 2026-10-21 (census, same code path): history load + profiles 127 s, peak RSS 1.44 GB; mem_mb 1800 leaves headroom. Never alongside another multi-GB job. Wallet hashes only; the file is never committed. Must finish before REGISTERED_UTC (the code refuses afterwards). FREEZE CHECKS (challenger R1): before writing anything the job compares the built set with the spec `skill.expected` (eligible 35,587; skilled 3,559; every known outcome strictly before 2026-10-18T04:00Z) and refuses on any mismatch (nothing is written, so it can be investigated and re-run); the counts and max_known_ts are recorded in skillset_manifest.json under `checks` either way."
+}

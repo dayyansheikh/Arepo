@@ -1,0 +1,40 @@
+{
+ "id": "q0733_m2_j0",
+ "title": "M2 (CH264) J0: counts-only pre-freeze check = the J1 extractor (sections 3.2, 3.3, 3.5) in dry mode (MEASUREMENT_M2_CH264.md 9.1): one read-only pass over the last 8 days of snapshots (rows, sidecar) and the retained gamma_rules day files, printing the class funnel incl. reoverdue_seen / left_before_overdue_slot, eligible units a day, events and units per event, S1-S12 cell counts, no_favourite, cat_k distribution, rule-class coverage against CH269's last-row reading, whether committed poll lines carry a parseable receipt time, status-string forms, planned follow-up volume, the decision values of rules (a) / (e) and the sha256 of every pinned imported module; writes no units store, no state and no follow-up file",
+ "family": "creative_hypotheses",
+ "priority": 60,
+ "expected_value": "the only pre-freeze inputs M2 declares: rule (a) (window 21 or 42 days), rule (e) (receipt-time or day-before rule-class reader) and the observed S2 / S1 cell distribution; the J1 code sha256 and the module pins recorded in J0's seal",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots, stream_gamma_rules (all read-only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_m2_j0.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--rules-root",
+  "../data-dumps/research_lab/stream_gamma_rules",
+  "--last-days",
+  "8",
+  "--lookback-slots",
+  "12",
+  "--out",
+  "../data-dumps/research_lab/m2_j0/M2_J0.json",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m2_j0/M2_J0.json (counts only; informed (M2-J0))"
+ ],
+ "next_action": "copy decisions.rule_a_extend_to_42_days and decisions.rule_e_day_before_reader_applies into MEASUREMENT_M2_CH264.md before the design-text freeze (the only effects J0 may have); record code_sha256 (m2_j1.py, run_m2_j0.py), pins.imported_module_sha256 and pins.rule_lexicon_sha256 in J0's seal; a null decision means no full day / no committed poll line (unavailable), not a pass",
+ "notes": "PROMOTED 2026-10-30 by the orchestrator after review of the J1 code (21 tests) and its code note; the code note's ambiguities are ruled before the freeze and the code-freeze check lists every J1 change since this code_sha. Counts only, k = 0, uncounted. Read-only on every store; refuses roots that are not research_lab/snapshots and research_lab/stream_gamma_rules, missing roots, an output outside research_lab and an existing output (write-once by os.link); exits 75 above the 50 GiB bulk-directory guard or under 1 GiB free. Lane cpu (local stores only). Memory: about 165 MB at import plus per capture two end-date / status dicts of about 300k markets each and the rules index (text classified and dropped); planned peak 350-500 MB, mem_mb 600 per the text's 'under 600 MB'; peak_rss_mb is recorded in the output and the host dry run must confirm it. The first 12 captures only fold the overdue-seen set (the registered look-back is 84 slots; the host keeps about 8 days, disclosed in the output). No resolution, outcome, follow-up state or post-k price is read; prices appear only as S6 / S11 zone counts. Runs under the heavy-job lock convention, never beside a multi-GB job."
+}

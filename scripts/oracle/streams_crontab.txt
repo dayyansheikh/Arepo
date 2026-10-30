@@ -1,0 +1,11 @@
+# --- AREPO new prospective streams (docs/research_lab/NEW_STREAMS_2026-10-19.md). NOT INSTALLED: every line is commented. ---
+# Install (coordinator, after deploy.sh): uncomment the four job lines below and add them to `crontab -e` next to the AREPO block.
+# Each call is one poll of one stream: own flock (cron) + an internal per-stream lock, idempotent per slot, timeout-bounded,
+# disk-guarded (exit 75 and nothing written when root free disk < 4 GB, data-dumps > 40 GiB, or the stream's own cap).
+# None of them takes the collector pass lock (/tmp/arepo_collector.lock); all are light (one request to ~60 requests, < 100 MB RSS).
+# Remove: delete this block with `crontab -e`. Stop one stream: comment its line (the data files stay; nothing is deleted).
+#* * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_stream_predictit.lock timeout 55 nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_stream.py predictit >> /home/opc/arepo_collector/logs/stream-predictit.log 2>&1
+#*/5 * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_stream_smarkets.lock timeout 280 nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_stream.py smarkets >> /home/opc/arepo_collector/logs/stream-smarkets.log 2>&1
+#2-59/10 * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_stream_espn.lock timeout 280 nice -n 5 /home/opc/arepo/.venv/bin/python scripts/run_stream.py espn_odds >> /home/opc/arepo_collector/logs/stream-espn-odds.log 2>&1
+#50 * * * * cd /home/opc/arepo/backend && flock -n /tmp/arepo_stream_gamma_rules.lock timeout 870 nice -n 10 /home/opc/arepo/.venv/bin/python scripts/run_stream.py gamma_rules --top 3000 >> /home/opc/arepo_collector/logs/stream-gamma-rules.log 2>&1
+# --- end new streams ---

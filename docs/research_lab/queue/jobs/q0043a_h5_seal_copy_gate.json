@@ -1,0 +1,22 @@
+{
+ "id": "q0043a_h5_seal_copy_gate",
+ "title": "Gate: h5_cb1 seal copies committed \u2014 releases q0043 (h6_weather fetch)",
+ "family": "gate",
+ "priority": 61,
+ "expected_value": "releases q0043 only after docs/research_lab/seals/h5_cb1_SEAL.json (and ladders sibling) are committed",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 600,
+ "max_retries": 1,
+ "outputs": [],
+ "next_action": "q0043 runs (net lane)",
+ "notes": "Coordinator gate, 2026-10-17 autopilot. Seal copies pulled from host (sha256 fbac4c8d\u2026 / d3e7b335\u2026, byte-identical to host) and committed. Same trivial argv as q0033/q0039/q0080a."
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "fs2-phase2-source-acceptance-v1",
+  "implementation_commit": "54be417",
+  "run_directory": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_ae0d089c24e24bc18f1e6f548c878432",
+  "local_index": "/var/folders/l7/7lfr1jg93_n7jjr5wswnzs4r0000gn/T/arepo_v2_prospective_0tvwtyjk/fs2_test_source_acceptance.sqlite",
+  "purpose": "bounded source-interface acceptance; not a representative panel or model experiment",
+  "scope": "receipt-time source facts only; no historical trade-time availability or predictive claim",
+  "selection": "first of two active/open Gamma market responses; one token and that condition",
+  "request_limit": 3,
+  "record_count": 9,
+  "records_hash": "d0223262a42b759796e18ecb970f9811d9c0e889bea08d414f322373a7d98e32",
+  "idempotent_index_retry": true,
+  "index_receipt": {
+    "schema_version": "fs2-source-index-v1",
+    "records_hash": "d0223262a42b759796e18ecb970f9811d9c0e889bea08d414f322373a7d98e32",
+    "row_count": 9,
+    "dialect": "sqlite",
+    "index_committed_ack": {
+      "utc": "2026-09-20T22:37:12.785722Z",
+      "monotonic_ns": "989134253739916",
+      "clock_session_id": "362f1f9e-205b-4990-82b7-0e653fb8c76f"
+    }
+  },
+  "observations": [
+    {
+      "source_id": "clob.book",
+      "provenance": "prospective",
+      "missing_reason": "observed",
+      "source_event_at": null,
+      "payload_hash": "6b7314a5b7d9bde4b9cb7b843a430adf0d3f0bd3eaadfe4ce7b1a4eba59b7175",
+      "raw_bytes": 5854,
+      "first_received_at": "2026-09-20T22:37:11.943087+00:00",
+      "raw_durable_at": "2026-09-20T22:37:11.943529+00:00",
+      "parsed_at": "2026-09-20T22:37:11.963664+00:00",
+      "primary_facts_available_at": "2026-09-20T22:37:11.982298+00:00",
+      "status": 200
+    },
+    {
+      "source_id": "gamma.markets",
+      "provenance": "prospective",
+      "missing_reason": "observed",
+      "source_event_at": null,
+      "payload_hash": "80aadbc7b5f248f33a4490e1bd3f2b784c19b114c261511975a06ef46d76e4d5",
+      "raw_bytes": 12105,
+      "first_received_at": "2026-09-20T22:37:11.772688+00:00",
+      "raw_durable_at": "2026-09-20T22:37:11.773127+00:00",
+      "parsed_at": "2026-09-20T22:37:11.794388+00:00",
+      "primary_facts_available_at": "2026-09-20T22:37:11.813254+00:00",
+      "status": 200
+    },
+    {
+      "source_id": "data.v2.trades",
+      "provenance": "prospective",
+      "missing_reason": "observed",
+      "source_event_at": null,
+      "payload_hash": "02b70393d032272b4bfbd62f017ca2cad8654e7da117e862667b255769ea488a",
+      "raw_bytes": 1700,
+      "first_received_at": "2026-09-20T22:37:12.153589+00:00",
+      "raw_durable_at": "2026-09-20T22:37:12.156080+00:00",
+      "parsed_at": "2026-09-20T22:37:12.206989+00:00",
+      "primary_facts_available_at": "2026-09-20T22:37:12.226324+00:00",
+      "status": 200
+    }
+  ],
+  "raw_and_artefact_bytes": 83967
+}

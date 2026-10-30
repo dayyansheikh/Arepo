@@ -1,0 +1,33 @@
+{
+ "id": "q0563_lt5_size_check",
+ "title": "LT5 simulated-null size of the gates on the code to be pinned (DRAFT): 12 binding scenarios mapped to tests (LIVE_TESTS_5.md 1.8, worlds 1.8.1: FL binary iid / persistent / control corr 0.7 [J, F]; Markov 0.6 + MA(2) [J]; per-day Markov 0.6 and 0.9 with 12-shock daily targets, market strata [H]; AR(1) imb rho 0.6 and 0.9 with near-constant inside [R]; block circular-shift FL, min 16 units per market: rho 0, 0.6, 0.9, 0.95 with a 0.85-correlated control and MA(2) target [O]) x 2,000 worlds x 200 draws, seed 20261147, criterion rate <= 0.058",
+ "family": "live_tests_5",
+ "priority": 24,
+ "expected_value": "LIVE_TESTS_5.md 1.8 size statement at the pinned code",
+ "data": [
+  "none (simulation)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0561_lt5_census_captures",
+  "q0562_lt5_census_flow"
+ ],
+ "argv": [
+  "scripts/run_live_tests5.py",
+  "size-check",
+  "--out",
+  "../data-dumps/research_lab/live_tests5_census/size_check.json"
+ ],
+ "timeout_s": 115200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/size_check.json (with code_sha256 of the hashed modules and spec_sha256)"
+ ],
+ "next_action": "DO NOT PROMOTE until the LT5 code freeze is recorded and q0561/q0562 have fixed k. Then record the rates in LIVE_TESTS_5.md; a failing scenario sets only the tests it is binding for to 'SE check failed' (p = 1 in Holm, k unchanged; LIVE_TESTS_5.md 1.8); no rerun, no new seed, no gate variant",
+ "notes": "MOOT 2026-10-22: LT5 closed with every test dropped at census (LIVE_TESTS_5.md 7.3); never promote. | DRAFT, not in queue/jobs (LIVE_TESTS_5.md). Run once on the code to be pinned, after the censuses (R1 finding 9: k fixed before any size result exists); the output's code_sha256 must equal the spec map. Seed 20261147 is declared in LIVE_TESTS_5.md before any run; no preliminary run of the binding scenarios at this seed. max_retries 1 is a deterministic-crash retry only: the same code, seed, worlds and draws, allowed only when the attempt wrote no output; a written output is never rerun. Estimate 10-18 h on the host (12 scenarios; LT4's six were estimated at 5-9 h). Counts 0. Census code check finding 6: the binding run uses the spec's worlds/draws (the runner refuses --worlds/--draws without --dev, and a --dev output is marked dev=true and is not the size statement); the scenario map must match the spec exactly or the check raises; spec_sha256 is recorded in the output."
+}

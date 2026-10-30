@@ -1,0 +1,22 @@
+{
+ "id": "q0033_h5_fix_gate",
+ "title": "CB1-F gate: h5 window/trade-cap/T_seal self-check on synthetic inputs (no network)",
+ "family": "history_data",
+ "priority": 66,
+ "expected_value": "q0016/q0017 only start once the reviewed h5 fixes (price-window union independent of close time, trades capped at T_fetch, no chunk after T_seal) are verified on the host",
+ "data": [],
+ "resources": {
+  "mem_mb": 200,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "selfcheck"
+ ],
+ "timeout_s": 300,
+ "max_retries": 0,
+ "outputs": [],
+ "next_action": "q0016 and q0017 may start",
+ "notes": "Synthetic assertions only; touches no files and makes no requests. Exit 0 prints {\"selfcheck\": \"ok\"}. Disclosure of the h2 analogue: scripts/cb1_h5.py count-h2-coverage (read-only)."
+}

@@ -34,7 +34,7 @@ without executing untrusted bundled JavaScript.
 
 The `.dc.html` mockups are branded **Astrolabe** with a **warm gold** accent
 (`#b8791f`), a cream ground (`#f6f4ef`) and **Barlow / Barlow Condensed** type.
-The redesign brief (`AREPO_REDESIGN_PROMPT.md`) supersedes all three of those:
+The redesign brief (`docs/archive/prompts/AREPO_REDESIGN_PROMPT.md`) supersedes all three of those:
 the product becomes **Arepo**, the accent becomes **red `#E50C0E`**, and the type
 becomes **Geist Sans (Inter fallback)**.
 

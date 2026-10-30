@@ -1,0 +1,1324 @@
+{
+ "decision": "D118",
+ "title": "Live validation of same-stratum control selection and pair completion",
+ "outcome": "PASS",
+ "authoritative": true,
+ "interpretation": "PASS: E0-E9 pass, 0 ENGINEERING findings, 12/12 complete chains, 2 matched trigger/control pairs drawn and both complete. Validates the live control-selection and pair-completion MECHANISM on the temporal \u2229 Gamma liquidity>=$1000 population only (post-hoc population, declared). Pair dependence: group membership unknown from receipts; pairs count as mechanism execution only, never independent observations. No predictive, calibration, prevalence or population claim.",
+ "launch": {
+  "implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+  "started_at": "2026-10-11T09:22:37.132681+00:00",
+  "script_sha256": "52dc9e356dce523025b7eeb73f46361adf349baf3b38f6d653a0fde2272775b6",
+  "protocol_sha256": "4278d766b80a2dc0d4248031dae159101546bafa87cc0c599dfc6af8669da12a",
+  "freeze_record_sha256": "85b7b194cabba516113ce6c236125c700b18bb991d021126fe7287c7c68753f3",
+  "frozen_hashes": {
+   "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+   "backend/astrolabe/research_panel/d118_evaluator.py": "1647a743b11f6b9f206374faac44a11ab6be8588175d75b579b7e55fc1795b7b",
+   "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+   "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+   "backend/scripts/d118_launch.py": "e017ebc5fd04593ccfcdb66c5319a268e49a196d6c4a003b6708d58c16a3e5e8",
+   "backend/scripts/evaluate_d118.py": "e799450758a4c5f8a0f97e1472cb484296cba3c80c1256b3853430f5422ce450",
+   "backend/tests/unit/test_d118_launch.py": "cef36d3aa4e85467cb19caac0c1f3a4c8630ab3f231f8042d5ea87487fd82c11",
+   "backend/tests/unit/test_research_panel_d118_evaluator.py": "0ff3c7766b9228cd62dc105e31051eef3acaaf8ea0268552c4a0b091bcc9c22b",
+   "backend/tests/unit/test_research_panel_liquidity_population.py": "f4feecdd606a8a3a951a9ef0e914a0ffc3979b72b0804f44a62c1b1fcdada41b",
+   "docs/implementation/d118/D118_CONTROL_PAIRING_PROTOCOL.md": "4278d766b80a2dc0d4248031dae159101546bafa87cc0c599dfc6af8669da12a"
+  },
+  "frozen_hashes_verified": true,
+  "freeze_commit": "dad3c0f63dca47b6edabc0f019afd04093ba2bc7",
+  "code_unchanged_since_freeze": true,
+  "ancestor_8afbdff": true,
+  "outside_collector_window": true,
+  "free_bytes": 18448039936,
+  "required_free_bytes": 15523643392,
+  "collectors_running": {},
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d118/arepo_d118_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "sqlite+aiosqlite:////private/tmp/claude-501/arepo_d118/d118_isolated.sqlite"
+  }
+ },
+ "result": {
+  "implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+  "started_at": "2026-10-11T09:22:37.132681+00:00",
+  "script_sha256": "52dc9e356dce523025b7eeb73f46361adf349baf3b38f6d653a0fde2272775b6",
+  "protocol_sha256": "4278d766b80a2dc0d4248031dae159101546bafa87cc0c599dfc6af8669da12a",
+  "freeze_record_sha256": "85b7b194cabba516113ce6c236125c700b18bb991d021126fe7287c7c68753f3",
+  "frozen_hashes": {
+   "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+   "backend/astrolabe/research_panel/d118_evaluator.py": "1647a743b11f6b9f206374faac44a11ab6be8588175d75b579b7e55fc1795b7b",
+   "backend/astrolabe/research_panel/panel_declaration.py": "9ab71ae0c0411d5941c99ec1270067bd608dc63a76ceffc956908055fc75ba4a",
+   "backend/astrolabe/research_panel/panel_selection.py": "ecd2ddd5af58d893f3d123a2715161cd693298e93990a0100558175d2fbd9f3b",
+   "backend/scripts/d118_launch.py": "e017ebc5fd04593ccfcdb66c5319a268e49a196d6c4a003b6708d58c16a3e5e8",
+   "backend/scripts/evaluate_d118.py": "e799450758a4c5f8a0f97e1472cb484296cba3c80c1256b3853430f5422ce450",
+   "backend/tests/unit/test_d118_launch.py": "cef36d3aa4e85467cb19caac0c1f3a4c8630ab3f231f8042d5ea87487fd82c11",
+   "backend/tests/unit/test_research_panel_d118_evaluator.py": "0ff3c7766b9228cd62dc105e31051eef3acaaf8ea0268552c4a0b091bcc9c22b",
+   "backend/tests/unit/test_research_panel_liquidity_population.py": "f4feecdd606a8a3a951a9ef0e914a0ffc3979b72b0804f44a62c1b1fcdada41b",
+   "docs/implementation/d118/D118_CONTROL_PAIRING_PROTOCOL.md": "4278d766b80a2dc0d4248031dae159101546bafa87cc0c599dfc6af8669da12a"
+  },
+  "frozen_hashes_verified": true,
+  "freeze_commit": "dad3c0f63dca47b6edabc0f019afd04093ba2bc7",
+  "code_unchanged_since_freeze": true,
+  "ancestor_8afbdff": true,
+  "outside_collector_window": true,
+  "free_bytes": 18448039936,
+  "required_free_bytes": 15523643392,
+  "collectors_running": {},
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d118/arepo_d118_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "sqlite+aiosqlite:////private/tmp/claude-501/arepo_d118/d118_isolated.sqlite"
+  },
+  "completed_at": "2026-10-11T09:35:50.687241+00:00",
+  "elapsed_ns": "793548162958",
+  "returncode": 0,
+  "collectors_running_after": {}
+ },
+ "run_file_sha256": {
+  "fs2_d118_control_pairing_1_launch.json": "62f4b478bdd0ff776f278fc45a5820f146bc7fb865d85a8debca1b6dad1f3f19",
+  "fs2_d118_control_pairing_1_result.json": "d3e9080a805be8f8df9ccdd4adcdb612d5cc125e3cbd769ee337954ea23e47b3",
+  "fs2_d118_control_pairing_1_stdout.log": "2710e694fa1fef6b2ffab273959e8ae7353ff79515a6f06f5cc34c6237b3e66f",
+  "fs2_d118_control_pairing_1_stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fs2_d118_control_pairing_1_evaluation.json": "4b23541d71256676383358979e558291dfba191d04e6f6c4ec1940cadfc4a3e0"
+ },
+ "freeze_record_sha256": "85b7b194cabba516113ce6c236125c700b18bb991d021126fe7287c7c68753f3",
+ "run_roots": {
+  "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d118_control_pairing_1",
+  "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d118_control_pairing_1",
+  "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d118_control_pairing_1",
+  "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d118_control_pairing_1",
+  "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d118_control_pairing_1"
+ },
+ "stdout_stages": [
+  {
+   "stage": "preflight",
+   "at": "2026-10-11T09:22:37.415260Z"
+  },
+  {
+   "stage": "frame_owned",
+   "at": "2026-10-11T09:22:37.415371Z"
+  },
+  {
+   "stage": "frame_complete",
+   "at": "2026-10-11T09:28:05.990046Z",
+   "state": "exhausted_consistent",
+   "interval_start": {
+    "clock_session_id": "97b9f75e-6018-49e1-8408-7decfe65eff3",
+    "monotonic_ns": "39734093412208",
+    "utc": "2026-10-11T09:22:58.914727Z"
+   },
+   "interval_end": {
+    "clock_session_id": "97b9f75e-6018-49e1-8408-7decfe65eff3",
+    "monotonic_ns": "39904339484125",
+    "utc": "2026-10-11T09:25:49.162114Z"
+   },
+   "frame_available_at": {
+    "clock_session_id": "97b9f75e-6018-49e1-8408-7decfe65eff3",
+    "monotonic_ns": "39949653159916",
+    "utc": "2026-10-11T09:26:34.476123Z"
+   }
+  },
+  {
+   "stage": "panel_declared",
+   "at": "2026-10-11T09:28:06.018849Z"
+  },
+  {
+   "stage": "selection_complete",
+   "at": "2026-10-11T09:30:53.723933Z"
+  },
+  {
+   "stage": "complete",
+   "at": "2026-10-11T09:35:50.629351Z",
+   "state": "pilot_collected_unaccepted",
+   "peak_resident_bytes": 937754624
+  },
+  {
+   "stage": "accounting",
+   "at": "2026-10-11T09:35:50.630288Z"
+  }
+ ],
+ "evaluator_report": {
+  "authoritative": true,
+  "classification_table_sha256": "6c7f273e43d51de7850d656d48b5913a589ec40f4edcd745d876c6e04130cbc4",
+  "common_mode": [],
+  "diagnostics": {
+   "descriptive_only": "not acceptance; for comparability with D089-era counts",
+   "eligible_completed_histories": 12,
+   "eligible_histories_of_12": "12/12",
+   "max_window_age_at_freeze_s": 25.738517,
+   "n": 12,
+   "observed_matched_pairs": 2,
+   "observed_origins": 12,
+   "observed_origins_of_12": "12/12",
+   "per_window": {
+    "2850889": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "2850890": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "3249727": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "4061179": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "4061184": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "4061486": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5305305": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5463116": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5509722": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5520093": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5522757": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "676937": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    }
+   },
+   "target_ratio_5v_ge_4o": true,
+   "valid_targets": 12
+  },
+  "evaluator_version": "d118-evaluator-v1",
+  "finding_counts": {
+   "OK": 84
+  },
+  "findings": [],
+  "gates": {
+   "E0": {
+    "ancestry_note": "ancestry of the required commit is a launch precondition",
+    "commits": {
+     "frame_read_policy.implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+     "panel_policy.frame_implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+     "runtime_read_policy.implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+     "selection_policy.implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+     "worker_policy.implementation_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea"
+    },
+    "pass": true,
+    "provenance": {
+     "2850889.origin_capture": "prospective",
+     "2850889.screening_capture": "prospective",
+     "2850889.socket_policy": "prospective",
+     "2850889.socket_report": "prospective",
+     "2850889.target_capture[0]": "prospective",
+     "2850890.origin_capture": "prospective",
+     "2850890.screening_capture": "prospective",
+     "2850890.socket_policy": "prospective",
+     "2850890.socket_report": "prospective",
+     "2850890.target_capture[0]": "prospective",
+     "3249727.origin_capture": "prospective",
+     "3249727.screening_capture": "prospective",
+     "3249727.socket_policy": "prospective",
+     "3249727.socket_report": "prospective",
+     "3249727.target_capture[0]": "prospective",
+     "4061179.origin_capture": "prospective",
+     "4061179.screening_capture": "prospective",
+     "4061179.socket_policy": "prospective",
+     "4061179.socket_report": "prospective",
+     "4061179.target_capture[0]": "prospective",
+     "4061184.origin_capture": "prospective",
+     "4061184.screening_capture": "prospective",
+     "4061184.socket_policy": "prospective",
+     "4061184.socket_report": "prospective",
+     "4061184.target_capture[0]": "prospective",
+     "4061486.origin_capture": "prospective",
+     "4061486.screening_capture": "prospective",
+     "4061486.socket_policy": "prospective",
+     "4061486.socket_report": "prospective",
+     "4061486.target_capture[0]": "prospective",
+     "5305305.origin_capture": "prospective",
+     "5305305.screening_capture": "prospective",
+     "5305305.socket_policy": "prospective",
+     "5305305.socket_report": "prospective",
+     "5305305.target_capture[0]": "prospective",
+     "5463116.origin_capture": "prospective",
+     "5463116.screening_capture": "prospective",
+     "5463116.socket_policy": "prospective",
+     "5463116.socket_report": "prospective",
+     "5463116.target_capture[0]": "prospective",
+     "5509722.origin_capture": "prospective",
+     "5509722.screening_capture": "prospective",
+     "5509722.socket_policy": "prospective",
+     "5509722.socket_report": "prospective",
+     "5509722.target_capture[0]": "prospective",
+     "5520093.origin_capture": "prospective",
+     "5520093.screening_capture": "prospective",
+     "5520093.socket_policy": "prospective",
+     "5520093.socket_report": "prospective",
+     "5520093.target_capture[0]": "prospective",
+     "5522757.origin_capture": "prospective",
+     "5522757.screening_capture": "prospective",
+     "5522757.socket_policy": "prospective",
+     "5522757.socket_report": "prospective",
+     "5522757.target_capture[0]": "prospective",
+     "676937.origin_capture": "prospective",
+     "676937.screening_capture": "prospective",
+     "676937.socket_policy": "prospective",
+     "676937.socket_report": "prospective",
+     "676937.target_capture[0]": "prospective",
+     "activation_facts": "prospective",
+     "frame_original_report": "prospective",
+     "read_receipt.original_provenance_class": "prospective",
+     "runtime_policy": "prospective",
+     "runtime_report": "prospective",
+     "screening_policy.source": "prospective",
+     "screening_report": "prospective",
+     "selection_report": "prospective",
+     "worker_policy": "prospective",
+     "worker_report.recovery[0].original_provenance_class": "prospective",
+     "worker_report.runtime": "prospective",
+     "worker_report.screening": "prospective"
+    },
+    "reasons": [],
+    "required_ancestor_commit": "8afbdff",
+    "screening_schemas": {
+     "screening_policy": "fs2-screening-owned-selection-v4",
+     "screening_report": "fs2-screening-owned-selection-v4",
+     "worker_report.screening": "fs2-screening-owned-selection-v4"
+    }
+   },
+   "E1": {
+    "pass": true,
+    "reasons": []
+   },
+   "E2": {
+    "allowed_exclusion_reasons": [
+     "frame_gamma_liquidity_below_1000",
+     "frame_gamma_liquidity_missing_or_invalid",
+     "scheduled_end_at_or_before_selection_declaration"
+    ],
+    "pass": true,
+    "population_exclusion_counts": {
+     "frame_gamma_liquidity_below_1000": 155430,
+     "frame_gamma_liquidity_missing_or_invalid": 4460,
+     "scheduled_end_at_or_before_selection_declaration": 28513
+    },
+    "reasons": [],
+    "selection_counts": {
+     "duplicate_market_rows": 0,
+     "eligible_row_count": 240487,
+     "excluded:identity_unresolved": 44,
+     "metadata:category:missing": 240487,
+     "metadata:close_time_utc:missing": 486,
+     "metadata:close_time_utc:present": 240001,
+     "metadata:liquidity:missing": 29542,
+     "metadata:liquidity:present": 210945,
+     "metadata:metadata_probability:missing": 83,
+     "metadata:metadata_probability:present": 240404,
+     "sampling_members": 240487,
+     "source_rows": 240531
+    },
+    "underfill_strata": [],
+    "unique_selected_markets": 12,
+    "zero_inclusion_exclusions": 188403
+   },
+   "E3": {
+    "pass": true,
+    "reasons": [],
+    "states": {
+     "triggered": 7,
+     "untriggered": 5
+    }
+   },
+   "E4": {
+    "pass": true,
+    "reasons": []
+   },
+   "E5": {
+    "pass": true,
+    "reasons": []
+   },
+   "E6": {
+    "pass": true,
+    "reasons": []
+   },
+   "E7": {
+    "pass": true,
+    "reasons": []
+   },
+   "E8": {
+    "pass": true,
+    "reasons": []
+   },
+   "E9": {
+    "pass": true,
+    "reasons": []
+   }
+  },
+  "launch_commit": "8dc262fa49c0953f592f066fca01f54fc47325ea",
+  "members": {
+   "2850889": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "2850889",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": "2c714e40cab559c93b4860528d1c47ce14f43327a93c72d26f681ba2d66ed4c2"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "94880722338527950275952147877008794104926369988947412397586488561797058714707"
+   },
+   "2850890": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "untriggered",
+    "market_id": "2850890",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "2c714e40cab559c93b4860528d1c47ce14f43327a93c72d26f681ba2d66ed4c2"
+      ],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": null
+     },
+     {
+      "arm": "scheduled",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "40017366714685562392204598960828557771324295274904137592656623132418504296211"
+   },
+   "3249727": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "untriggered",
+    "market_id": "3249727",
+    "roles": [
+     {
+      "arm": "control",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [
+       "c001abe4e257f0ef5aa8a0aa6d16832925e845f7007a84b2c3167fed4f3381f0"
+      ],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": null
+     },
+     {
+      "arm": "scheduled",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "97933550120525776267576155488130964987533597515187589117993725398240327971936"
+   },
+   "4061179": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "4061179",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": "c001abe4e257f0ef5aa8a0aa6d16832925e845f7007a84b2c3167fed4f3381f0"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "77439866785816434346667001888730315821704934308776001279450565613970089300364"
+   },
+   "4061184": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "4061184",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+      "trigger_id": "c02600bb4e0b20906cf035a655759c05ba264083681cb5bca5035b4c2c916773"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "10711317548946420322000267600066611789189661863814331578898338718364208767706"
+   },
+   "4061486": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "4061486",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": "c718424b543627face6fb0199c4c1ccf560dfb9d959767a6b6e27133cb69c030"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "45018840645378813614929311834875678761183637633685195607712870001341459056188"
+   },
+   "5305305": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "untriggered",
+    "market_id": "5305305",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [],
+      "stratum": "f07cff6e816ab0672919e2625fe37f28a3abc5b96d73110fab9ac638a535e969",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "46950527774736009563332377679139020372341255546150452915598640516788339493051"
+   },
+   "5463116": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "untriggered",
+    "market_id": "5463116",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [],
+      "stratum": "f07cff6e816ab0672919e2625fe37f28a3abc5b96d73110fab9ac638a535e969",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "10237180427696740703799615167657350538649150563315909249407822460012718579104"
+   },
+   "5509722": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "untriggered",
+    "market_id": "5509722",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "untriggered",
+      "matched_trigger_ids": [],
+      "stratum": "f07cff6e816ab0672919e2625fe37f28a3abc5b96d73110fab9ac638a535e969",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "untriggered",
+      "reasons": [],
+      "state": "untriggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "60834534944734972177592767055823928294827842495407513467996239026380338638896"
+   },
+   "5520093": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "5520093",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": "f57fef92564888bb1ba01b688695a0f5158cb89cc5816207d6ac1e85ade160e1"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "100869302225677079159788624773659131949513227302022061318598567021821744817522"
+   },
+   "5522757": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "5522757",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "254ca29f35044e231622eb854e16eea659daed684b6d325fe00da44f464cb155",
+      "trigger_id": "468c2bc67ba6784170922b142b694364bdee1af8f4ca8cf062dc5873a074f36d"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "107185925286895012763743096015806077322831158150520607179412379370965543986213"
+   },
+   "676937": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "676937",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+      "trigger_id": "af9e0b05c46d99f387a6b80e4e1b232912831c36e325d644c83c6b2dae595887"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "41705069735159156999504661820390416470161634904927625228523488895800195498379"
+   }
+  },
+  "non_authoritative_logic_only": false,
+  "outcome": "PASS",
+  "outcome_reasons": [
+   "observed matched pair with both members' complete chains"
+  ],
+  "pairs": [
+   {
+    "both_complete": true,
+    "control_market": "2850890",
+    "dependence": {
+     "basis": "verified 2xx screening gamma.market receipts (events[].id, negRiskMarketID)",
+     "counts_as": "mechanism execution only; never an independent observation",
+     "shared": {
+      "event_ids": [],
+      "neg_risk_market_ids": []
+     },
+     "state": "unknown_group_membership"
+    },
+    "link": "control.matched_trigger_ids == triggered.trigger_id (evidence_id)",
+    "stratum": "772845f0e14e2e63ae464535fa41ebe6de474df610d8b99524acbf56a5b43b70",
+    "trigger_id": "2c714e40cab559c93b4860528d1c47ce14f43327a93c72d26f681ba2d66ed4c2",
+    "triggered_market": "2850889",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   },
+   {
+    "both_complete": true,
+    "control_market": "3249727",
+    "dependence": {
+     "basis": "verified 2xx screening gamma.market receipts (events[].id, negRiskMarketID)",
+     "counts_as": "mechanism execution only; never an independent observation",
+     "shared": {
+      "event_ids": [],
+      "neg_risk_market_ids": []
+     },
+     "state": "unknown_group_membership"
+    },
+    "link": "control.matched_trigger_ids == triggered.trigger_id (evidence_id)",
+    "stratum": "8b39ecae19aa7f52d7d85b8f80bc928f4310cd2df35a53747f2498e51afa44fc",
+    "trigger_id": "c001abe4e257f0ef5aa8a0aa6d16832925e845f7007a84b2c3167fed4f3381f0",
+    "triggered_market": "4061179",
+    "unobserved_causes": {},
+    "unobserved_members": []
+   }
+  ],
+  "required_ancestor_commit": "8afbdff",
+  "roots": {
+   "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d118_control_pairing_1",
+   "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d118_control_pairing_1",
+   "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d118_control_pairing_1",
+   "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d118_control_pairing_1",
+   "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d118_control_pairing_1"
+  },
+  "summary": {
+   "authenticated_state_members": 12,
+   "common_mode": [],
+   "complete_chains": 12,
+   "control_assignments": 2,
+   "control_pool_zero_in_triggered_strata": false,
+   "engineering_findings": 0,
+   "failed_gates": [],
+   "n_members": 12,
+   "n_triggered_members": 7,
+   "n_unavailable_members": 0,
+   "n_untriggered_members": 5,
+   "pairs_both_complete": 2,
+   "pairs_drawn": 2,
+   "pass_pair_requires": "both pair members' origins observed with eligible histories and valid (observed) targets",
+   "strata_report_computed": true
+  },
+  "test_override_used": [],
+  "timeline": {
+   "margins": {
+    "assessment_ages_at_activation": [
+     {
+      "assessment_age_s": 28.803316,
+      "market_id": "2850889",
+      "window_age_s": 29.70258
+     },
+     {
+      "assessment_age_s": 28.205215,
+      "market_id": "2850890",
+      "window_age_s": 29.558026
+     },
+     {
+      "assessment_age_s": 28.200978,
+      "market_id": "3249727",
+      "window_age_s": 29.543492
+     },
+     {
+      "assessment_age_s": 28.202704,
+      "market_id": "4061179",
+      "window_age_s": 29.584558
+     },
+     {
+      "assessment_age_s": 27.981222,
+      "market_id": "4061184",
+      "window_age_s": 29.526511
+     },
+     {
+      "assessment_age_s": 28.20292,
+      "market_id": "4061486",
+      "window_age_s": 29.68463
+     },
+     {
+      "assessment_age_s": 28.172813,
+      "market_id": "5305305",
+      "window_age_s": 29.618773
+     },
+     {
+      "assessment_age_s": 28.201879,
+      "market_id": "5463116",
+      "window_age_s": 29.652411
+     },
+     {
+      "assessment_age_s": 15.4477,
+      "market_id": "5509722",
+      "window_age_s": 16.996177
+     },
+     {
+      "assessment_age_s": 12.45908,
+      "market_id": "5520093",
+      "window_age_s": 12.978744
+     },
+     {
+      "assessment_age_s": 12.459035,
+      "market_id": "5522757",
+      "window_age_s": 12.927476
+     },
+     {
+      "assessment_age_s": 12.691901,
+      "market_id": "676937",
+      "window_age_s": 13.002044
+     }
+    ],
+    "assessment_limits_s": {
+     "assessment": 120,
+     "window": 120
+    },
+    "frame_age_margin_at_activation_ack_s": 3036.212213,
+    "window_age_at_freeze": [
+     {
+      "market_id": "2850889",
+      "window_age_at_freeze_s": 22.527296
+     },
+     {
+      "market_id": "2850890",
+      "window_age_at_freeze_s": 25.738517
+     },
+     {
+      "market_id": "3249727",
+      "window_age_at_freeze_s": 22.111769
+     },
+     {
+      "market_id": "4061179",
+      "window_age_at_freeze_s": 25.672469
+     },
+     {
+      "market_id": "4061184",
+      "window_age_at_freeze_s": 21.978317
+     },
+     {
+      "market_id": "4061486",
+      "window_age_at_freeze_s": 22.080366
+     },
+     {
+      "market_id": "5305305",
+      "window_age_at_freeze_s": 24.808091
+     },
+     {
+      "market_id": "5463116",
+      "window_age_at_freeze_s": 21.503987
+     },
+     {
+      "market_id": "5509722",
+      "window_age_at_freeze_s": 12.792451
+     },
+     {
+      "market_id": "5520093",
+      "window_age_at_freeze_s": 6.568808
+     },
+     {
+      "market_id": "5522757",
+      "window_age_at_freeze_s": 9.916656
+     },
+     {
+      "market_id": "676937",
+      "window_age_at_freeze_s": 7.185471
+     }
+    ]
+   },
+   "note": "estimates of measured clocks; frame age (fail-closed) is the real bound",
+   "seconds_after_interval_start": {
+    "activation_acknowledged_at": 563.787787,
+    "activation_read_completed_at": 563.78291,
+    "frame_available_at": 215.561396,
+    "interval_end": 170.247387,
+    "interval_start": 0.0,
+    "panel_declared_at": 307.098405,
+    "runtime_declared_at": 562.821138,
+    "runtime_finished_at": 647.544353,
+    "screening_available_at": 563.298326,
+    "screening_cutoff": 562.827624,
+    "screening_declared_at": 533.626517,
+    "selection_computed_at": 419.706843,
+    "selection_cutoff": 410.600237,
+    "selection_declared_at": 307.116164,
+    "worker_declared_at": 475.802929,
+    "worker_reported_at": 771.699258
+   }
+  }
+ }
+}

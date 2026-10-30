@@ -1,0 +1,261 @@
+{
+  "decision": "D093",
+  "gate_result": "per_selected_market_eligibility_review_complete; empirically relevant external/related features unavailable",
+  "input_evidence_sha256": "5f7c8f9e9803c3f97567c7ba9383ab255c9544f7ec56834c102b9e5120e72cf5",
+  "limitations": [
+    "Current source rights/access not checked; no new external source is admitted by a resolution-source reference.",
+    "Shared rules support pairwise research relevance, not a complete mutually exclusive/exhaustive outcome group or probability-sum feature.",
+    "No observation, grouping, eligibility or source clock in the original pilot is rewritten.",
+    "F01/F02/F10/F27 remain unavailable: fill completeness, pre-trade order, execution-adjusted changes and native continuity are not proven.",
+    "Two irregular snapshots cannot reconstruct the missing seven-component v1 baseline. Phase4 baseline locking is deferred."
+  ],
+  "markets": [
+    {
+      "description": "This market will resolve according to the nation that wins the UEFA EURO 2028. \n\nIf at any point it becomes impossible for a listed nation to win the UEFA EURO 2028 per the rules of UEFA (e.g., they are eliminated in the playoffs), the corresponding market will resolve to \u201cNo\u201d.\n\nIf the UEFA EURO 2028 is cancelled, postponed after July 23, 2028, 11:59 PM ET or there is otherwise no winner declared within that timeframe, this market will resolve to \u201cOther\u201d.\n\nThe primary resolution source will be official information from UEFA; however, a consensus of credible reporting may also be used.\n",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "France",
+      "market_id": "3004681",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Will France win the UEFA EURO 2028?",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "",
+      "source_reference": {
+        "bytes": 3432,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": null,
+          "liquidity": "376955.4445",
+          "volume": "5791.515538000001"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_000/0fc977a7-2faa-4961-baf5-f8491b89171c/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_000/0fc977a7-2faa-4961-baf5-f8491b89171c/receipt.json",
+        "receipt_sha256": "94be9e9a4c916bc97abc38d08b6d2b83ab97e71abadf02b48530b6ae5116e50d",
+        "sha256": "859d56801bbe01ce6d56327b3b33059202919819b73e298b46269c7730637007",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "This market will resolve according to the nation that wins the UEFA EURO 2028. \n\nIf at any point it becomes impossible for a listed nation to win the UEFA EURO 2028 per the rules of UEFA (e.g., they are eliminated in the playoffs), the corresponding market will resolve to \u201cNo\u201d.\n\nIf the UEFA EURO 2028 is cancelled, postponed after July 23, 2028, 11:59 PM ET or there is otherwise no winner declared within that timeframe, this market will resolve to \u201cOther\u201d.\n\nThe primary resolution source will be official information from UEFA; however, a consensus of credible reporting may also be used.\n",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Spain",
+      "market_id": "3004713",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Will Spain win the UEFA EURO 2028?",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "",
+      "source_reference": {
+        "bytes": 3433,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": null,
+          "liquidity": "430055.5577",
+          "volume": "6503.454192"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_001/14c15073-2043-4f91-b03a-fbde51c72716/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_001/14c15073-2043-4f91-b03a-fbde51c72716/receipt.json",
+        "receipt_sha256": "42e80f2dc63f60ac0cea671b65b9c069084442e46b8f0b1c8b71d4180d39d89f",
+        "sha256": "00f509518199b0359213694cab4ec76bae883c1b9ec66fc99f950418379ccaeb",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "In the upcoming NFL game, scheduled for October 5 at 8:15 PM ET:\n\nThis market will resolve to \"Saints\" if the Saints win the game by 3 or more points.\n\nOtherwise, this market will resolve to \"Falcons\". If the game ends in a tie, this market will resolve to \"Falcons\".\n\nIf the game is postponed, this market will remain open until the game has been completed. If the game is canceled entirely, with no make-up game, this market will resolve 50-50.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Spread -2.5",
+      "market_id": "3875116",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Spread: Saints (-2.5)",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "https://www.nfl.com/scores",
+      "source_reference": {
+        "bytes": 3299,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-10-06T00:15:00Z",
+          "liquidity": "514751.1238",
+          "volume": "182848.51154800004"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_002/c5edc632-29d3-40ab-9ad8-ea41a57a93d4/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_002/c5edc632-29d3-40ab-9ad8-ea41a57a93d4/receipt.json",
+        "receipt_sha256": "b7edcbfe0da324128965c2bfc12ad12af9e4d517671325aebea09d4e424214a0",
+        "sha256": "c2bdb30bfacde8581606516bcac3fa917dce3fad5761562b398213a722334a63",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "In the upcoming UEFA Nations League game, scheduled for October 5 at 2:45 PM ET:\n\nThis market will resolve to \"France\" if France win the game by 2 or more goals.\n\nOtherwise, this market will resolve to \"Belgium\".\n\nIf the game is postponed, this market will remain open until the game has been completed. If the game is canceled entirely, with no make-up game, this market will resolve 50\u201350.\n\nThis market will resolve according to the official final score published on uefa.com. This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.\n\nThe primary resolution source for this market is the official statistics of the event as recognized by the governing body or event organizers. However, if the governing body or event organizers have not published final match statistics within 2 hours after the event's conclusion, data from Flashscore may be used; if Flashscore data is unavailable, data from Sofascore may be used; if neither is available, a consensus of credible reporting may be used instead. All markets will settle based on the official final result as recognized by the governing body or event organizers. Revisions to officially declared final scores made after market resolution will not be accounted for in determining the outcome. If no acceptable data is available within 24 hours of the event's conclusion, this market will resolve 50-50, or to \"Draw\" where applicable.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "France (-1.5)",
+      "market_id": "4836625",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Spread: France (-1.5)",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "https://www.uefa.com/uefanationsleague/",
+      "source_reference": {
+        "bytes": 4605,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-10-05T18:45:00Z",
+          "liquidity": "118503.329",
+          "volume": "22622.894905999998"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_003/e2f020f4-4890-455a-84ce-8d63258f3bb2/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_003/e2f020f4-4890-455a-84ce-8d63258f3bb2/receipt.json",
+        "receipt_sha256": "f9c286cd144b8fe08bf44908065899e6defd8d4081dc1fb167783ac69d037a86",
+        "sha256": "7a032fa775500dd087ec3e7f4c4a13650bd3f6e71b967b8f51de903a7e985297",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "This market refers to the LoL Round 2 match between Natus Vincere and FlyQuest in the Demacia Cup Global Invitational Group Stage, initially scheduled for October 5, 2026 at 3:00 AM ET.\n\nThis market will resolve to \"Natus Vincere\" if Natus Vincere win Game 1 against FlyQuest.\n\nThis market will resolve to \"FlyQuest\" if FlyQuest win Game 1 against Natus Vincere.\n\nIf the match begins but is not completed, and Game 1 is concluded with a winner determined, this market will resolve based on the completed Game 1. \n\nIf Game 1 is not completed for any reason, this market will resolve 50-50. \n\nIf the match is canceled (not played at all), this market will resolve 50-50.\n\nIf the match is postponed, it must be rescheduled to a start time on or before October 19, 2026 at 11:59 PM ET (14 calendar days after the originally scheduled start of October 5, 2026 at 3:00 AM ET). If, by that deadline, the most recently announced rescheduled start time is on or before the deadline, this market resolves based on the result of the match as played. Otherwise, this market resolves 50-50, regardless of whether the match is subsequently played.\n\nThe resolution source for this market will be official information from https://gol.gg/esports/home. However, if https://gol.gg/esports/home has not published final results within 2 hours after the event\u2019s conclusion, a consensus of credible reporting may be used instead including video evidence.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Game 1 Winner",
+      "market_id": "5233594",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "LoL: Natus Vincere vs FlyQuest - Game 1 Winner",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "https://gol.gg/esports/home",
+      "source_reference": {
+        "bytes": 4525,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-10-05T15:00:00Z",
+          "liquidity": "358855.65957",
+          "volume": "880224.3785889997"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_004/81f73f0f-2985-41ea-9070-785f5b8ff492/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_004/81f73f0f-2985-41ea-9070-785f5b8ff492/receipt.json",
+        "receipt_sha256": "82e6fed6680def31e08f04760471456bf470ab82c5aca90b92952be127766dee",
+        "sha256": "a12eb9735c329528f263ac59151594ec2a16c54e91cc832bcca37ee7cbc3cbd2",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "This market refers to the Counter-Strike Round 3 match between PARIVISION and FURIA in the ESL Pro League Group Stage, initially scheduled for October 5, 2026 at 5:00 AM ET.\n\nThis market will resolve to \"PARIVISION\" if PARIVISION win Map 1 against FURIA.\n\nThis market will resolve to \"FURIA\" if FURIA win Map 1 against PARIVISION.\n\nIf the match begins but is not completed, and Map 1 is concluded with a winner determined, this market will resolve based on the completed Map 1. \n\nIf Map 1 is not completed for any reason, this market will resolve 50-50. \n\nIf the match is canceled (not played at all), this market will resolve 50-50.\n\nIf the match is postponed, it must be rescheduled to a start time on or before October 19, 2026 at 11:59 PM ET (14 calendar days after the originally scheduled start of October 5, 2026 at 5:00 AM ET). If, by that deadline, the most recently announced rescheduled start time is on or before the deadline, this market resolves based on the result of the match as played. Otherwise, this market resolves 50-50, regardless of whether the match is subsequently played.\n\nThe resolution source for this market will be official information from https://hltv.org. However, if https://hltv.org has not published final results within 2 hours after the event\u2019s conclusion, a consensus of credible reporting may be used instead including video evidence.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Map 1 Winner",
+      "market_id": "5299067",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Counter-Strike: PARIVISION vs FURIA - Map 1 Winner",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "https://hltv.org",
+      "source_reference": {
+        "bytes": 4500,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-10-05T13:00:00Z",
+          "liquidity": "289310.99537",
+          "volume": "335918.8498269997"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_005/6f881259-685d-450c-a23c-9a1c38f6219d/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_005/6f881259-685d-450c-a23c-9a1c38f6219d/receipt.json",
+        "receipt_sha256": "d50fd8499403cb6aefe07ec56a536749d2d1550f8d2e253a05dfdbb7d45cb6ce",
+        "sha256": "0c8b57701cb151dd26f087719fc97190a1882f4c74a3ae71012f99e1e9908708",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "This market will resolve to according to the candidate who wins the 2026 California gubernatorial election currently scheduled for November 3, 2026.\n\nIf the results of the election are not confirmed by July 31, 2027, this market will resolve to \"Other\".\n\nThe resolution source for this market is the Associated Press, Fox News, and NBC. This market will resolve once all three sources call the race for the same candidate. If all three sources haven\u2019t called the race in this state for the same candidate, this market will resolve based on official certification.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Matt Mahan",
+      "market_id": "628957",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Will Matt Mahan win the California Governor Election in 2026?",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "",
+      "source_reference": {
+        "bytes": 3333,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-11-04T04:59:00Z",
+          "liquidity": "140879.88826",
+          "volume": "1371616.627122"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_006/cf701aa4-d198-48a5-bf95-1eb240340e09/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_006/cf701aa4-d198-48a5-bf95-1eb240340e09/receipt.json",
+        "receipt_sha256": "885999d5debecfd27b4e755fc2c2b1d211fac777600ce5ec514f561ec43bd03a",
+        "sha256": "adf8ed5df414b21d6cae38fee1c729861ae2308685bf9f0d8a06b18fe9db5eef",
+        "source_id": "gamma.market"
+      }
+    },
+    {
+      "description": "Legislative elections are schedule to be held in Israel on October 27, 2026. \n\nThis market will resolve to the next individual who is officially appointed and sworn in as Prime Minister of Israel following the 2026 parliamentary election. If an election is called early, this market will immediately resolve to the individual who is officially appointed and sworn in after that election.\n\nTo count for resolution, the individual must be formally sworn in. Any interim or caretaker Prime Minister will not count toward the resolution of this market.\n\nIf no such Prime Minister is sworn in by December 31, 2027, 11:59 PM ET, this market will resolve to \u201cOther\u201d.\n\nThe primary resolution source for this market will be official information from the Government of Israel; however, a consensus of credible reporting may also be used.",
+      "external_eligibility": "unavailable_no_pre_origin_rule_matched_source",
+      "group_item_title": "Yair Golan",
+      "market_id": "682712",
+      "native_events_present": false,
+      "nws_knyc_relevance": "not_applicable_to_quantity_in_rules",
+      "question": "Will Yair Golan be the next Prime Minister of Israel?",
+      "related_price_eligibility": "unavailable_no_pre_origin_group_and_price_binding",
+      "resolution_source_field": "",
+      "source_reference": {
+        "bytes": 3877,
+        "fields": {
+          "acceptingOrders": true,
+          "active": true,
+          "archived": false,
+          "closed": false,
+          "enableOrderBook": true,
+          "endDate": "2026-10-28T03:59:00Z",
+          "liquidity": "250953.98157",
+          "volume": "2472023.1587839997"
+        },
+        "raw_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_007/1c4b3b00-7e86-4c50-8795-855296f66936/raw.bin",
+        "receipt_path": "data-dumps/fs2_screening_worker_window_pilot_20261005_1/fs2_capture_screen_007/1c4b3b00-7e86-4c50-8795-855296f66936/receipt.json",
+        "receipt_sha256": "2a4b8b3f44498add671fb03023986c19c6e536568ed383257e8f510c951707ab",
+        "sha256": "9e965f73286de36df604d055de2211da182bbc208c4b5f87e934f919d14061e3",
+        "source_id": "gamma.market"
+      }
+    }
+  ],
+  "new_source_requests": 0,
+  "phase3_accepted": false,
+  "provenance": "retrospective_rule_eligibility_review",
+  "related_rule_finding": {
+    "basis": "identical retained rule descriptions and distinct France/Spain group item titles",
+    "complete_outcome_set_verified": false,
+    "economic_independence_claim": false,
+    "market_ids": [
+      "3004681",
+      "3004713"
+    ],
+    "pre_origin_feature_binding": false,
+    "state": "shared_tournament_winner_rules_observed"
+  },
+  "reviewed_at": "2026-10-08T08:01:37.558319+00:00"
+}

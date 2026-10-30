@@ -1,0 +1,33 @@
+{
+ "conditions": [
+  {
+   "feature": "n_s",
+   "op": "ge",
+   "value": 3
+  }
+ ],
+ "description": "One-sided taker pressure (|imbalance|) arriving faster than the market's own long-window pace (burst). Flow only, no wallet fields.",
+ "direction_feature": "imb_s",
+ "min_terms_present": 2,
+ "rule_id": "uf_imbalance_burst_v1",
+ "terms": [
+  {
+   "cap": 4.0,
+   "center": 0.4,
+   "feature": "imb_s",
+   "scale": 0.3,
+   "transform": "abs",
+   "weight": 1.0
+  },
+  {
+   "cap": 4.0,
+   "center": 0.6931471805599453,
+   "feature": "burst",
+   "scale": 0.5,
+   "transform": "log1p",
+   "weight": 1.0
+  }
+ ],
+ "theory_ref": "programme_prelisted:F01,F07,F11",
+ "version": "1"
+}

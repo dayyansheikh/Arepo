@@ -1,0 +1,36 @@
+{
+ "id": "q0147t_cb7_hgeo_text",
+ "title": "CB7 h_geo text: question, slug and first event title (Gamma by id) of the in-band market ids of the 36 pinned window captures [2026-10-22T00:00Z, 2026-10-25T00:00Z); FEE_FIRST rows dropped; allow-listed fields only; failures recorded as unavailable and counted",
+ "family": "creative_batch_7",
+ "priority": 40,
+ "expected_value": "text for the section 2.1 geopolitics rule so h_geo is measurable (ruling reviews/CB7_HGEO_RULING_2026-10-28.md action 3)",
+ "data": [
+  "public Gamma (markets by id)",
+  "complete captures [2026-10-22T00:00Z, 2026-10-25T00:00Z): market_id, best_bid, best_ask, fee_category only; verified against seals/cb7_hgeo_window_captures.sha256"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb7.py",
+  "hgeo-text",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 3,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/h_geo_text/text.csv.gz",
+  "data-dumps/research_lab/creative_batch7/h_geo_text/manifest.json"
+ ],
+ "next_action": "q0147c reads the table (refuses on a pin mismatch)",
+ "notes": "CB7 Reading 13a (DRAFT pending science-reviewer acceptance), ruling reviews/CB7_HGEO_RULING_2026-10-28.md actions 2-3. Refuses unless every in-window capture file hashes to its pin. Exit 0 complete, 75 transient Gamma failure / headroom / window not closed (resumable by id), 2 refusal, 4 disk budget. No spread is computed here; no outcome, price or volume field from Gamma is kept (allow-list parse)."
+}

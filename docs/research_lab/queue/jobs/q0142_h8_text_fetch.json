@@ -1,0 +1,78 @@
+{
+ "id": "q0142_h8_text_fetch",
+ "title": "CB7-S: h8_text backfill (up to 18,000 binary Yes/No markets, scheduled end 2025-04-01..T_fetch-7d, 5 random 15-min end windows a day; description (4,000 chars stored; markers and clarification flag on the FULL text; full length and sha256 stored), ids/keys, closed_time as status; text features and cut points before any print request; one windowed taker-print request per market before t7 = end - 7d; geopolitics, weather, crypto up/down excluded; event-key disjoint from h1/h2/h3/h5; capped at T_seal)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "fresh, event-disjoint rules-text sample for the CH63 specificity screen; must complete before T_seal",
+ "data": [
+  "public Gamma/Data API",
+  "data-dumps/research_lab/creative_batch7/exclusion_keys.csv.gz (sha256 pinned in the manifest)",
+  "docs/research_lab/seals/cb7_text_geo_rules_v2.json (hash-checked)",
+  "data-dumps/research_lab/creative_batch7/smoke_v2.json (smoke v2 PASS under the same v2 rules hash)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, data-api",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0140b_cb7_smoke_v2",
+  "q0141_cb7_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "text-fetch",
+  "--run-id",
+  "h8_text",
+  "--rules",
+  "../docs/research_lab/seals/cb7_text_geo_rules_v2.json",
+  "--seed",
+  "arepo-h8-text",
+  "--n-markets",
+  "18000",
+  "--end-from",
+  "2025-04-01",
+  "--end-before-fetch-days",
+  "7",
+  "--windows-per-day",
+  "5",
+  "--window-minutes",
+  "15",
+  "--min-life-days",
+  "9",
+  "--sports-weight",
+  "0.25",
+  "--origin-days-before-end",
+  "7",
+  "--print-limit",
+  "50",
+  "--exclude-categories",
+  "weather,geopolitics,crypto_updown",
+  "--exclusion-keys",
+  "research_lab/creative_batch7/exclusion_keys.csv.gz",
+  "--require-smoke",
+  "research_lab/creative_batch7/smoke_v2.json",
+  "--cap-at",
+  "2026-10-22T00:00Z",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.15",
+  "--data-dumps-cap-gb",
+  "13",
+  "--budget-min",
+  "85"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 8,
+  "until_log_regex": "\"status\": \"(text_fetch_complete|not_run_deadline|disjointness_unverified|disk_budget)\""
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h8_text/{frame.csv.gz,key_drops.json,sample.csv.gz,origins.csv.gz,text_features.csv.gz,cut_points.json,outcomes_guarded.csv.gz,origin_prices.csv.gz,origin_prints.csv.gz,progress.jsonl,frame_report.json,request_clock.json,manifest.json}"
+ ],
+ "next_action": "q0144 (seal) after T_seal and after the h8_tail and h7 seal copies (or not-run records) are committed",
+ "notes": "CREATIVE_BATCH_7.md CB7-S, section 2.8 and section 9 (challenger round 1). DRAFT: copy to queue/jobs/ only after the science-reviewer freeze check of the fetcher, the committed rules file and a q0140b (smoke v2) PASS. About 9k frame requests (closed and ended-unclosed walks) + 18k print requests (1 per sampled market: /trades?market&start=t7-7d&end=t7-1&takerOnly=true&limit=50) = about 27k requests, about 1.9 h at 4 rps, about 2.4 h wall in 2 chunks of 85 min. No CLOB history. Stage order: hash and pin checks, frame walk (streamed, resumable by window), filters (Yes/No labels, life >= 9 d, not weather/TEMP_RE, not CB1_UPDOWN_RE, not geopolitics by fee_category or topic_of, not Other/placeholder), key drop, stratified sample (status x cb1_topic x end month; sports weight 0.25; no price, volume or outcome input), M1-M7 and the clarification flag computed on the FULL description in memory (stored copy truncated to 4,000 chars; full length and sha256 stored), text_features.csv.gz and cut_points.json written and hashed BEFORE any print request, then prints. closed_time kept as a status field only. Outcome prices only in outcomes_guarded.csv.gz. No wallet field is stored. Rows capped at min(T_fetchT, T_seal); no chunk starts at or after T_seal (NOT_RUN_DEADLINE.json, status not_run_deadline). Exit 75 when data-dumps + 0.15 GB > 12.5 GB. Priority 61 with a higher id than q0043/q0081/q0082/q0120, so those T_seal-bound jobs win the net lane at every chunk boundary. NO Mac fallback (round 1, item 6): a run not complete before T_seal is recorded not_run_deadline and S1 is 'not run (deadline)', counted. Latest useful host start 2026-10-21T12:00Z. Commit message must record the data-dumps size and margin. IMPLEMENTATION 2026-10-17 (fetch side): argv matches scripts/run_cb7.py as built (declared arguments are checked; a changed one exits 2). Lane net. Each repeat chunk runs --budget-min 85 (timeout 5400 s); max_runs 8 leaves room for the frame-walk chunks, the item retry chunks (3 attempts per market) and a collector-health pause. Terminal statuses (exit 0): text_fetch_complete, not_run_deadline (NOT_RUN_DEADLINE.json), disjointness_unverified (DISJOINTNESS_UNVERIFIED.json, no sample, no prints). A full output cap (0.15 GB) is the declared end state disk_budget: exit 4 (NOT 75), sticky, never loops. Exit 75 only for data-dumps headroom (--data-dumps-cap-gb 12.5). Failed print requests are counted separately (print_request_failed) from markets with no print. The queue worker retries an exit-4 job up to max_retries; each retry returns the sticky disk_budget state without work. The commit message must record the section 2.8 headroom check. SMOKE V2 AMENDMENT 2026-10-17: pins seals/cb7_text_geo_rules_v2.json (rules_sha256 05bf365c...) and requires the smoke v2 PASS (creative_batch7/smoke_v2.json, smoke_version cb7-smoke-v2) under that hash; depends on q0140b. The v1 smoke.json (FAIL) is never consulted. 2026-10-17: --data-dumps-cap-gb 12.5 -> 13 (data-dumps 12.5 GB; collector cap 14 GiB; operational only)."
+}

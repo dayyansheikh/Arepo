@@ -1,0 +1,418 @@
+{
+ "spec_id": "live_tests11_v1",
+ "status": "DRAFT (not registered; SPEC_SHA256 None; k_tests, size_check_result, k_block (chg_1d, chg_1w), code_sha256 and every census_fixed value null until the pre-check and the census)",
+ "design": "docs/research_lab/LIVE_TESTS_11.md (design text frozen: sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583 at 3627d7fd, merged 1f353ca6)",
+ "design_text_sha256": "991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583",
+ "experiments": {
+  "CH234": "the dollar weight of a move",
+  "CH233": "the arb's footprint",
+  "CH232": "the cheap side's cliff"
+ },
+ "registered_utc": "2026-11-18T00:00:00Z",
+ "end_utc": "2026-12-09T00:00:00Z",
+ "analysis_not_before": "2026-12-10T12:00:00Z",
+ "dates_comment": "proposed fast-lane values of LIVE_TESTS_11.md 1.1; the ordered lane (a lapse) changes the three dates and the module constants together",
+ "k_tests": null,
+ "k_tests_rule": "the tests whose census gate passes (section 7), a subset of [CH234, CH233, CH232]; fixed at registration, never changed; a census_dropped test is never re-censused, a census_unavailable (coverage) test may be in the ordered lane as its own Holm family",
+ "dropped_tests": null,
+ "census_unavailable": null,
+ "code_sha256": null,
+ "code_sha_rule": "normalised sha256 (SPEC_SHA256 line excluded) of every module in live_tests11.CODE_FILES",
+ "size_check_result": null,
+ "f_roles": {
+  "CH234": "binding",
+  "CH233": "binding",
+  "CH232": "binding"
+ },
+ "f_roles_rule": "fixed per test by design (1.9, R1 ruling A4), never by a census count; there is no f_binding key; live_tests11.f_role refuses any other value",
+ "grid": {
+  "grid0_utc": "2026-10-01T00:31:00Z",
+  "grid_s": 7200,
+  "slot_tol_s": 1800
+ },
+ "eligibility": {
+  "spread_max": 0.1,
+  "rule": "section 1.4: binary, not closed, active, two-sided (bid > 0, ask < 1, bid < ask) and spread <= 0.10 at k - 1 and k; one row per condition_id"
+ },
+ "sports_rule": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the capture; sidecar missing -> sports = -1 (unknown; excluded wherever the category is needed)",
+ "crypto_rule": {
+  "fee_type_prefix": "crypto",
+  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
+  "rule": "vendored-only: read by the copied category_cols; LT9 classifies crypto with crypto_classifier (the crypto7 class), never with this rule"
+ },
+ "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug'",
+ "crypto_classifier": {
+  "field": "fee_category",
+  "normalise": "strip() then casefold()",
+  "crypto_substring": "crypto",
+  "null_like": [
+   "",
+   "nan",
+   "none",
+   "null"
+  ],
+  "unknown_counts_as_crypto_in_gate": true,
+  "rule": "1.4: every primary excludes crypto by this classifier; unknown is counted separately and treated as crypto; the crypto arm is reported, uncounted",
+  "failsafe": "if no distinct fee_category value of the whole sealed sidecar set contains 'crypto' the classifier is not shown to work and the census is refused (every gate NaN)"
+ },
+ "move": {
+  "mid_lo": 0.0,
+  "mid_hi": 1.0,
+  "end_margin_h": 3,
+  "min_abs_x": 0.01,
+  "ltp_tol": 1e-09,
+  "vol_tol": 0.01,
+  "parallel_min": 0.005,
+  "parallel_max_diff": 0.005,
+  "one_sided_max": 0.0005,
+  "class_rule": "LT3's class and geometry (vendored; read by the copied _movers_join; no LT11 test uses the class: CH234's classes come from volume_num, 2.3)"
+ },
+ "reward_null_rule": "listed_carry24h_v2",
+ "reward_carry_slots": 12,
+ "member_cap": {
+  "max_members": 10,
+  "rule": "n_members(e, j) = distinct markets of Gamma event e among capture j's complete rows that are binary, open and active (a market without event_id is its own event); CH234 and CH232 keep n_members <= 10 (larger: the reported ladder arm); CH233's member rule is its own (3.2)"
+ },
+ "receipt_span_s": 120,
+ "rv": {
+  "rv24_window": 12,
+  "rv24_min_obs": 10,
+  "rv_floor_ticks": 0.5,
+  "rule": "LT11 ambiguity A5: the minimum number of observed 2 h changes in the 12-slot window is not stated by the design; LT9 CH212's 10 is used"
+ },
+ "k_block": {
+  "chg_1d": null,
+  "chg_1w": null,
+  "rule": "7 / 1.5 (R1 should-fix 6): filled from the committed header pre-check BEFORE the seal; true -> the column enters K as an indicator pair; the seal and every census refuse while null"
+ },
+ "m1_side_reading": "cheap",
+ "m1_side_rule": "1.4.2 + the ledger record of the design-text freeze (b057e076): the venue's documented reading (single-sided scores inside [0.10, 0.90] at the reduced weight c = 3.0, double-sided required outside); M1 follows the CHEAP side",
+ "reward_single_side_c": 3.0,
+ "tests": {
+  "CH234": {
+   "p_lo": 0.04,
+   "p_hi": 0.96,
+   "min_abs_d": 0.01,
+   "end_margin_h": 3,
+   "f_end_margin_h": 7,
+   "winsor_absd": 0.2,
+   "bins": [
+    0.04,
+    0.15,
+    0.5,
+    0.85,
+    0.96
+   ],
+   "dir": 1
+  },
+  "CH233": {
+   "end_margin_h": 3,
+   "f_end_margin_h": 7,
+   "members_min": 3,
+   "members_max": 10,
+   "dir": 1
+  },
+  "CH232": {
+   "min_abs_d": 0.01,
+   "end_margin_h": 3,
+   "f_end_margin_h": 7,
+   "zone_half": 0.04,
+   "band": [
+    0.1,
+    0.9
+   ],
+   "dir": 1
+  }
+ },
+ "seeds": {
+  "estimators": {
+   "CH234": 20261491,
+   "CH233": 20261492,
+   "CH232": 20261493
+  },
+  "gates": {
+   "CH234": 20261591,
+   "CH233": 20261592,
+   "CH232": 20261593
+  },
+  "size_check": 20261497,
+  "power_runs": {
+   "CH234": 2026149741,
+   "CH233": 2026149742,
+   "CH232": 2026149743
+  },
+  "derived_rule": "non-binding runs on generators 20261497 x 100 + n (1.8.1)"
+ },
+ "gates": {
+  "draws": 200,
+  "alpha": 0.05,
+  "block_min_n": 16,
+  "min_shift_rows": 16,
+  "perm_method": "block circular-shift Freedman-Lane (market strata for CH234 and CH232, event-phase strata for CH233)"
+ },
+ "inference": {
+  "boot_draws": 2000,
+  "p_rule": "p = max(p_event on t with G_event - 1 df, p_two-way normal, p_day on t with G_day - 1 df); CH232 event df use min(G_event, G_minor) - 1",
+  "alpha_familywise": 0.05,
+  "one_sided": true,
+  "multiplier": 3.47
+ },
+ "verdict": {
+  "floors": {
+   "units": 20000,
+   "events": 300,
+   "days": 10,
+   "g_eff": 15,
+   "CH234_quote_only_units": 20000,
+   "CH233_events_ge48": 100,
+   "CH232_crossings": 2000,
+   "CH232_control_crossings": 1000
+  },
+  "f_rule": {
+   "delta_p_max": 0.05,
+   "delta_over_primary_min": 0.5,
+   "arm_min_share": 0.5
+  },
+  "point_condition_ratio": 0.5,
+  "material_c": {
+   "CH234": 0.5,
+   "CH233": 1.0,
+   "CH232": 1.0
+  },
+  "late_loss_max": 0.02,
+  "series_concentrated": 0.5,
+  "attrition_pp": 2.0
+ },
+ "size_check": {
+  "worlds": 2000,
+  "draws": 200,
+  "seed": 20261497,
+  "nominal": 0.05,
+  "limit": 0.058,
+  "limit_rule": "0.05 + 1.645 sqrt(0.0475 / worlds)",
+  "power_worlds": 500,
+  "scenarios": [
+   "1",
+   "2",
+   "3",
+   "3b",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9",
+   "10",
+   "11",
+   "12",
+   "13",
+   "14",
+   "15"
+  ],
+  "binding_scenarios": {
+   "CH234": [
+    "1",
+    "2",
+    "3",
+    "3b",
+    "4",
+    "12"
+   ],
+   "CH233": [
+    "5",
+    "6",
+    "7",
+    "8",
+    "13"
+   ],
+   "CH232": [
+    "9",
+    "10",
+    "11",
+    "14",
+    "15"
+   ]
+  },
+  "verdict_size_scenarios": [
+   "12",
+   "13",
+   "14"
+  ],
+  "rule": "a failing binding scenario sets only its own tests to 'SE check failed'; k unchanged; no rerun"
+ },
+ "census_inputs": {
+  "lt11_seal": "docs/research_lab/seals/lt11_census_inputs.json",
+  "lt11_seal_note": "written by run_live_tests11.py seal (q0691) after the design-text freeze and after the span has ended; committed before the census",
+  "span": {
+   "start_utc": "2026-10-28T00:00:00Z",
+   "end_utc": "2026-11-07T00:00:00Z",
+   "first_slot_utc": "2026-10-28T00:31:00Z",
+   "last_slot_utc": "2026-11-06T22:31:00Z"
+  },
+  "lookback_capture_slots": 12,
+  "lag_slots_after": 3,
+  "window_rule": "captures from 12 slots before the span to 3 slots after it (the three twins' slots k + 1 .. k + 3 of the last origins; the lag-slot loader returns the twin term only)",
+  "refuse_at_or_after_utc": "2026-11-07T06:00:00Z",
+  "expected_origins": {
+   "CC11": 120
+  },
+  "min_covered_days": {
+   "CC11": 7.0,
+   "CC11_twins": 5.0
+  },
+  "covered_days_rule": "covered origins / 12, a covered origin being a sealed slot whose capture and the capture of the slot before it are both state=complete with rows and sidecar present; for twin pairs also the captures of slots k + 2 and k + 3; from the seal manifest, before any row is read; identical for all three tests",
+  "projection": "counts x 21 / covered days; distinct-event gates use the UNPROJECTED count over the covered days",
+  "band_unit_check_cents": [
+   0.5,
+   20
+  ],
+  "header_precheck": {
+   "rows": [
+    "received_utc",
+    "best_bid",
+    "best_ask",
+    "liquidity",
+    "volume24hr",
+    "chg_1h",
+    "end_date",
+    "event_id",
+    "neg_risk",
+    "neg_risk_market_id",
+    "neg_risk_other",
+    "event_neg_risk_augmented"
+   ],
+   "sidecar": [
+    "received_utc",
+    "fee_category",
+    "fee_type",
+    "order_price_min_tick_size",
+    "rewards_min_size",
+    "rewards_max_spread",
+    "clob_rewards",
+    "volume_num"
+   ],
+   "optional_rows": [
+    "chg_1d",
+    "chg_1w"
+   ]
+  }
+ },
+ "census_gates": {
+  "mde_common": {
+   "t_sum": 3.47,
+   "t_sum_exact": 3.4725,
+   "day_factor": 1.5,
+   "sd_c": 0.04,
+   "sd_ds": 0.02,
+   "de_rho": 0.02,
+   "family_cap": 0.4,
+   "g_eff_min": 15,
+   "mde_max_c": {
+    "CH234": 0.5,
+    "CH233": 1.0,
+    "CH232": 1.0
+   },
+   "f_mde_max_c": {
+    "CH234": 0.5,
+    "CH233": 1.0,
+    "CH232": 1.0
+   },
+   "rule": "every MDE gate is max(declared, design) (7); declared = the closed formula at the census's own effective counts, DE_gate, VIF_w (and gap) with the declared SD; design = 3.47 x 1.5 x SD x se_1 under a working covariance (unit variance, within-event equicorrelation 0.02, independence across events), projected to 21 days; F-MDE = max(design-based MDE of Delta in the arm model, MDE x sqrt(2 / (1 - max(0, r_gate)))); NaN fails; DE_gate = max(floor, 1 + (m_21 - 1) x 0.02); t_sum = max(3.47, exact)"
+  },
+  "CH234": {
+   "units_projected_min": 187740,
+   "quote_only_projected_min": 84420,
+   "unknown_share_max": 0.4,
+   "unknown_capture_cut": 0.8,
+   "unknown_capture_frac_max": 0.25,
+   "unknown_corr_max": 0.3,
+   "distinct_events_min": 500,
+   "cap_share_min": 0.4,
+   "w_sd_min": 0.1,
+   "w_sd_share_min": 0.5,
+   "w_sd_min_moves": 2,
+   "resid_iqr_min": 0.25,
+   "resid_iqr_share_min": 0.5,
+   "resid_iqr_min_units": 6,
+   "resid_iqr_markets_min": 30,
+   "vif_w_max": 2.0,
+   "corr_max": 0.5,
+   "venue_clock_max": 0.5,
+   "block_share_min": 0.5,
+   "r_gate_max": 0.3,
+   "pair_min_per_market": 3,
+   "de_floor": 6.196,
+   "sd": "sd_c"
+  },
+  "CH233": {
+   "completeness_min": 0.6,
+   "receipt_span_pairs_min": 0.6,
+   "units_projected_min": 252000,
+   "distinct_events_min": 500,
+   "events_ge48_min": 100,
+   "events_min_units": 48,
+   "working_range_min": 0.05,
+   "event_sd_min_ticks": 1.0,
+   "event_sd_share_min": 0.5,
+   "vif_w_max": 2.0,
+   "corr_max": 0.5,
+   "venue_clock_max": 0.5,
+   "block_share_min": 0.5,
+   "block_min_captures": 16,
+   "r_gate_max": 0.3,
+   "pair_min_per_market": 3,
+   "de_floor": 5.0,
+   "sd": "sd_ds"
+  },
+  "CH232": {
+   "reward_finite_min": 0.95,
+   "crossings_projected_min": 16884,
+   "control_crossings_projected_min": 6048,
+   "f_arm_coverage_min": 0.6,
+   "recross_ge3_max": 0.6,
+   "distinct_events_min": 500,
+   "cap_share_min": 0.4,
+   "venue_clock_max": 0.5,
+   "corr_max": 0.5,
+   "vif_w_max": 3.0,
+   "block_share_min": 0.5,
+   "r_gate_max": 0.3,
+   "pair_min_per_market": 3,
+   "de_floor": 5.0,
+   "sd": "sd_ds"
+  }
+ },
+ "census_fixed": {
+  "CH234": {
+   "w_centre": null,
+   "w_scale": null,
+   "absd_centre": null,
+   "absd_scale": null,
+   "xw_cuts": null,
+   "xw_gap": null,
+   "exclude_family": null,
+   "q_unknown": null,
+   "mde_c": null
+  },
+  "CH233": {
+   "s_c": null,
+   "zcl_cuts": null,
+   "zcl_gap": null,
+   "exclude_family": null,
+   "mde_c": null
+  },
+  "CH232": {
+   "exclude_family": null,
+   "mde_c": null
+  }
+ },
+ "census_fixed_rule": "filled with the exact census floats (8.4 step 5); mde_c = the census slope MDE (CH234, CH233) or class MDE (CH232) in cents, the input of 1.9's 'underpowered' label only (never a gate or verdict); exclude_family is \"\" when no family was excluded",
+ "informed_labels": null,
+ "informed_labels_rule": "1.1 / 1.6 / 1.9: the 'informed (X)' labels each test carries by the registration record (e.g. 'E015' for CH234 if the census output or the lapse is after T_E015); filled at the pin from the ledger; never removable; never a verdict",
+ "economics": {
+  "hurdles": "cost-model-v1 (COST_MODEL.md), reported in the analysis; never a verdict"
+ },
+ "dropped_or_deferred": {
+  "CH235-CH240": "section 5: engine-first or done"
+ }
+}

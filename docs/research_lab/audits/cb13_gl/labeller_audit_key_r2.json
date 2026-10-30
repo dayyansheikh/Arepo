@@ -1,0 +1,1406 @@
+{
+ "labeller_sha256": "95cde0ab70a3845977933a5a13ed2f65263eb903f86ca9da93a90924948d79b9",
+ "round": 2,
+ "sample": [
+  {
+   "condition_id": "0xa7d02a01ae63cbaa3e01d31333c43018f27b49a3c99b57e13a4ac7ebbacce1f8",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-dune-messiah-get-the-most-oscar-nominations-at-the-99th-academy-awards",
+   "sports_adjacent": true,
+   "title": "Will Dune: Messiah get the most Oscar nominations at the 99th Academy Awards?"
+  },
+  {
+   "condition_id": "0xa3cf5e6b27c672d56f3c883139ae87a2dcef9d16a373decab50621cb793b3af4",
+   "label": "SPORTS-FEED",
+   "slug": "ballon-dor-2026-kylian-mbappe-or-lamine-yamal-to-finish-higher",
+   "sports_adjacent": true,
+   "title": "Ballon d'Or 2026: Kylian Mbapp\u00e9 or Lamine Yamal to finish higher?"
+  },
+  {
+   "condition_id": "0xce6e9b84b9634838032f58b9a156161107f4c5bd891989227aec96e77a911067",
+   "label": "SPORTS-FEED",
+   "slug": "will-alexia-putellas-win-the-2026-womens-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Alexia Putellas win the 2026 Women's Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x5d554b8061faaf973115ad48859a04096cd3525873c730964ac7526076315c29",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-the-odyssey-win-best-picture-at-the-99th-academy-awards-20260727173620859",
+   "sports_adjacent": true,
+   "title": "Will The Odyssey win Best Picture at the 99th Academy Awards?"
+  },
+  {
+   "condition_id": "0x9f50939c394897a984d04522b61cf62da5aaa7fc50a2b3da362accaeffe38078",
+   "label": "SPORTS-FEED",
+   "slug": "will-khvicha-kvaratskhelia-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Khvicha Kvaratskhelia win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0xcb9c2e0c83ff1f14f9fb9a21195008c37a46dad712a5b61ea370a8a64d605c76",
+   "label": "SPORTS-FEED",
+   "slug": "will-jeremiah-smith-win-the-2026-heisman-trophy-20260731185756307",
+   "sports_adjacent": true,
+   "title": "Will Jeremiah Smith win the 2026 Heisman Trophy?"
+  },
+  {
+   "condition_id": "0xc41091c02191ebe11a79d5562fc62ba3aaa130f14037ede77177c1ce38384629",
+   "label": "SPORTS-FEED",
+   "slug": "ballon-dor-2026-rodri-or-lionel-messi-to-finish-higher",
+   "sports_adjacent": true,
+   "title": "Ballon d'Or 2026: Rodri or Lionel Messi to finish higher?"
+  },
+  {
+   "condition_id": "0xc89266786402aaabe78111eb91c6764d86857bbc4427c82b91d60a5ef69a70d0",
+   "label": "SPORTS-FEED",
+   "slug": "will-erling-haaland-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Erling Haaland win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x29663a900121eee8d9a969a3edb7f8649d5e58f16af2684f01dd877f5ab5fc2d",
+   "label": "SPORTS-FEED",
+   "slug": "will-kevin-mcgonigle-win-the-2026-al-rookie-of-the-year-award",
+   "sports_adjacent": true,
+   "title": "Will Kevin McGonigle win the 2026 AL Rookie of the Year award?"
+  },
+  {
+   "condition_id": "0x73342d74c5c6975ea3b717f1d061bd2afbd787858c556ff6c801119e0290df31",
+   "label": "SPORTS-FEED",
+   "slug": "will-lamine-yamal-finish-in-the-top-2-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Lamine Yamal finish in the top 2 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x5620bde4d7b7940e2977fd950d8ce4feb8b8bf4f27cc774fc3cdd5b54e2dc14f",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-the-further-mis-adventures-of-cliff-booth-be-nominated-for-best-original-score-at-the-99th-academy-awards-20261013180153422",
+   "sports_adjacent": true,
+   "title": "Will \"The Further Mis-Adventures of Cliff Booth\" be nominated for Best Original Score at the 99th Academy Awards?"
+  },
+  {
+   "condition_id": "0x26f410f7518fa199678ef57f02637fc88be9b3b593346b00946d7ea451f4521b",
+   "label": "SPORTS-FEED",
+   "slug": "will-ousmane-dembl-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Ousmane Demb\u00e9l\u00e9 win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x8d5f351db14cd5f399543c3870046f897cbe75bcfda6fdae0a77dc894098e19d",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-daniel-craig-be-nominated-for-best-supporting-actor-at-the-99th-academy-awards-20261013180153422",
+   "sports_adjacent": true,
+   "title": "Will Daniel Craig be nominated for Best Supporting Actor at the 99th Academy Awards?"
+  },
+  {
+   "condition_id": "0xee3c1749b2d41703daa679cd7487fa409d57891f38152feb944ebeccd2d60e81",
+   "label": "SPORTS-FEED",
+   "slug": "will-nuno-mendes-finish-in-the-top-10-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Nuno Mendes finish in the top 10 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x945e11be09f533584f436f75de99f98fd1022c6d64a2af981003fe6df729d13a",
+   "label": "SPORTS-FEED",
+   "slug": "will-vitinha-finish-in-the-top-5-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Vitinha finish in the top 5 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x12dc2b61723b2a54fc1947a307389b5f32038e7a29a0e936ad1fe410b969d06a",
+   "label": "SPORTS-FEED",
+   "slug": "will-harry-kane-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Harry Kane win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x73057b771600660ac6e659c5b831587fd3bdd378e63f359731aa3e1538577fb0",
+   "label": "SPORTS-FEED",
+   "slug": "will-lebron-james-retire-before-next-nba-season",
+   "sports_adjacent": true,
+   "title": "Will LeBron James retire before next NBA season?"
+  },
+  {
+   "condition_id": "0x61c85ceb5eb8c7bac9850da91d05b557d6942b5c4cfa40b37a09ea6c87657fca",
+   "label": "SPORTS-FEED",
+   "slug": "will-kylian-mbappe-finish-in-the-top-3-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Kylian Mbapp\u00e9 finish in the top 3 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0xf59e2d2b6bc5a3027a6e89b22603192e5a9a8b00e9ace38e0f54858b4bd9c491",
+   "label": "SPORTS-FEED",
+   "slug": "will-harry-kane-finish-in-the-top-3-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Harry Kane finish in the top 3 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x0734eb61d07f694bde1da2619cfb75d2a052b8f173180fb050894c30d73de98c",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "us-military-draft-authorized-in-2026",
+   "sports_adjacent": true,
+   "title": "US military draft authorized in 2026?"
+  },
+  {
+   "condition_id": "0x87091dc5932f015d80c40e71e47cb043c3f8b6098484eb5bc3943cf35ee9afc1",
+   "label": "SPORTS-FEED",
+   "slug": "will-kylian-mbapp-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Kylian Mbapp\u00e9 win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0xf6498a32bc8d215c254251b271db327eea683b8804580b88d1544853b9fe5032",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-wildwood-win-best-animated-feature-film-at-the-99th-academy-awards-20260805190946296",
+   "sports_adjacent": true,
+   "title": "Will Wildwood win Best Animated Feature Film at the 99th Academy Awards?"
+  },
+  {
+   "condition_id": "0xa34edb6c898232378a9cc08744842df2cd89d278ba45b012bed3ac10c7241c4d",
+   "label": "SPORTS-FEED",
+   "slug": "will-lamine-yamal-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Lamine Yamal win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x3d5321854a1571f6f9f27fd6a87fbefdde464260a19b03404d2eb9d97f3d2b06",
+   "label": "SPORTS-FEED",
+   "slug": "will-michael-olise-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Michael Olise win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x68e2344a2ce725ca99f3b93df06f27a71f3a893a38e8a6a78f8d85bd2698eb20",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "scotus-accepts-sports-event-contract-case-by-december-31-2026",
+   "sports_adjacent": true,
+   "title": "SCOTUS accepts sports event contract case by December 31, 2026?"
+  },
+  {
+   "condition_id": "0x44a1efe9a95f7fde07b1ea5fd5d4e441431b1de47197345733fe624a02e177ad",
+   "label": "SPORTS-FEED",
+   "slug": "will-fabian-ruiz-finish-in-the-top-3-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Fabian Ruiz finish in the top 3 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x484252a68d9367df54f641765866693f16ac7a07d65d417bdbedc1c821d408f6",
+   "label": "SPORTS-FEED",
+   "slug": "will-fabian-ruiz-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Fabian Ruiz win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x35b5ee5ee1918badc39ad4e250503939ae4bf9684e37c0aebbece51156a9c487",
+   "label": "SPORTS-FEED",
+   "slug": "will-rocco-baldelli-be-the-next-permanent-manager-of-the-philadelphia-phillies",
+   "sports_adjacent": true,
+   "title": "Will Rocco Baldelli be the next permanent manager of the Philadelphia Phillies?"
+  },
+  {
+   "condition_id": "0x91ed2e7f28e9dbcff508d744a7890b1806f799578e1d22cbd1a00611ad949c48",
+   "label": "SPORTS-FEED",
+   "slug": "will-achraf-hakimi-finish-in-the-top-5-of-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Achraf Hakimi finish in the top 5 of the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x7034c00a24f9edbf325fd5a0b9a63412e469fc8cd2aa9b060fb5ba8e10d7ebef",
+   "label": "SPORTS-FEED",
+   "slug": "will-lionel-messi-win-the-2026-ballon-dor",
+   "sports_adjacent": true,
+   "title": "Will Lionel Messi win the 2026 Ballon d'Or?"
+  },
+  {
+   "condition_id": "0x9027a12cbbf78e9bff760402ab106732fa5a4af2002e4f48e5cc406ac1447800",
+   "label": "PATH-SETTLED",
+   "slug": "opensea-fdv-above-100m-one-day-after-launch-172-151-588-987",
+   "sports_adjacent": false,
+   "title": "Opensea FDV above $100M one day after launch?"
+  },
+  {
+   "condition_id": "0x0f0cb205ef2ce23411b5102e6823f983c93cdfc39ea356566964f45699082edd",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-the-democratic-party-win-the-mo-06-house-seat",
+   "sports_adjacent": false,
+   "title": "Will the Democratic Party win the MO-06 House seat?"
+  },
+  {
+   "condition_id": "0xaa8749bc53dc320c5a4995206526e5a2f7ddf36fbe8598144c7c33ef88ec4144",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-russia-target-kyiv-on-october-16-2026",
+   "sports_adjacent": false,
+   "title": "Will Russia target Kyiv on October 16, 2026?"
+  },
+  {
+   "condition_id": "0xe87a833450055b3f5a13a74d3d9d367c6b10d80a4502f58c60b4d06dce949f3a",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791909900",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 12:45PM-12:50PM ET"
+  },
+  {
+   "condition_id": "0xfc2ccae74c5f25a2138d1e5d260605a250578beae52850f0e0049f9871ddb09c",
+   "label": "SPORTS-FEED",
+   "slug": "wta-ostapen-pegula-2026-10-13-first-set-winner-Ostapenko-vs-Pegula",
+   "sports_adjacent": false,
+   "title": "Set 1 Winner: Jelena Ostapenko vs Jessica Pegula"
+  },
+  {
+   "condition_id": "0x73463cf40eb2c83e845becbf16ad35e0a8a07863194bc76fd3af9a9d630b387f",
+   "label": "SPORTS-FEED",
+   "slug": "will-arsenal-win-the-2026-27-uefa-champions-league-championship-20260701202025552",
+   "sports_adjacent": false,
+   "title": "Will Arsenal win the 2026-27 UEFA Champions League Championship?"
+  },
+  {
+   "condition_id": "0xf6408868c70841579b6d465b1a006412eed699c73779c1e021870d585a8a8c03",
+   "label": "SPORTS-FEED",
+   "slug": "dota2-yes-kalmy-2026-10-13-game1",
+   "sports_adjacent": false,
+   "title": "Dota 2: Yellow Submarine vs Kalmychata - Game 1 Winner"
+  },
+  {
+   "condition_id": "0x6003b7076a8472de4b0f6ea79e56edfce6ba97eefdfa8782854cc7acefcd1ea5",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-sba-stu-2026-10-14-exact-score-3-0",
+   "sports_adjacent": false,
+   "title": "Exact Score: \u0160K Slovan Bratislava 3 - 0 VfB Stuttgart?"
+  },
+  {
+   "condition_id": "0x88a6164bfa37991fd401e9694c414a428bbd45c0fe0bdb246794696646137145",
+   "label": "SPORTS-FEED",
+   "slug": "nhl-fla-cbj-2026-10-13-total-5pt5",
+   "sports_adjacent": false,
+   "title": "Panthers vs. Blue Jackets: O/U 5.5"
+  },
+  {
+   "condition_id": "0x7fa8cefeb30723f5371a2ab76be7e25bd39e456a358e527931c7ce463ad40d9e",
+   "label": "SPORTS-FEED",
+   "slug": "itf-shao1-shepp1-2026-10-14",
+   "sports_adjacent": false,
+   "title": "M25 Qian Daohu: Zichen Shao vs Anton Shepp"
+  },
+  {
+   "condition_id": "0x349dc4761026c5802f8c25b8f7384dc9ab0e4594ab63ad281cb67bcc83c7728c",
+   "label": "SPORTS-FEED",
+   "slug": "lal-lev-sev-2026-10-12-first-half-total-0pt5",
+   "sports_adjacent": false,
+   "title": "Levante UD vs. Sevilla FC: 1st Half O/U 0.5"
+  },
+  {
+   "condition_id": "0x5008fdc1f4f029f530d5365f7d68d6f486095f5bc9558d52a66a4ce0f64e9111",
+   "label": "SPORTS-FEED",
+   "slug": "itf-franca2-cundom1-2026-10-14",
+   "sports_adjacent": false,
+   "title": "M15 Maringa: Leonardo Storck Franca vs Julian Cundom"
+  },
+  {
+   "condition_id": "0xe61b9c33b3945524b68bdd544a05d50c52d6abe22362ec964a1d67212275ae2a",
+   "label": "SPORTS-FEED",
+   "slug": "tur2-bat-ias-2026-10-14-total-7pt5",
+   "sports_adjacent": false,
+   "title": "Batman Petrolspor vs. Istanbulspor AS: O/U 7.5"
+  },
+  {
+   "condition_id": "0xc393f0da5fbed5bd240b908b2dc11a0958d2cd4d01323e1dfb519b68e87647bc",
+   "label": "PATH-SETTLED",
+   "slug": "xrp-above-1pt4-on-october-16-2026",
+   "sports_adjacent": false,
+   "title": "Will the price of XRP be above $1.40 on October 16?"
+  },
+  {
+   "condition_id": "0xad1b8d62b56ecb237784a351a8471481266b7182fb909518e46d3c4af6809ffc",
+   "label": "SPORTS-FEED",
+   "slug": "atp-hurkacz-fokina-2026-10-13",
+   "sports_adjacent": false,
+   "title": "Shanghai Rolex Masters: Hubert Hurkacz vs Alejandro Davidovich Fokina"
+  },
+  {
+   "condition_id": "0xa062c1300af41588a3ec2d409d98e3af2d810d52bc55a5468cc25c72fd2a090b",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791972600",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 6:10AM-6:15AM ET"
+  },
+  {
+   "condition_id": "0x9c53de54cf2a153446785e69d4a68be0a5f9f362ac2ae5487fa5aa1d102f9af2",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792099200",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 5:20PM-5:25PM ET"
+  },
+  {
+   "condition_id": "0x4343d4cbbcbecbeb9cd0d5a0fede65e136a050a598665d9689d4ad323a20239f",
+   "label": "SPORTS-FEED",
+   "slug": "nhl-wsh-car-2026-10-13",
+   "sports_adjacent": false,
+   "title": "Capitals vs. Hurricanes"
+  },
+  {
+   "condition_id": "0x609ef47ffdf6df9bd849f84f1bfcf39a87e2c389ef7f74a8465377b72c28de32",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-rom-rma-2026-10-14-total-1pt5",
+   "sports_adjacent": false,
+   "title": "AS Roma vs. Real Madrid CF: O/U 1.5"
+  },
+  {
+   "condition_id": "0x02b884a6170a75acb1d1f285b6b14042cfdbc354803b8e1077688b16f0219b6c",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-lin2-liv-2026-10-14-exact-score-1-2",
+   "sports_adjacent": false,
+   "title": "Exact Score: LASK Linz 1 - 2 Liverpool FC?"
+  },
+  {
+   "condition_id": "0xc18102a46b669b2c53e6e420e77ace9b90f37e1d1f5b0b892ac91adca6acf0ef",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791939000",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 8:50PM-8:55PM ET"
+  },
+  {
+   "condition_id": "0x0bc38a6db5a0f0c2455238a20047680479fdf0ec84bc8e1ed2eb242488c02c7b",
+   "label": "SPORTS-FEED",
+   "slug": "cs2-keydst-gls1-2026-10-13-game2",
+   "sports_adjacent": false,
+   "title": "Counter-Strike: ex-Keyd Stars vs Galorys - Map 2 Winner"
+  },
+  {
+   "condition_id": "0xe52bbb15727ab474e78fe600daa567c1090ef7c194d75b15ac82858a8367147e",
+   "label": "SPORTS-FEED",
+   "slug": "spl-fai-kho-2026-10-15-halftime-result-away",
+   "sports_adjacent": false,
+   "title": "Al Kholood Saudi Club leading at halftime?"
+  },
+  {
+   "condition_id": "0x79791aacb976853f344c0b867e7ae0edf5a868bfff39fc26a987ecbc66799e20",
+   "label": "SPORTS-FEED",
+   "slug": "epl-cov-new-2026-10-12-corners-team-home-3pt5",
+   "sports_adjacent": false,
+   "title": "Coventry City FC vs. Newcastle United FC: Coventry City FC O/U 3.5 Corners"
+  },
+  {
+   "condition_id": "0x66bbf6d55e0296278858b3147689f3df9259374f158f9f028b608baa322a639c",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-the-democrats-win-the-maine-senate-race-in-2026",
+   "sports_adjacent": false,
+   "title": "Will the Democrats win the Maine Senate race in 2026?"
+  },
+  {
+   "condition_id": "0x261c26c492bc9452493b3e1c792f26b2e90ed7c1cd6f49f0cb7330b40145bde0",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "kharg-island-no-longer-under-iranian-control-by-december-31-20260730004337418",
+   "sports_adjacent": false,
+   "title": "Kharg Island no longer under Iranian control by December 31?"
+  },
+  {
+   "condition_id": "0x4966818ed9b75357af865a3a6615a22dc7871360d4cf2dd06fbb1c8a76c86132",
+   "label": "SPORTS-FEED",
+   "slug": "epl-cov-new-2026-10-12-exact-score-2-3",
+   "sports_adjacent": false,
+   "title": "Exact Score: Coventry City FC 2 - 3 Newcastle United FC?"
+  },
+  {
+   "condition_id": "0x9b9f78a32c9672a306a73f04333ef3cad43500b1acd76a1a62ac2ef0c4c83799",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791932100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 6:55PM-7:00PM ET"
+  },
+  {
+   "condition_id": "0x0fe5413dc7d57d737dd1617272c2e79052e02104ac37e02e4007eb9560358d1f",
+   "label": "SPORTS-FEED",
+   "slug": "cfb-kenest-msrst-2026-10-14-1h-spread-away-3pt5",
+   "sports_adjacent": false,
+   "title": "1H Spread: Kennesaw State (-3.5)"
+  },
+  {
+   "condition_id": "0x4a1150480a581440464a145b886cc06f7feba5a9395aa70ba91e3a42e041c48e",
+   "label": "SPORTS-FEED",
+   "slug": "lal-lev-sev-2026-10-12-total-2pt5",
+   "sports_adjacent": false,
+   "title": "Levante UD vs. Sevilla FC: O/U 2.5"
+  },
+  {
+   "condition_id": "0x021b31df9f33392375a17b8d895954330d87e25eadf8191afe5d699802c560ed",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791948000",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 11:20PM-11:25PM ET"
+  },
+  {
+   "condition_id": "0x3a40ffbd5566b90695790883a03fb8410f0d2c54c83642d2f172a0884db2a7ae",
+   "label": "SPORTS-FEED",
+   "slug": "lol-c9-kc-2026-10-15-game3",
+   "sports_adjacent": false,
+   "title": "LoL: Cloud9 vs Karmine Corp - Game 3 Winner"
+  },
+  {
+   "condition_id": "0xa1735d870670639748a9341786c43b346d3eccd6e5b7650dfc9cd79b3b174db3",
+   "label": "SPORTS-FEED",
+   "slug": "nba-nyk-tor-2026-10-13",
+   "sports_adjacent": false,
+   "title": "Knicks vs. Raptors"
+  },
+  {
+   "condition_id": "0xc8348075e82ee2adf5624605ed8d874fe6db1853e2fac5cf34b0e6e8dff0fb86",
+   "label": "SPORTS-FEED",
+   "slug": "cs2-wraith-ryvex-2026-10-14",
+   "sports_adjacent": false,
+   "title": "Counter-Strike: WRAITH PCIFIC vs Ryvex (BO3) - CCT Europe Closed Qualifier: Series #12 Group B"
+  },
+  {
+   "condition_id": "0xb818eb1084fdbc85161dda72c93e1e2da6eb3cc675aa815becb69f45f30683c9",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "iran-charges-hormuz-fees-by-october-31",
+   "sports_adjacent": false,
+   "title": "Iran charges Hormuz fees by October 31?"
+  },
+  {
+   "condition_id": "0x505d4aeb660adf2b07fb15895ffdd73c892616f7591e7f29e793141d71c4bbac",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792079700",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 11:55AM-12:00PM ET"
+  },
+  {
+   "condition_id": "0xacfd18fbaf9c1ed16f13aee9e39ab75f51c983c6513f6c4e55bb3d7f6c5a0138",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791893100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 8:05AM-8:10AM ET"
+  },
+  {
+   "condition_id": "0xff806e25d2818467b08d427c11ff6aa4e252ea537e9be5c053a024af11f5b0ff",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-ast-fen-2026-10-14-exact-score-1-3",
+   "sports_adjacent": false,
+   "title": "Exact Score: Aston Villa FC 1 - 3 Fenerbah\u00e7e SK?"
+  },
+  {
+   "condition_id": "0x516c2b0c2010ed4c474a4e372c68dba423646955787e2782e7eb56192f241ad6",
+   "label": "SPORTS-FEED",
+   "slug": "will-anyones-legend-win-worlds-2026",
+   "sports_adjacent": false,
+   "title": "Will Anyone's Legend win Worlds 2026?"
+  },
+  {
+   "condition_id": "0x07fa32156bb09405c199fe7e362a859edc8aa49bc8044522a227e884fde216bf",
+   "label": "SPORTS-FEED",
+   "slug": "itf-shin2-takaha2-2026-10-13",
+   "sports_adjacent": false,
+   "title": "M25 Qian Daohu: Maxim Shin vs Yusuke Takahashi"
+  },
+  {
+   "condition_id": "0x23c388c086935ef1df8b92c85f059cc29601350ee5ac65954a5a26c0e68582c6",
+   "label": "SPORTS-FEED",
+   "slug": "nfl-buf-la-2026-10-13-total-48pt5",
+   "sports_adjacent": false,
+   "title": "Bills vs. Rams: O/U 48.5"
+  },
+  {
+   "condition_id": "0x3dc658c29b19894372dd271c18bf5389629496c06aa280d929a08f0990d207ae",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-rcl-spo-2026-10-13-first-half-total-1pt5",
+   "sports_adjacent": false,
+   "title": "Racing Club de Lens vs. Sporting CP: 1st Half O/U 1.5"
+  },
+  {
+   "condition_id": "0x4c58ed7a6ab8a2e1a763f8942aad565c2c6d338e972350b54fb9ae35dbd08a45",
+   "label": "SPORTS-FEED",
+   "slug": "wta-sobolie-olmo-2026-10-13",
+   "sports_adjacent": false,
+   "title": "Mallorca: Anastasiia Sobolieva vs Ane Mintegi Del Olmo"
+  },
+  {
+   "condition_id": "0xab7609bee0a74c889955e302d00c53d96a74fdb15033c89760770c488d733aa2",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-rcl-spo-2026-10-13-spo",
+   "sports_adjacent": false,
+   "title": "Will Sporting CP win on 2026-10-13?"
+  },
+  {
+   "condition_id": "0x474f4601ee5a3cebf47eb1b95517e5163e25e294eb869c88b9942b7613229d11",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791858300",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 10:25PM-10:30PM ET"
+  },
+  {
+   "condition_id": "0xd663f7ba08759277b5d29598e9c36f08f4ec41440aa17c44adafee21c0d6d131",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792007100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 3:45PM-3:50PM ET"
+  },
+  {
+   "condition_id": "0x6a02e3007ef6aac1fd95e6902e9988776d44ad4089c67ddacf168a2b120f1922",
+   "label": "SPORTS-FEED",
+   "slug": "mls-clb-clt-2026-10-14-total-2pt5",
+   "sports_adjacent": false,
+   "title": "Columbus Crew vs. Charlotte FC: O/U 2.5"
+  },
+  {
+   "condition_id": "0x89e7e82169ebef86c764deda1876846c4a8c85a33619efc89a7bbd2f811c60a8",
+   "label": "SPORTS-FEED",
+   "slug": "itf-abanda1-gowda1-2026-10-15",
+   "sports_adjacent": false,
+   "title": "W50 Quebec City: Francoise Abanda vs Thara Gowda"
+  },
+  {
+   "condition_id": "0x4092815fea8f91e60586882d45fa2f61bfca8a36d595f47fdea9eec5d2893025",
+   "label": "SCHEDULED-EVENT",
+   "slug": "fed-rate-cut-by-october-2026-meeting-199-747",
+   "sports_adjacent": false,
+   "title": "Fed rate cut by October 2026 meeting?"
+  },
+  {
+   "condition_id": "0xab45a09524eab2f57ec645adb60d9bd5f2069a66253673f1928e8cfa439846a6",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-lin2-liv-2026-10-14-team-total-away-2pt5",
+   "sports_adjacent": false,
+   "title": "LASK Linz vs. Liverpool FC: Liverpool FC O/U 2.5"
+  },
+  {
+   "condition_id": "0x2d168fef2839c5035c85acde606a76d43821a748fe31d7d992f6a066f6053f47",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "elon-musk-of-tweets-october-6-october-13-2026-360-379",
+   "sports_adjacent": false,
+   "title": "Will Elon Musk post 360-379 tweets from October 6 to October 13, 2026?"
+  },
+  {
+   "condition_id": "0x49fdb5a024f08a0febb1c23732242a509e00d86727dfefc6b76410d97ffb51d5",
+   "label": "SPORTS-FEED",
+   "slug": "itf-zhang11-koyama2-2026-10-14",
+   "sports_adjacent": false,
+   "title": "W15 Shenzhen: jiale Zhang vs Honori Koyama"
+  },
+  {
+   "condition_id": "0xf03b7d224d196758e830e6b7c435df9b25850fb365dd165f41aaffbbab2746b7",
+   "label": "SPORTS-FEED",
+   "slug": "cricwcl-sou-eng-2026-10-13",
+   "sports_adjacent": false,
+   "title": "World Championship of Legends: South Africa Champions vs England Champions"
+  },
+  {
+   "condition_id": "0xfa56af314cc5203d87329f48f522f58c70b6afd439465fd5d14050f46973a20c",
+   "label": "SPORTS-FEED",
+   "slug": "tur-eyu-goz-2026-10-12-spread-away-4pt5",
+   "sports_adjacent": false,
+   "title": "Spread: G\u00f6ztepe SK (-4.5)"
+  },
+  {
+   "condition_id": "0x5b54a3c78cf5509dc95897c45ace135819a3344ed1f46df5077383f8494c9302",
+   "label": "SPORTS-FEED",
+   "slug": "acle-bur-bjg-2026-10-13-total-7pt5",
+   "sports_adjacent": false,
+   "title": "Buriram United vs. Beijing Guoan: O/U 7.5"
+  },
+  {
+   "condition_id": "0x0605001ee22539db303220b1e0e2ac1f07c3df54c1fe3034555da93a4e546691",
+   "label": "SPORTS-FEED",
+   "slug": "atp-doubles-krajmek-miedobe-2026-10-12",
+   "sports_adjacent": false,
+   "title": "Shanghai Rolex Masters (Doubles): Krajicek/Mektic vs Miedler/Oberleitner"
+  },
+  {
+   "condition_id": "0x2e8f1a6e9f1b496160bbcdd9dbea9e8290a97c9ee7788636554917ea1c0598f8",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "highest-temperature-in-buenos-aires-on-october-13-2026-22c",
+   "sports_adjacent": false,
+   "title": "Will the highest temperature in Buenos Aires be 22\u00b0C on October 13?"
+  },
+  {
+   "condition_id": "0xae9d879a06ea2900052632c47a32b806796808dc256edebfa3cee35f260cc99f",
+   "label": "PATH-SETTLED",
+   "slug": "bitcoin-up-or-down-october-12-2026-1pm-et",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 1PM ET"
+  },
+  {
+   "condition_id": "0x3dc47a37ad6ffb9786a3572e8e1cbd1c7b6029ab31e07ef4fe130d9a93873db5",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791810300",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 9:05AM-9:10AM ET"
+  },
+  {
+   "condition_id": "0xb7f05bc08d57083490b442031528c7ddde09d68ca914f75d53f0646fc5a3393a",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791846300",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 7:05PM-7:10PM ET"
+  },
+  {
+   "condition_id": "0x39ae6bf868179d5549ef809575b4bf4431d9f12703398383275980a218794447",
+   "label": "SPORTS-FEED",
+   "slug": "itf-passol1-cayeta1-2026-10-14",
+   "sports_adjacent": false,
+   "title": "W35 Redding, CA: Berta Passola vs Eryn Cayetano"
+  },
+  {
+   "condition_id": "0xd1fd9e61faa02becccc9dc88366eddadab1e19cd5b9315c40d96f9e179d49dee",
+   "label": "SPORTS-FEED",
+   "slug": "uel-ren1-ofi-2026-10-15-draw",
+   "sports_adjacent": false,
+   "title": "Will Stade Rennais FC 1901 vs. OFI end in a draw?"
+  },
+  {
+   "condition_id": "0x01fbdb4c2753d61aac3995a5ffe63a42297073f44c6d1d21b75ca63179955732",
+   "label": "SPORTS-FEED",
+   "slug": "cfb-ecar-uab-2026-10-15-total-47pt5",
+   "sports_adjacent": false,
+   "title": "East Carolina vs. UAB: O/U 47.5"
+  },
+  {
+   "condition_id": "0x7cd550140a36e6846e5ec5aae0c2148fd3ba73d9943811e7926d42b350c3834b",
+   "label": "SPORTS-FEED",
+   "slug": "dota2-yb1-zenith-2026-10-13-game2",
+   "sports_adjacent": false,
+   "title": "Dota 2: Yakult Brothers vs Zenith - Game 2 Winner"
+  },
+  {
+   "condition_id": "0x60073984a75126b64ef1a4a3d051884d3024584b4419f583b0e23f557c9a0eb8",
+   "label": "SPORTS-FEED",
+   "slug": "atp-ribeiro-prado-2026-10-12",
+   "sports_adjacent": false,
+   "title": "Santa Cruz 2: Eduardo Ribeiro vs Juan Carlos Prado"
+  },
+  {
+   "condition_id": "0x23481b811978194fa175143ed7cd8d0000878ca59c408fd552e33535f7aa771e",
+   "label": "SCHEDULED-EVENT",
+   "slug": "will-donald-trump-jr-win-the-2028-us-presidential-election",
+   "sports_adjacent": false,
+   "title": "Will Donald Trump Jr. win the 2028 US Presidential Election?"
+  },
+  {
+   "condition_id": "0x567b548b6117f09b8c28637e0fdde610c17fe9d1284eeb3f8a7125c6f0fcadd5",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "will-mrbeast-gamings-next-video-get-55-million-or-more-views-in-week-1-20261010",
+   "sports_adjacent": false,
+   "title": "Will MrBeast Gaming's next video get 55 million or more views in week 1?"
+  },
+  {
+   "condition_id": "0xed632c621297e270545a2d79d53119c0cb8090b502bb7b52526f7fde58df16ed",
+   "label": "SPORTS-FEED",
+   "slug": "itsb-ces-emp-2026-10-27-exact-score-any-other",
+   "sports_adjacent": false,
+   "title": "Exact Score: Any Other Score?"
+  },
+  {
+   "condition_id": "0x7c498019b1f402bd0b193da80269c43a983cd5d41c2620fae636c87bdc53336e",
+   "label": "SPORTS-FEED",
+   "slug": "nfl-buf-la-2026-10-13-spread-away-6pt5",
+   "sports_adjacent": false,
+   "title": "Spread: Bills (-6.5)"
+  },
+  {
+   "condition_id": "0xbe6e64c006d8b5493359edc94923cc8e8b75a48d02063a55013878458f29d743",
+   "label": "SPORTS-FEED",
+   "slug": "atp-karol-krutykh-2026-10-12",
+   "sports_adjacent": false,
+   "title": "Maia: Milos Karol vs Oleksii Krutykh"
+  },
+  {
+   "condition_id": "0xb5b8883eee5bb2f545a30afc488d4f85a147a1ac5444caf48a0ce6f73d67ad2a",
+   "label": "SPORTS-FEED",
+   "slug": "mlb-mil-lad-2026-10-14-spread-away-3pt5",
+   "sports_adjacent": false,
+   "title": "Spread: Milwaukee Brewers (-3.5)"
+  },
+  {
+   "condition_id": "0x76254bb5f57ed57675bc180b8d8ed10225a40d64eeba1f6eec97660dee05046e",
+   "label": "SPORTS-FEED",
+   "slug": "cs2-lgc-furia-2026-10-15-total-games-2pt5",
+   "sports_adjacent": false,
+   "title": "Games Total: O/U 2.5"
+  },
+  {
+   "condition_id": "0x74e71bcad7672b9f92dc5d0550427802a62e54e37b020ec381a1897cab4cc616",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791807600",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 8:20AM-8:25AM ET"
+  },
+  {
+   "condition_id": "0xf2f3625387b46b5c71f031b00df1484845c4490bec4f7649da4c810d53a4758d",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-bet-por-2026-10-14-first-half-total-1pt5",
+   "sports_adjacent": false,
+   "title": "Real Betis Balompi\u00e9 vs. FC Porto: 1st Half O/U 1.5"
+  },
+  {
+   "condition_id": "0x3c2d3b9eb04e50e294f9c729e1e121d1826a69c0d7a905a91e3c2b140be71f03",
+   "label": "SPORTS-FEED",
+   "slug": "cs2-ale1-suke-2026-10-15-game1",
+   "sports_adjacent": false,
+   "title": "Counter-Strike: Alianza Lima Esports vs SUKEBAN - Map 1 Winner"
+  },
+  {
+   "condition_id": "0xb6215b51cc024740765b180c08ff48af978a2b6ec05a2f66e70364d8160ed445",
+   "label": "SPORTS-FEED",
+   "slug": "wta-putints-shnaide-2026-10-13",
+   "sports_adjacent": false,
+   "title": "Wuhan Tennis Open: Yulia Putintseva vs Diana Shnaider"
+  },
+  {
+   "condition_id": "0xa97bdff872babe14e09f4b224395294a49b80fecb835723a70e92c81c4eb1ee7",
+   "label": "SPORTS-FEED",
+   "slug": "el1-man-oxf-2026-10-15-total-2pt5",
+   "sports_adjacent": false,
+   "title": "Mansfield Town FC vs. Oxford United FC: O/U 2.5"
+  },
+  {
+   "condition_id": "0x3fa5ee4f0882e342fddf4087578ded28c997b25f4d39c4dc0300be0096de28ee",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791944100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 10:15PM-10:20PM ET"
+  },
+  {
+   "condition_id": "0xc8c7188d536be9cb6d99962b2c049b1046e13555d2f5f5aaafd5219cadf21bc0",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-ukraine-sign-an-eu-accession-treaty-by-december-31-2027-20260611204943691",
+   "sports_adjacent": false,
+   "title": "Will Ukraine sign an EU accession treaty by December 31, 2027?"
+  },
+  {
+   "condition_id": "0x1947a0e33e6e5a76d2cdb5f974b7d2ae3bb948761fc3441d1b69980c4d3752f8",
+   "label": "PATH-SETTLED",
+   "slug": "bitcoin-up-or-down-october-14-2026-8am-et",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 8AM ET"
+  },
+  {
+   "condition_id": "0xf843a188877d46fbd083dae31878be78e6accd663f969543b6c1952c90220b42",
+   "label": "SPORTS-FEED",
+   "slug": "ucl-lin2-liv-2026-10-14-second-half-result-draw",
+   "sports_adjacent": false,
+   "title": "LASK Linz vs. Liverpool FC: Second half draw?"
+  },
+  {
+   "condition_id": "0x2ee255e1c784976842162f3d06a7803a3e7e63402dd4dbd467b07525de6dfb1b",
+   "label": "PATH-SETTLED",
+   "slug": "will-ethereum-reach-2800-october-12-18-2026",
+   "sports_adjacent": false,
+   "title": "Will Ethereum reach $2,800 October 12-18?"
+  },
+  {
+   "condition_id": "0x528752a0b68b2bbf08486b057c0db2575f71f71282bff035471a764bc7c21ae9",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "elon-musk-of-tweets-october-6-october-13-2026-400-419",
+   "sports_adjacent": false,
+   "title": "Will Elon Musk post 400-419 tweets from October 6 to October 13, 2026?"
+  },
+  {
+   "condition_id": "0x6719d586d452e44d72ea511730d94c66a09b60c9c26150cdd69f3030c935215a",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791795900",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 5:05AM-5:10AM ET"
+  },
+  {
+   "condition_id": "0x3b8389de952f85177bc1a4b17cf17ffeb483b78ae058d973f298c6a1c375fb98",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-metas-watermelon-model-be-released-on-october-12-2026",
+   "sports_adjacent": false,
+   "title": "Will Meta's Watermelon model be released on October 12, 2026?"
+  },
+  {
+   "condition_id": "0x0dcf8a2f142bcb52f1d35fb0ec120bcf02ca09994d01c5f57aa44c4d39daf813",
+   "label": "PATH-SETTLED",
+   "slug": "solana-above-100-on-october-14-2026",
+   "sports_adjacent": false,
+   "title": "Will the price of Solana be above $100 on October 14?"
+  },
+  {
+   "condition_id": "0x00efc02ecae6b816f08ccf95edb381aadd81af23711a25e8f60d497c394213e4",
+   "label": "PATH-SETTLED",
+   "slug": "will-axis-robotics-launch-a-token-by-december-31-2026",
+   "sports_adjacent": false,
+   "title": "Will Axis Robotics launch a token by December 31, 2026?"
+  },
+  {
+   "condition_id": "0xf4f25c7030809565266c14da08f9b1e91a9963fc80ab905bbe2955463c9033ba",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791910800",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 1:00PM-1:05PM ET"
+  },
+  {
+   "condition_id": "0x00e5213c12ea671204726dfcbb0297101f73dde72b720733f23b72d62f09286e",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792094100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 3:55PM-4:00PM ET"
+  },
+  {
+   "condition_id": "0x815f3714c53477e8865c4d2c034d9b134b94aacf8b0db8c59f39bb52d7c9a106",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-louisiana-enact-a-data-center-moratorium-by-june-30-2027",
+   "sports_adjacent": false,
+   "title": "Will Louisiana enact a data center moratorium by June 30, 2027?"
+  },
+  {
+   "condition_id": "0xc7bd2094717fa7d26ffa2ede06d5b243bf01b3cfbd82dd6441a5e2bd984eee7b",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791777900",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 12:05AM-12:10AM ET"
+  },
+  {
+   "condition_id": "0x9baab6612c20d561f6d77e6344f19dcc8b3b2fd32fa4c1fab94eb82d8b3d6017",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-15m-1792062900",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 7:15AM-7:30AM ET"
+  },
+  {
+   "condition_id": "0xf889ddee814e08e455583fd0c17d2ae1c4596695678b9e85f0952206690fa70d",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791874800",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 3:00AM-3:05AM ET"
+  },
+  {
+   "condition_id": "0x9058a1de429833b53959a1751f9cdcf82ac1d650647c775701d90f30a7211f76",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "lowest-temperature-in-hong-kong-on-october-13-2026-25c",
+   "sports_adjacent": false,
+   "title": "Will the lowest temperature in Hong Kong be 25\u00b0C on October 13?"
+  },
+  {
+   "condition_id": "0xa1fd4764c30755c1f97ad561e43588cedf6badeed3d6c691db6454ca5d9fc1d1",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "highest-temperature-in-lucknow-on-october-16-2026-31c",
+   "sports_adjacent": false,
+   "title": "Will the highest temperature in Lucknow be 31\u00b0C on October 16?"
+  },
+  {
+   "condition_id": "0x2edaa93caa84f95c918c4f4804b59a0e0d04631b6dabf286abf83905085d18b3",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "anthropic-lab-leak-by-june-30-2027",
+   "sports_adjacent": false,
+   "title": "Anthropic lab leak by June 30, 2027?"
+  },
+  {
+   "condition_id": "0x2bcd1ba3fe74acf827cbccaeefe74214b0cf288faad8aa9654db7525ddeca61b",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "save-act-becomes-law-by-december-31-2026-347",
+   "sports_adjacent": false,
+   "title": "SAVE Act becomes law by December 31, 2026?"
+  },
+  {
+   "condition_id": "0xb247c14c71f2527af538d0045e49eff81a6291963e1ae5114342731da8bd3327",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "you-can-see-everything-opening-weekend-box-office-be-less-than-3m-20261007000529685",
+   "sports_adjacent": false,
+   "title": "Will \"You Can See Everything\" Opening Weekend Box Office be less than 3m?"
+  },
+  {
+   "condition_id": "0xf75c802b5865d939727d05ac7410e33adbaf05ea762b3a25cf31570da586e871",
+   "label": "PATH-SETTLED",
+   "slug": "bitcoin-up-or-down-on-october-12-2026",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down on October 12?"
+  },
+  {
+   "condition_id": "0xfa8924e56bbd2267ad44c906b409899c76bb0e340d2b8af4083a80d5267765b4",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792000200",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 1:50PM-1:55PM ET"
+  },
+  {
+   "condition_id": "0x092f0fc94b42a22d82d38ea96a905a3624bb57d8f5fea2d503a7a3f0230cb766",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "gemini-4pt0-released-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Gemini 4.0 released by October 31, 2026?"
+  },
+  {
+   "condition_id": "0x2c08560e196e2093688235f051d9278ac448c89f17a1a32552c64ed837299554",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791965400",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 4:10AM-4:15AM ET"
+  },
+  {
+   "condition_id": "0xfda1de3043c1c690847df3fea177193d97c4c13cddef25a26a2abe6696227d47",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791852300",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 8:45PM-8:50PM ET"
+  },
+  {
+   "condition_id": "0x36823d42f5982c4a397cdc0720744d72275f91d1f8f09071eace03de6fc44265",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "saudi-airspace-closed-by-december-31-2026",
+   "sports_adjacent": false,
+   "title": "Will Saudi airspace be closed by December 31?"
+  },
+  {
+   "condition_id": "0x12e184046282267de6cb7a574c57ffbf2f30507571f8b93b0d898cdc1349d2ee",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "elon-musk-of-tweets-october-10-october-12-2026-0-39",
+   "sports_adjacent": false,
+   "title": "Will Elon Musk post <40 tweets from October 10 to October 12, 2026?"
+  },
+  {
+   "condition_id": "0xd333a0ea09b13293452ca92efb61ac6f1c3d1d31f8c67fd2e783491d7d17e020",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791802500",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 6:55AM-7:00AM ET"
+  },
+  {
+   "condition_id": "0x9775cd557a3cdba4f0478070afa399c0805761dd9aa0e7ce4435a71fed32621c",
+   "label": "PATH-SETTLED",
+   "slug": "will-ethereum-reach-4000-by-december-31-2026",
+   "sports_adjacent": false,
+   "title": "Will Ethereum reach $4,000 by December 31, 2026?"
+  },
+  {
+   "condition_id": "0x6f8c291251a99ca211e9ac80d79d84db409140d743f9d14a28ebbca0dfeb75f8",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-15m-1792055700",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 5:15AM-5:30AM ET"
+  },
+  {
+   "condition_id": "0xe7fdcddbf41b9641e0fd636a15e672054cbc61a8b1e0f00c4a4a96430013c7c5",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "perim-island-no-longer-under-houthi-control-by-october-31-20260916",
+   "sports_adjacent": false,
+   "title": "Perim Island no longer under Houthi control by October 31?"
+  },
+  {
+   "condition_id": "0xd64b917e1f7cdf1ad3f51326cf8985ce80e140291d2eaf2bf62821ef02231550",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "strait-of-hormuz-traffic-returns-to-normal-by-november-30-20260810151158765",
+   "sports_adjacent": false,
+   "title": "Strait of Hormuz traffic returns to normal by November 30?"
+  },
+  {
+   "condition_id": "0xd3ba7b198eda1b2b99f118e5f6cf02a23195f995b5ba7f465132817023f369f4",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791914100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 1:55PM-2:00PM ET"
+  },
+  {
+   "condition_id": "0xde5c4c7f05b34f4774d07fec9aa9cf880555f95ddcce4c7830ab09daecc493c4",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "russia-x-ukraine-ceasefire-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Russia x Ukraine ceasefire by October 31, 2026?"
+  },
+  {
+   "condition_id": "0x1e682fc8b0d299f6fd67f6d6ab910740e3b769e2028f6cc03d89c4178fcd3707",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792081500",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 12:25PM-12:30PM ET"
+  },
+  {
+   "condition_id": "0x8783f94273adfb3210c552a2cf023f20b0e19543db457aeccd9cfa7bc3fecba6",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791781800",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 1:10AM-1:15AM ET"
+  },
+  {
+   "condition_id": "0xdd0d2a374345c7758710cbb8e70ae546d2c38e56b7a27b6b0a095a2ad7e2905b",
+   "label": "PUBLIC-STATISTIC",
+   "slug": "will-south-african-inflation-be-between-4pt4-and-4pt7-in-2026",
+   "sports_adjacent": false,
+   "title": "Will South African inflation be between 4.4% and 4.7% in 2026?"
+  },
+  {
+   "condition_id": "0xab06f097ae7163b144b8d4ac7fea9a76f1a158d7532d50e849e860aa349737cb",
+   "label": "PATH-SETTLED",
+   "slug": "will-the-price-of-ethereum-be-between-2400-2500-on-october-12-2026",
+   "sports_adjacent": false,
+   "title": "Will the price of Ethereum be between $2,400 and $2,500 on October 12?"
+  },
+  {
+   "condition_id": "0x1a461c2353e504b7987c4ca2d406158fb40eac075bc7929b040623d692513c17",
+   "label": "PATH-SETTLED",
+   "slug": "meta-close-above-740-on-october-16-2026",
+   "sports_adjacent": false,
+   "title": "Will Meta (META) close above $740 on October 16?"
+  },
+  {
+   "condition_id": "0xe1679fc3dfc215313575fcaa326f524379a24f08fd03f7c3f5f0347451a307f9",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791837000",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 4:30PM-4:35PM ET"
+  },
+  {
+   "condition_id": "0x0f1707e6b68c09e9cf891bc63caaba01a0821d5487888deedebad6c7fc6c9947",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792093200",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 3:40PM-3:45PM ET"
+  },
+  {
+   "condition_id": "0x300f4e18555abee034ccec33fb7db5b4c4e98549aec11ed00ac34ffd4ce64900",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791783000",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 12, 1:30AM-1:35AM ET"
+  },
+  {
+   "condition_id": "0x2bb8120b87f2baea61bd66204ea331b5d4446f5ad1cab6a2933df7603d30a0a1",
+   "label": "PATH-SETTLED",
+   "slug": "will-ethereum-dip-to-2350-on-october-14-2026",
+   "sports_adjacent": false,
+   "title": "Will Ethereum dip to $2,350 on October 14?"
+  },
+  {
+   "condition_id": "0xafa363b90104a99ed01c2d7f3d0d4846923d71d29ad84edc9ff35bbf7f634a4b",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791918600",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 3:10PM-3:15PM ET"
+  },
+  {
+   "condition_id": "0x159da88e6512988ae9d5a44258796fa7601aa6804845ff3415a6eee167996552",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792079100",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 11:45AM-11:50AM ET"
+  },
+  {
+   "condition_id": "0x3a455fe6bf8de5fbb899239b7d5ceef2391f7fc69835a514126a5319ebc1c2bf",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792047900",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 15, 3:05AM-3:10AM ET"
+  },
+  {
+   "condition_id": "0x30d56b1ff4754f98e7b2e459390ed017c065e930973dfe840043bb319cf82baf",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1791925800",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 13, 5:10PM-5:15PM ET"
+  },
+  {
+   "condition_id": "0x97cf62ad1c3a84e6b35489da35abafec4101023e263a8c67822af1676963403e",
+   "label": "PATH-SETTLED",
+   "slug": "btc-updown-5m-1792026600",
+   "sports_adjacent": false,
+   "title": "Bitcoin Up or Down - October 14, 9:10PM-9:15PM ET"
+  },
+  {
+   "condition_id": "0x6bd5b097102ba2ce84375bcf471abc0683b2009cdfc6b442c6d63d4ef8e5c100",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "next-astra-model-6pt1-released-by-october-23-2026",
+   "sports_adjacent": false,
+   "title": "Next Astra Model (6.1+) released by October 23, 2026?"
+  },
+  {
+   "condition_id": "0x15e8b539b6e6bed3285dbabb6fa3de5c528e562a089edda1ba7c0dcb5a073657",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "edi-rama-out-as-albania-pm-in-2026",
+   "sports_adjacent": false,
+   "title": "Edi Rama out as Albania PM in 2026?"
+  },
+  {
+   "condition_id": "0xa55aba6f5c78f51112da71f57888efba75e85840a9afafe42ab9f3dedf8fc338",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-james-talarico-be-time-person-of-the-year-2026",
+   "sports_adjacent": false,
+   "title": "Will James Talarico be TIME Person of the Year 2026?"
+  },
+  {
+   "condition_id": "0xe975540745a75fdf6495610cc7df212668291231654f835dea27ff40b9923ab7",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "kimberly-guilfoyle-out-as-us-ambassador-to-greece-by-december-31",
+   "sports_adjacent": false,
+   "title": "Kimberly Guilfoyle out as U.S. Ambassador to Greece by December 31?"
+  },
+  {
+   "condition_id": "0x1175651306e9ae39991642dcff3fd96778ae0301fc44c7f5565251fc2bb68d31",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "israel-x-iran-ceasefire-continues-through-october-21",
+   "sports_adjacent": false,
+   "title": "Israel x Iran ceasefire continues through October 21?"
+  },
+  {
+   "condition_id": "0x1d78389ca8fbb953ab8ed8d1fecb5160ac4c3a2b0185fed3c248f4d2e5cf5192",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "russia-ukraine-peace-talks-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Russia-Ukraine peace talks by October 31, 2026?"
+  },
+  {
+   "condition_id": "0xf92b7f02613c37a73225f46925643f897d3f63509d9ffcf71125e96ee5868c3a",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-the-next-gpt-sol-model-6pt1-debut-with-a-humanitys-last-exam-score-of-50-or-higher",
+   "sports_adjacent": false,
+   "title": "Will the next GPT Sol model (6.1+) debut with a Humanity's Last Exam score of 50% or higher?"
+  },
+  {
+   "condition_id": "0x357319ded51afc8843eb0ddcf345c2de1f7613e97357f7942e1e228961f4e723",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "russia-x-ukraine-ceasefire-agreement-by-january-31-2027",
+   "sports_adjacent": false,
+   "title": "Russia x Ukraine ceasefire agreement by January 31, 2027?"
+  },
+  {
+   "condition_id": "0x5c79dfde05559b79a9cb9f7c4187e4d49632dd042572ae676952f812732591cc",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "strait-of-hormuz-traffic-returns-to-normal-by-december-31",
+   "sports_adjacent": false,
+   "title": "Strait of Hormuz traffic returns to normal by December 31?"
+  },
+  {
+   "condition_id": "0x5ac407c974f923ad6838c28396f16158f20334de82c96dbd8cf2435b346b7005",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-gemini-argon-be-released-on-october-14-2026",
+   "sports_adjacent": false,
+   "title": "Will Gemini Argon be released on October 14, 2026?"
+  },
+  {
+   "condition_id": "0xfbc6df36b81fb71db8720ec934c997c8774990ac7bd68cfffbbc8465ef4d7982",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-ilhan-omar-be-deported-in-2026",
+   "sports_adjacent": false,
+   "title": "Will Ilhan Omar be deported by December 31, 2026?"
+  },
+  {
+   "condition_id": "0x5eb3964d1bb946a1034c6c32c8df4d5ac5e0b76a676e7e16280c1737aee06d2d",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-venezuela-recognize-israel-by-december-31",
+   "sports_adjacent": false,
+   "title": "Will Venezuela recognize Israel by December 31?"
+  },
+  {
+   "condition_id": "0x8bdeac60c92d3bc494792fd334ca181b0cf70355f23dca4098d558280b554c81",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "iran-nuke-before-2027",
+   "sports_adjacent": false,
+   "title": "Iran Nuke before 2027?"
+  },
+  {
+   "condition_id": "0x19aeb69e9189bb1372610dce381a09574c2c7804908e5898d9b8f2fdaa4844dc",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-there-be-no-next-meta-muse-spark-model-release-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Will there be no next Meta Muse Spark model release by October 31, 2026?"
+  },
+  {
+   "condition_id": "0x51f624dbbf14f9edb575fef1be6f7a303751de70783fa144fce27b957452c803",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "zelenskyy-out-as-ukraine-president-before-2027",
+   "sports_adjacent": false,
+   "title": "Zelenskyy out as Ukraine president by end of 2026?"
+  },
+  {
+   "condition_id": "0xbd561f0c530589927349f2056c8682fb16529f7e0503a15be4438d3f2224e56a",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "saudi-houthi-ceasefire-agreement-announced-by-december-31",
+   "sports_adjacent": false,
+   "title": "Saudi-Houthi ceasefire agreement announced by December 31?"
+  },
+  {
+   "condition_id": "0x127c6b97522d97f9b0075359d577f9b5b4ba524f1bcb739b984fbc37f2e0c5f2",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-russia-target-kyiv-on-october-22-2026",
+   "sports_adjacent": false,
+   "title": "Will Russia target Kyiv on October 22, 2026?"
+  },
+  {
+   "condition_id": "0x325f133a76e21236dfbcb4277088078247f8216509bc6c1907b5c5bad99085ec",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "john-ratcliffe-out-as-cia-director-by-december-31-20260729184057166",
+   "sports_adjacent": false,
+   "title": "John Ratcliffe out as CIA Director by December 31?"
+  },
+  {
+   "condition_id": "0x7d542d01581ab32518a4131ef852dbc5167697c8dd9600f3fb0c24df2a417ce1",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "us-imports-russian-diesel-by-november-30",
+   "sports_adjacent": false,
+   "title": "US imports Russian diesel by November 30?"
+  },
+  {
+   "condition_id": "0x58cfba38bf5b62260918d3e77da04ac8e8135c48a36802373e4c0eefc7676569",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-nick-stewart-attend-a-us-x-iran-diplomatic-meeting-by-december-31-2026-20260812154221280",
+   "sports_adjacent": false,
+   "title": "Will Nick Stewart attend a US x Iran diplomatic meeting by December 31, 2026?"
+  },
+  {
+   "condition_id": "0xa94d6d38aadfed1c9705800330db2cf11deea1b7086ab1aad647abcc6337651f",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "us-iran-final-nuclear-deal-by-november-30-2026",
+   "sports_adjacent": false,
+   "title": "US-Iran Final Nuclear Deal by November 30, 2026?"
+  },
+  {
+   "condition_id": "0xbbf0bf35801866a361a3733ef21c787b94b9e7ccc9c4cde622b24f471b95c1ca",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "iran-oman-hormuz-agreement-by-november-30",
+   "sports_adjacent": false,
+   "title": "Iran-Oman Hormuz Agreement by November 30?"
+  },
+  {
+   "condition_id": "0xc1c33117799d760032da62406160105dbe60ed8a57e549a3e8152e7d6f501f0a",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "gemini-4pt0-released-by-october-15-2026",
+   "sports_adjacent": false,
+   "title": "Gemini 4.0 released by October 15, 2026?"
+  },
+  {
+   "condition_id": "0xdffc622fc50f57fd788dce7b983453b7f5b19e557b46f695d09ccdb37f0ed38f",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "next-fable-model-5pt2-released-by-october-15-2026",
+   "sports_adjacent": false,
+   "title": "Next Fable Model (5.2+) released by October 15, 2026?"
+  },
+  {
+   "condition_id": "0x045fdf4be2f890a3f846357a5160834685bb7dfae65909d3d307e5547898e1ad",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "gemini-4pt0-released-by-october-16-2026",
+   "sports_adjacent": false,
+   "title": "Gemini 4.0 released by October 16, 2026?"
+  },
+  {
+   "condition_id": "0x254873b6d6c5968fb14d63a24321b28ad725dca40e28fd6e86448de5d399bf21",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "choosin-texas-ella-langley-2-spotify-song-in-the-us-this-week-october-16-20261012",
+   "sports_adjacent": false,
+   "title": "Will \"Choosin' Texas - Ella Langley\" be the #2 US song this week?"
+  },
+  {
+   "condition_id": "0xe72f96c82e38e48805bd95264265e858b9f0e83af1b661894b4bf9c84f96a6bd",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "israel-military-action-against-syria-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Israel military action against Syria by October 31, 2026?"
+  },
+  {
+   "condition_id": "0x9438a0543ab229bab611313d082d3c184bdf114d3a8d787908f87bc79d3c2af7",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-discord-not-ipo-by-december-31-2027-20260626210212286",
+   "sports_adjacent": false,
+   "title": "Will Discord not IPO by December 31, 2027?"
+  },
+  {
+   "condition_id": "0xea7f75f9bdedef80577109cf375cdb271b83d19b4e618288e03e0186200f2f4c",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "houthis-enter-aden-by-november-30-2026",
+   "sports_adjacent": false,
+   "title": "Houthis enter Aden by November 30, 2026?"
+  },
+  {
+   "condition_id": "0x334954cfe7d8ae24e350972470c156f5b2cdd4616dcaa5bfb71b4e2b2298d690",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "us-x-iran-ceasefire-continues-through-october-12",
+   "sports_adjacent": false,
+   "title": "US x Iran ceasefire continues through October 12?"
+  },
+  {
+   "condition_id": "0x2cd0a2eed2c93bfdfa2f2e44fd34d90acfb3f5d0938ba1f458410ac8afef500a",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-a-european-country-take-military-action-on-iran-by-october-31",
+   "sports_adjacent": false,
+   "title": "Will a European country take military action on Iran by October 31?"
+  },
+  {
+   "condition_id": "0x780fb498b1f10fe785545ab25b2129398fe8fca4fac25471f37884d02264fc09",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-benjamin-netanyahu-be-the-next-leader-out-before-2027-20260630194627368",
+   "sports_adjacent": false,
+   "title": "Will Benjamin Netanyahu be the next leader out before 2027?"
+  },
+  {
+   "condition_id": "0xaef0d4a34b0cc1cf915dbf965777e4da89d15c4ab8b0fa8a5fc127360a251b63",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "next-us-iran-senior-diplomatic-meeting-by-october-31-2026-copy",
+   "sports_adjacent": false,
+   "title": "Next US-Iran senior diplomatic meeting by October 31, 2026? (copy)"
+  },
+  {
+   "condition_id": "0x57eaccaa51f866dc7b4feb558a8cb211e71f2f3fed6e4518d9057a76807b1d9e",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-muse-wonder-debut-as-1-text-arena-20261012",
+   "sports_adjacent": false,
+   "title": "Will Muse Wonder debut as #1? (Text Arena)"
+  },
+  {
+   "condition_id": "0xd7cd83a687a4327859fd0e3268828d6872828b9019cf9a67940520102e380df1",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "gemini-4pt0-released-by-october-12-2026",
+   "sports_adjacent": false,
+   "title": "Gemini 4.0 released by October 12, 2026?"
+  },
+  {
+   "condition_id": "0xf6beb39de7421e0a114ecc1360ca8eabb0af54dc0178a3f4896da9be176a54f8",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "houthis-enter-aden-by-december-31-2026",
+   "sports_adjacent": false,
+   "title": "Houthis enter Aden by December 31, 2026?"
+  },
+  {
+   "condition_id": "0x8e9e11eabbad794acde6b941f89b7f76cf9a02b88da4d606cc9dcdb998374035",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "uae-x-saudi-arabia-sever-diplomatic-relations-in-2026",
+   "sports_adjacent": false,
+   "title": "UAE x Saudi Arabia sever diplomatic relations in 2026?"
+  },
+  {
+   "condition_id": "0xf95775d7ab978cee1e839481231a3eb27e17530d2f41965868bce2f5aca2b1a8",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-metas-watermelon-model-debut-with-a-humanitys-last-exam-score-of-55pct-or-higher",
+   "sports_adjacent": false,
+   "title": "Will Meta's Watermelon model debut with a Humanity's Last Exam score of 55% or higher?"
+  },
+  {
+   "condition_id": "0xa61a17d0023386a38623bfe4724d1ec47b4b36bade94dd3e3cfc4ce79af9ba6a",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-the-iranian-regime-fall-by-october-31",
+   "sports_adjacent": false,
+   "title": "Will the Iranian regime fall by October 31?"
+  },
+  {
+   "condition_id": "0xbac0af08637f25aae0d661b4f270626a57b2a3a65f81a26c2e4d6deee89edf51",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "us-x-iran-diplomatic-meeting-by-december-31-2026-20260922",
+   "sports_adjacent": false,
+   "title": "Next US-Iran senior diplomatic meeting by December 31, 2026?"
+  },
+  {
+   "condition_id": "0x24d28f36ea7fb7c729b108e3992b4df869a0112e6f2aa546d43f80a0a9136e40",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-cmi-declare-a-millennium-prize-problem-solved-by-december-31-2026-20260723160122980",
+   "sports_adjacent": false,
+   "title": "Will CMI declare a Millennium Prize Problem solved by December 31, 2026?"
+  },
+  {
+   "condition_id": "0xfba1944e3a766b128d79d1c344e6b87bbbcd422a9eebe8a2111d4cf97262f238",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "russia-ukraine-peace-talks-by-november-30-2026",
+   "sports_adjacent": false,
+   "title": "Russia-Ukraine peace talks by November 30, 2026?"
+  },
+  {
+   "condition_id": "0x6db92cee58b72e61b3874cce633a0457ade010ef377a0eeeaf1fcf88ad0c3fd4",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "next-us-iran-senior-diplomatic-meeting-by-november-30-2026",
+   "sports_adjacent": false,
+   "title": "Next US-Iran senior diplomatic meeting by November 30, 2026?"
+  },
+  {
+   "condition_id": "0xd40fd8d1f04bc2403883c4b0308eb2a9c66b1dc8069ef9c0c5e30e340f6a3098",
+   "label": "UNSCHEDULED-NEWS",
+   "slug": "will-donald-trump-publicly-insult-barack-obama-by-october-31-2026",
+   "sports_adjacent": false,
+   "title": "Will Donald Trump publicly insult Barack Obama by October 31, 2026?"
+  }
+ ]
+}

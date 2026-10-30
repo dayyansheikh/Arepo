@@ -1,0 +1,778 @@
+{
+ "common": {
+  "counting": {
+   "count_line": "ml_explain, source creative_batch_10:<D|B>, n_tests = 1 per test",
+   "exit_75": "pending: no trials line",
+   "kinds": [
+    "cb10_test",
+    "cb10_replication",
+    "cb10_descriptive"
+   ],
+   "not_testable": "counted with p = 1"
+  },
+  "disk": {
+   "data_dumps_cap_gb": 40.0,
+   "exit_75": "pending (never 'not run'); the queue's 48-tempfail failure is re-queued under a new id",
+   "free_disk_min_gb": 4.5,
+   "total_output_cap_gb": 0.12
+  },
+  "exclusion": {
+   "absent_pins": "a pinned frame / seal copy not present at q0201 is recorded 'absent at q0201'",
+   "base": "CB9 q0182 exclusion_keys.csv.gz (sha256 pinned)",
+   "max_unverified_key_share": 0.02,
+   "own_seal_copies": [
+    "cb10_brk_holdout_SEAL.json"
+   ]
+  },
+  "gamma_whitelist": {
+   "forbidden": [
+    "lastTradePrice",
+    "bestBid",
+    "bestAsk",
+    "spread",
+    "oneDayPriceChange",
+    "oneHourPriceChange",
+    "oneWeekPriceChange",
+    "oneMonthPriceChange",
+    "oneYearPriceChange",
+    "umaResolutionStatus",
+    "umaResolutionStatuses",
+    "closedTime",
+    "outcomePrices",
+    "volume",
+    "volumeNum",
+    "volume24hr",
+    "volume1wk",
+    "volume1mo",
+    "volume1yr",
+    "volumeClob",
+    "volume24hrClob",
+    "liquidity",
+    "liquidityNum",
+    "liquidityClob",
+    "description"
+   ],
+   "keep": [
+    "id",
+    "conditionId",
+    "question",
+    "slug",
+    "clobTokenIds",
+    "outcomes",
+    "startDate",
+    "endDate",
+    "negRisk",
+    "negRiskMarketID",
+    "resolutionSource",
+    "feeSchedule",
+    "orderMinSize"
+   ],
+   "outcome_prices": "routed by guarded_outcome_prices() to D's outcomes_guarded.csv.gz only",
+   "output_columns": [
+    "market_id",
+    "condition_id",
+    "question",
+    "slug",
+    "token_yes",
+    "token_no",
+    "yes_idx",
+    "outcomes",
+    "start_date",
+    "end_date",
+    "start_epoch",
+    "end_epoch",
+    "neg_risk",
+    "neg_risk_market_id",
+    "event_id",
+    "event_ids",
+    "series_ids",
+    "series_slugs",
+    "resolution_source",
+    "fee_rate",
+    "fee_taker_only",
+    "order_min_size",
+    "desc_sha256"
+   ]
+  },
+  "j4r_window": [
+   "2026-10-16",
+   "2026-10-21"
+  ],
+  "output_roots": [
+   "creative_batch10",
+   "h10_dlad",
+   "h10_brk"
+  ],
+  "placebos": {
+   "draws": 200,
+   "gdp_seed": 10107,
+   "max_advance_rate": 0.015,
+   "seeds": {
+    "B1_swap_day": 10104,
+    "B1_swap_event": 10103,
+    "D1_signflip_date": 10102,
+    "D1_signflip_week": 10101,
+    "spare_5": 10105,
+    "spare_6": 10106
+   }
+  },
+  "read_allowed_names": [
+   "exclusion_keys.csv.gz",
+   "exclusion_report.json"
+  ],
+  "read_allowed_parents": [
+   "creative_batch7",
+   "creative_batch8",
+   "creative_batch9"
+  ],
+  "refused_roots": [
+   "cb1_extract",
+   "cb2_extract",
+   "cb3_extract",
+   "cb4_extract",
+   "cb5_extract",
+   "cb6_extract",
+   "cb7_extract",
+   "cb3_followup",
+   "cb6_followup",
+   "cross_venue",
+   "cross_venue_live",
+   "surprise_live",
+   "live_trades",
+   "trade_samples",
+   "cb8_extract",
+   "creative_batch8",
+   "creative_batch7",
+   "creative_batch6",
+   "creative_batch5",
+   "creative_batch4",
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "creative_batch9",
+   "h10_sign",
+   "cb9_extract",
+   "cb10_extract"
+  ],
+  "refused_run_ids": [
+   "h1_first",
+   "h2_main",
+   "h3_power",
+   "h4_seal",
+   "h5_cb1",
+   "h5_cb1_ladders",
+   "h6_weather",
+   "h7_cb4_era",
+   "h7_cb4_series",
+   "h8_tail",
+   "h8_text",
+   "h8_geo",
+   "h9_flow",
+   "updown",
+   "updown_frame",
+   "exclusion_run",
+   "holders",
+   "h10_sign",
+   "exclusion_run9",
+   "pyth_frame",
+   "pyth",
+   "kd_frame",
+   "kd_books",
+   "sign",
+   "pyth_live",
+   "halfday"
+  ],
+  "stage1": {
+   "batch_holm_alpha": 0.01,
+   "batch_holm_k1": 3,
+   "by_family": "battery2.cumulative_count() at the run (triage only)",
+   "by_q": 0.1,
+   "gate_p": 0.01,
+   "holm_family": [
+    "D1",
+    "B1",
+    "B2"
+   ]
+  },
+  "stage2": {
+   "alpha": 0.05,
+   "rule": "one Holm over every CB10 test reaching Stage 2, each in its Stage-1 direction (D2 net > 0); k fixed when the last Stage-1 result is final; early finishers at alpha/k"
+  },
+  "stage2_k": {
+   "results": {
+    "results_B.json": [
+     "B1",
+     "B2"
+    ],
+    "results_D.json": [
+     "D1"
+    ]
+   },
+   "rule": "k = number of Stage-2 tests triggered by the Stage-1 advances (a D1 advance triggers D1-rep and D2 so adds 2; B1 and B2 add 1 each), derived from both results files"
+  },
+  "stall": {
+   "census": "copies the label",
+   "exit": 0,
+   "results": "write-once",
+   "screens": "p = 1, testable false",
+   "statuses": [
+    "not_run_source",
+    "disjointness_unverified",
+    "upstream_not_testable"
+   ]
+  },
+  "t10_hist_end": "2026-10-01T00:00:00Z",
+  "t_seal": "2026-10-22T00:00:00Z",
+  "uncertainty": {
+   "estimators": "slopes and weighted contrasts are tested as the clustered mean of their influence pseudo-values (v_i = estimate + IF_i), which reproduces the cluster sandwich",
+   "min_clusters": 30,
+   "min_units": 100,
+   "n_boot": 2000,
+   "n_wild": 9999,
+   "seed_boot": 1010,
+   "small_g": "cb2_weather.small_g_pvalue per way (G >= 30 CR1 normal; 15 <= G < 30 CR2 t(G-1) and Webb wild); p = max over the declared ways",
+   "top_drop": 5,
+   "week_way": "ISO week of the resolution date; G < 15 -> the week way leaves the max and the leave-one-week-out sign rule binds"
+  }
+ },
+ "declared": {
+  "cb10_brk": {
+   "b1": {
+    "cascade_ratio_min": 1.2,
+    "floor_cents": 0.5,
+    "placebo": "real/pseudo label swap, one coin per event and per UTC day, 200 draws each, both must hold",
+    "statistic": "sum_L w_L (mean R_e real L - mean R_e pseudo L+-0.03 pooled); weights frozen in the census, n_L / sum n over all pairs, pairs < 30/30 -> 0, no renormalisation",
+    "ways": [
+     "event",
+     "day"
+    ],
+    "worst_case": {
+     "pseudo_c": 1.0,
+     "real_c": -1.0
+    }
+   },
+   "b2": {
+    "exit_cost": "r_B M2h (1 - M2h) + 0.015; r_B = feeSchedule.rate at frame time, 0.05 if absent",
+    "fills": "transactions strictly through the quote, min(remaining, size)",
+    "floor_cents": 1.0,
+    "half_spread_robust": 0.02,
+    "latency_post_s": 120.0,
+    "not_posted": "the last transaction at or before the post time is at or through the quote",
+    "offset": 0.01,
+    "post_s": 60.0,
+    "pseudo_attribution": "credit iff B2 - B2_pseudo >= B2 / 2",
+    "quote_end_s": 600.0,
+    "rebate": "0.2 r p (1 - p) per filled share at the recorded rate (reported)",
+    "route_gate": "mean over eligible episodes of filled x net / 100 (not posted, unfilled = 0; filled without a mark excluded, counted) > 0",
+    "shares": 100.0,
+    "worst_case": "filled without a mark: gross -1.0c minus the exit cost at M = 0.5"
+   },
+   "census": {
+    "audit_pass": 0.9,
+    "forbidden": [
+     "m2h",
+     "m30",
+     "r_e",
+     "r30",
+     "vwap10",
+     "net",
+     "net_c",
+     "pnl",
+     "gross"
+    ],
+    "gate_GB": {
+     "days": 60,
+     "events": 100,
+     "pair_min_each": 30,
+     "pseudo": 1000,
+     "real": 1000
+    },
+    "gate_GB2_filled": 300
+   },
+   "episodes": {
+    "crossing": "down: previous >= L and p_j < L; up: previous <= L and p_j > L; equality is not a crossing",
+    "follow_s": 600.0,
+    "levels": [
+     0.1,
+     0.25,
+     0.5,
+     0.75,
+     0.9
+    ],
+    "mark": {
+     "horizon_s": 7200.0,
+     "min_s": 5400.0
+    },
+    "mark30": {
+     "horizon_s": 1800.0,
+     "min_s": 1350.0
+    },
+    "memory_s": 86400.0,
+    "min_prior_tx": 3,
+    "mutual_exclusion_s": 3600.0,
+    "pairs": {
+     "0.1": [
+      0.07,
+      0.13
+     ],
+     "0.25": [
+      0.22,
+      0.28
+     ],
+     "0.5": [
+      0.47,
+      0.53
+     ],
+     "0.75": [
+      0.72,
+      0.78
+     ],
+     "0.9": [
+      0.87,
+      0.93
+     ]
+    },
+    "pseudo_offset": 0.03,
+    "reversal": "R_e = s (M2h - VWAP10), cents; s = +1 down-break, -1 up-break",
+    "spacing": "no earlier eligible episode of the same arm (any level) at t_j - 2 h or later",
+    "spacing_s": 7200.0
+   },
+   "family": "CB10-B (CH93), CREATIVE_BATCH_10.md CB10-B",
+   "population": {
+    "categories": "every category not excluded",
+    "end_window": [
+     "2026-04-08",
+     "2026-10-01"
+    ],
+    "exclusions": {
+     "crypto_strike_ladder": "series slug contains 'multi-strikes' or (topic crypto and question matches '\\\\$\\\\s?[\\\\d,]+(?:\\\\.\\\\d+)?\\\\s?[kKmM]?\\\\b')",
+     "crypto_updown": "history_backfill.CB1_UPDOWN_RE on question + event title + slug",
+     "pyth": "resolution host pythdata.app",
+     "weather": "cb7_common.is_weather"
+    },
+    "keys": "id, event, neg-risk and series keys (the usual rule)",
+    "max_per_event": 3,
+    "min_overlap_days": 3.0,
+    "min_volume": 10000.0,
+    "n_sample": 1400,
+    "seeds": {
+     "sample": "arepo-cb10-brk-sample",
+     "split": "arepo-cb10-brk-split"
+    },
+    "split": "Gamma event 50/50 by sha256(seed|event key), before any print read",
+    "sports": {
+     "in_primary": false,
+     "max_share": 0.15
+    },
+    "tx_window": [
+     "2026-04-01",
+     "2026-10-01"
+    ],
+    "walk": "one-day endDate windows, closed=true, volume_num_min=10000; capped windows split down to one hour; a capped one-hour window is excluded and counted",
+    "whitelist": "cb10_common.whitelist_market; vol_ok, topic, fee_category and the exclusion class derived in memory (volumeNum, feeType, first event title, question, slug, resolutionSource); no outcome field"
+   },
+   "prints": {
+    "aggregation": "cb10_dlad.aggregate_transactions (YES terms; hash discarded)",
+    "covered": "not truncated, or the oldest reachable print at or before max(W0, the market's start)",
+    "data_api": {
+     "limit": 10000,
+     "pages": 2,
+     "takerOnly": "true"
+    },
+    "holdout_dir": "holdout",
+    "kept": "transactions with time in the window",
+    "span": "[max(W0, oldest reachable print if truncated), W1)"
+   },
+   "robustness": {
+    "months": {
+     "min_episodes": 200,
+     "share": 0.6666666666666666
+    }
+   },
+   "seal": {
+    "access_log": "ACCESS_LOG.jsonl",
+    "copy": "cb10_brk_holdout_SEAL.json",
+    "drops": "drops.csv.gz",
+    "name": "holdout_SEAL.json"
+   }
+  },
+  "cb10_dlad": {
+   "anchor": {
+    "atm_fallback": {
+     "b": 0,
+     "m_max": 0.05,
+     "min_trades": 3
+    },
+    "chart": {
+     "chunk_days": 60,
+     "instruments": {
+      "BTC": "BTC-PERPETUAL",
+      "ETH": "ETH-PERPETUAL"
+     }
+    },
+    "clip": [
+     0.001,
+     0.999
+    ],
+    "digital": "q = Phi(d2) - (S/K) phi(d1) sqrt(tau) b, zero rates, forward = S",
+    "exclude_flags": "block_trade_id, combo_id / combo_trade_id, liquidation (variant with them reported)",
+    "expiry_max_s": 259200.0,
+    "fetch_window_s": 10800,
+    "history": "https://history.deribit.com/api/v2/public/get_last_trades_by_currency_and_time",
+    "interpolation": "total variance and b linear in time between the nearest usable e1 <= T < e2 (both after t, within 3 days); one side -> flat sigma and b of that expiry; sigma <= 0 -> unavailable",
+    "iv_units": "percent; iv_dec = iv / 100",
+    "max_pages": 30,
+    "moneyness": "m = ln(K_opt / index_price of that trade); strike m_K = ln(K / S)",
+    "page_count": 1000,
+    "q_prime": "the same fits with S = index_price of the last Deribit trade at or before t_reg",
+    "q_rv": "flat digital with the 7-day realised vol of the perpetual's consecutive hourly log returns (closes) over [t - 7 d, t), sqrt(8760), >= 150 returns",
+    "range_check": {
+     "index_price": "> 0",
+     "iv": [
+      1.0,
+      400.0
+     ],
+     "origin_share": 0.99
+    },
+    "rps": 2.0,
+    "smile": {
+     "m_max": 0.15,
+     "min_each_side": 2,
+     "min_trades": 6,
+     "weights": "amount"
+    },
+    "smile_window_s": 7200,
+    "spot": "S = index_price of the last remaining trade before t",
+    "store_expiry_max_s": 864000.0,
+    "tau": "ACT/365 from t; expiries at 08:00Z",
+    "variants_reported": {
+     "dvol_flat": "DVOL close of the last complete hour / 100, b = 0",
+     "flat_smile": "sigma_e = a_e, b = 0",
+     "haircut": "sigma x (1 - h), h = 1 - median(RV_7d / ATM IV_7d) over 12:00 ET points of ['2025-07-01', '2025-10-01'] (Deribit only; both assets pooled)",
+     "with_flagged": "block / combo / liquidation rows included"
+    }
+   },
+   "census": {
+    "audit_denominator": "eligible units + units whose eligibility is undeterminable because of truncation (counted as source-unavailable)",
+    "audit_pass": 0.9,
+    "available_min": 0.6,
+    "cor_attrib_max": 0.9,
+    "gate_GD": {
+     "asset_share": 0.3,
+     "dates": 100,
+     "near_expiry_units": 200,
+     "units": 1500,
+     "weeks": 30
+    },
+    "gdp": {
+     "draws": 500,
+     "inflation": 1.2,
+     "max_mde": 1.0,
+     "rho": 0.8,
+     "seed": 10107,
+     "z_sum": 3.168
+    }
+   },
+   "clock": {
+    "et_zone": "America/New_York (DST from zoneinfo)",
+    "origins": "t = 12:00 ET on d - 5 and d - 2",
+    "resolution": "T = d 12:00 ET"
+   },
+   "d1": {
+    "attribution": "joint OLS with q_RV - p_reg; credit iff joint coef >= half the solo slope (same units) and cor <= 0.9",
+    "floor": 0.3,
+    "placebos": {
+     "independent_price": "p_alt - p_reg in place of q - p_reg: holds iff its p >= 0.01 and min(beta - beta_alt, beta_subset - beta_alt) >= 0.30",
+     "signflip": "one coin per ISO week, and one per date; 200 draws each; both must hold"
+    },
+    "robustness": {
+     "ii": "top-5 drops per way (date, asset_date, week): p < 0.01 and beta >= 0.30",
+     "iii": "WLS by size at p capped at 2000.0: same sign",
+     "iv": "sign in each third (('2025-10', '2026-01'), ('2026-02', '2026-05'), ('2026-06', '2026-09')) and each asset",
+     "v": "unavailable units excluded and counted",
+     "vi": "p from [t - 10 min, t) with its own p_reg: sign and >= half"
+    },
+    "spot_staleness": "q' slope keeps the sign and >= half",
+    "statistic": "OLS slope of Y - p on q - p_reg with intercept, unweighted; tested as the clustered mean of influence pseudo-values",
+    "ways": [
+     "date",
+     "asset_date",
+     "iso_week (small-G)"
+    ]
+   },
+   "d2": {
+    "cost_robustness": 0.005,
+    "edge": 0.04,
+    "fee": "r a (1 - a), r = max(feeSchedule.rate at frame time, 0.07)",
+    "fee_floor": 0.07,
+    "floor": 0.01,
+    "min_size": 5.0,
+    "unit": "traded market-origin (both edges -> the larger)"
+   },
+   "family": "CB10-D (CH89), CREATIVE_BATCH_10.md CB10-D",
+   "guarded": {
+    "disclosed": "trades.csv.gz for origin time noon(d) carries index prices up to T - 1 ms of ladder d; no census path joins a ladder's strikes with its own T",
+    "files": [
+     "outcomes_guarded.csv.gz",
+     "settle_index_guarded.csv.gz"
+    ],
+    "jobs": [
+     "screen-D",
+     "rep-D"
+    ],
+    "settlement": "index_price of the last option trade at or before T (from the T-day fetch [T - 180 min, T])"
+   },
+   "population": {
+    "exclusion": "market id, event id, negRiskMarketID; the SERIES-DATE key (an event drops if any excluded market of the same series resolves within +-1 day; excluded ids of the ladder series are looked up for their endDate at q0202, parse guard id/endDate/series only; > 2% missing -> disjointness unverified); the full series-key rule's drops reported beside it; > 30% events dropped -> label 'population thinned by exclusions'",
+    "flag_source": "written 2026-10-17 from the live out-of-window ladders resolving 2026-10-20 12:00 ET (22 markets, 11 per asset, every flag present on every market; 3 keyless Gamma requests, booleans only)",
+    "flags_common": {
+     "binance": "Binance",
+     "close": "(?i)\\bclose\\b",
+     "et": "\\bET\\b",
+     "noon": "12:00",
+     "one_minute": "\\b1[ -]minute\\b"
+    },
+    "flags_pair": {
+     "BTC": "BTC/USDT",
+     "ETH": "ETH/USDT"
+    },
+    "listed": "startDate <= (d - 5) 12:00 ET",
+    "neg_risk": "excluded",
+    "outcomes": [
+     "Yes",
+     "No"
+    ],
+    "question_re": "^Will the price of (Bitcoin|Ethereum) be above \\$([\\d,]+) on ([A-Z][a-z]+ \\d{1,2})\\?$",
+    "series_slugs": {
+     "BTC": "btc-multi-strikes-weekly",
+     "ETH": "ethereum-multi-strikes-weekly"
+    },
+    "walk": "one-day endDate windows [T - 1 min, T + 1 min] at T = d 12:00 America/New_York, closed=true, paged (capped -> retry; never by slug)",
+    "window": [
+     "2025-10-01",
+     "2026-10-01"
+    ]
+   },
+   "prices": {
+    "aggregation": "prints aggregated by transactionHash at fetch: time = latest print time of the hash, YES-terms VWAP (outcome 1 - yes_idx -> 1 - price), total size; hash discarded; a print without a hash is its own transaction (counted)",
+    "data_api": {
+     "limit": 10000,
+     "pages": 2,
+     "takerOnly": "true",
+     "truncated": "the last allowed page is full or the deep offset is refused"
+    },
+    "eligibility": "last transaction before t of any age inside the covered span with YES price in [0.05, 0.95]; none before t -> never traded by t (or undeterminable if truncated)",
+    "labels_in_order": [
+     "unavailable (source: Data API truncation): t - 180 min before the oldest reachable print of a truncated market",
+     "unavailable (source: Deribit): fetch failed after retries, origin range check failed, or no usable expiry within 3 days / no spot",
+     "inactive (no fresh trade): no p or no p_reg"
+    ],
+    "latency": "p10 in [t - 600 s, t) with its own p_reg rule",
+    "p": "last transaction in [t - 1800 s, t)",
+    "p_alt": "last transaction in [t - 10800 s, t_reg - 300 s)",
+    "p_reg": "last transaction in [t - 10800 s, t_p - 300 s)"
+   },
+   "smoke": {
+    "criteria": [
+     "deribit",
+     "ladder_frame",
+     "data_api_paging",
+     "tx_aggregation",
+     "whitelist",
+     "live_flags"
+    ],
+    "deribit_hours": [
+     "2026-10-02T10:00:00Z",
+     "2026-10-03T16:00:00Z"
+    ],
+    "ladder_dates": [
+     "2026-10-06",
+     "2026-10-13"
+    ],
+    "seed": "arepo-cb10-smoke",
+    "version": "cb10-smoke-v1"
+   },
+   "source_check": {
+    "max_disagree": 0.02,
+    "min_abs_logm": 0.005
+   },
+   "stage2": {
+    "collect_max_days": 80,
+    "cron": "0 16 * * * and 0 17 * * * UTC; acts iff 0 <= now - 12:00 ET <= 600 s; |now - t| >= 3000 s -> the other line (exit 0); otherwise unavailable (scheduling)",
+    "dates": 56,
+    "labels": [
+     "unavailable (scheduling)",
+     "unavailable (host disk)",
+     "unavailable (source)"
+    ],
+    "outcome_sweep_grace_days": 2,
+    "receipt_window_s": 600,
+    "start": "first d whose (d - 5) 12:00 ET >= max(freeze commit, D1 result commit) + 1 day",
+    "unavailable_max": 0.2
+   }
+  }
+ },
+ "disk": {
+  "data_dumps_cap_gb_default": 40.0,
+  "disk_budget_exit": 4,
+  "free_disk_min_gb": 4.5,
+  "headroom_exit": 75,
+  "refusal_exit": 2
+ },
+ "func_sources_sha256": {
+  "cb10_brk._after": "f8e15d6922612ce4f43ec25b234b7550672dfefb7874a5b071375a75d58965b7",
+  "cb10_brk._guard_split": "8e7cff283f428ed8a74aa04ede2939b4731e06088b806122c784e1830503bc6c",
+  "cb10_brk._mark_avail": "12fee75c6c08d0963ac51a991fc972c83432288513dc67a823eb3681709115f6",
+  "cb10_brk._months_ok": "a305676bdf279ebdc610a04cf3b002a8ab8aef9d0fc05d88e00e63a18ad10151",
+  "cb10_brk._r_by_level": "db6e9d87e38cc58d18b31efe4b601546857c6726c283d3b5465fc2031bd7a2b7",
+  "cb10_brk._walk_window": "c394ceb2da986a34f13f9ea651ca83e32b882c72b13db14fe59dcf54cd68816b",
+  "cb10_brk._ways": "8ed6db237e7c0b5591a1289ffa80187723e8947b8f4e801c147ab93ac6c114a4",
+  "cb10_brk.assemble": "efcc469caf57222245d0899a6b6d94832edc9f52f8d2228dec0ade59dff25fce",
+  "cb10_brk.attach_counts": "c9e4fc2b2982771c92394f9526eeaa9f9237bcc7a2b6d5d8e3343abd6a62c340",
+  "cb10_brk.attach_marks": "3fbac2fe83efcc17f586362310953f3177d6b223361be41d8bae2a581c47cdd6",
+  "cb10_brk.b1_estimate": "33b9d70aa6d8b03654f8f66711df3c589d01b9d47e12739ce2420df55f298d2b",
+  "cb10_brk.b1_stat": "6b52adc669421f2d17e3b88a73364124145ba277773cb24b3c9f6f4e241cbbaf",
+  "cb10_brk.b2_stat": "4529c0a88c356e50eeca66f05e681d5bbafe3269d06a1ba1254c23f44092df69",
+  "cb10_brk.b2_values": "82040e7b1cc848b14fb3b5ae7b6fe5e567688f8e264ab60a89ad90f184d079a0",
+  "cb10_brk.brk_frame": "c97690f051836ae69d23ef6ffda3009891792ae7ea1c45d15e96e22cb449891b",
+  "cb10_brk.brk_prints": "db88add2d38efda174ea6eb218461e6bcb093c921ab3fea138a0aeb5dbdba885",
+  "cb10_brk.brk_row": "7f9805e53d509d5b47655d60c1792692101ec95d00085b300ed6b8cdf131b5c0",
+  "cb10_brk.brk_seal": "0785063ffca5ee9f454b80af46331f7dac05a61e4919b43f1b686d31130bdf3c",
+  "cb10_brk.census_b": "fb0df8e1025199c2c72310c2cf5c8fbef7b26534a9bcf713f20214110a9f6165",
+  "cb10_brk.declared": "5dac6849adb46c429ff54ea31e623b8618eac885fcfa7d73c19844a98b8d810c",
+  "cb10_brk.detect_episodes": "5e19634474a19f99c337c9b27ba5e353e699383937d231120a14b377033bf4c9",
+  "cb10_brk.exit_cost": "ff65ec2cc8ae8be5999ce1746f984f6236ef059e0772e5ddeb6c7fb4b5970381",
+  "cb10_brk.follow_through": "8fabad2267b9af9884f57fd39cbeee0f43b63d86ef2adb6a2665278e31a5c0af",
+  "cb10_brk.frame_reason": "f145022dfab486507c1f6c563eb96696b5266e32ce737bb1854a6dc05ed54a68",
+  "cb10_brk.holdout_counts": "e0b019315fa754384fbc614256862931534c3c298b0ed57a7fd2d4333759f7f9",
+  "cb10_brk.level_table": "2d00161cb53ab4dd23d42102459f49bd27614ea2a4b9ce4176bec41a4de88c25",
+  "cb10_brk.load_episodes": "1a099bb57d2493a9778a080a8d97536795875c84c4011b3bc2464b6666f2f0d6",
+  "cb10_brk.load_market_tx": "a32ee414c3bc77e00f25989fc2576334deac189a9deae188178705be4889bc9c",
+  "cb10_brk.maker_fills": "26129b5c87fcc71f308229cbd008aae3e45913fe7fbd8a8d8f80552aeb9a3c2c",
+  "cb10_brk.market_span": "9864974d4843d93f227842475638d2a069f0fd7a62a54684a10aa09c6a5afea4",
+  "cb10_brk.overlap_days": "db4d7d765b1053de9a80f79d50dcb030ed2b2a0a5055eb64c4561f041d0af517",
+  "cb10_brk.pairs": "9b589d01b5052694c45aa09c85347a008371b6c4530d285efa87309da050f41d",
+  "cb10_brk.read_sample": "ee28113c5bff7880be854d5eb345f06e140c0cd2381a3d400c899f185aace084",
+  "cb10_brk.verify_holdout_seal": "7e9db14fccba113274b48bac48a64251a98e68768215492802dc5d515b031052",
+  "cb10_common.assert_whitelisted": "7a439707277b4858eeb85515e2ae8b6fd488f169cf554294045d54f3f30c616c",
+  "cb10_common.batch_holm_label": "f868c253469f841a1400ce4914b2d972dcd7151eb8ed6225307fcab7bb9dac89",
+  "cb10_common.cluster_p": "39414b3be6a420a70988ceff30234ce311208ae136c30bc279a79f697fd12069",
+  "cb10_common.cluster_p_d": "64cbf3bd203d692fb72eeced67c2088c4a55a676a984176470864cbef1ff9f5b",
+  "cb10_common.common_declared": "340ce3e78f213c0168e94ed346a6ee878b9988de0bf6a29352d2da3a542ce396",
+  "cb10_common.contrast_pseudo": "9d5877af8e9dba613fa3a901d88aeee6fde7bf29fed425bb26cf416cc064a98b",
+  "cb10_common.drop_by_keys": "1d58757ce04536c48c11e354451644998451084ede9e6d1f4fac26f61cfae135",
+  "cb10_common.exclusion_keys": "aa31c18464ba02a026370b50a5136bb980b650335e121f1a0f4477ea99723551",
+  "cb10_common.guarded_outcome_prices": "5d977e7931c29c18e68ed9ec293fac4fca2c1a9b32581c417aaaa8a46f1a0c85",
+  "cb10_common.iso_week": "b5d2ce82a85a398913abfa1587308484dc4c6772d3c4114f13b8a84048b7ef20",
+  "cb10_common.leave_one_out_sign": "9111c0aad2192e6661156b015421e86dd20a91d8099a0aca630f11ba30a06eea",
+  "cb10_common.noon_et": "4717e04d61b27390d064c19ea18608139f640b9a35964bdaa0df5f7a6b48f124",
+  "cb10_common.ols_slope": "97586b8dd142b987075ee1e296d5bf1b320787bb8e5b4cb9950d0421915e7a76",
+  "cb10_common.placebo_advance_rate": "41993f5ee1243cd17f53bea3eac84a4be523902ce4e19e5def15a591eea630bb",
+  "cb10_common.read_ids_only": "36b84249170ebfeb92b6fbd57a7b46bbb539dcc724578aca8e1202d608d31647",
+  "cb10_common.refuse_path": "22e2a8c99735492df1b7d7f926c936b231342bb077f2e0ef83f125a9b09bdf3c",
+  "cb10_common.refuse_read": "646e92f36462897a6732f3c0780d0ef72e78045010a0b5ba460e05572cadd91b",
+  "cb10_common.refuse_run_id": "b2bfa570142a898282f534672c61f9692f048d8c630d01721da563c7f7e1ce77",
+  "cb10_common.require_after_t_seal": "9b915a336cd9d2e0d5cac7b8706bc239515f75313c028129c5f144f46a3d479c",
+  "cb10_common.require_disk": "1e0e4e4682fa9a16fa71df384f5163983fa5cfa675b15a9b7f009dbbf3d81370",
+  "cb10_common.slope_pseudo": "c442db47a31b2398913316468f3c80df9896adf269cadcf3ae1c89f454eb8d81",
+  "cb10_common.stage2_k": "c78b52c745631219e4d4f5afa71de983530912e4f990305919f8a9f7e74f3306",
+  "cb10_common.upstream_stall": "dd59ccd0444b512b862edeb0606efcb4df67f6c675f3e5c48d44664fd4831eea",
+  "cb10_common.whitelist_market": "f680233c3c7371dd22559c49636443ed3b8a059aa6db3bfcf9e23089ab057794",
+  "cb10_dlad._label_unit": "e0965c127e3227fa8a0470e13117c6c8fe9922b3efdbe71d3c2d1c7aceb21a0b",
+  "cb10_dlad._last_in": "068d51e7102c85cb3b4cfac05cba6b778053cca99aa77f22cbcb45eea330c370",
+  "cb10_dlad._ways": "f86850484e08d9c40ff3ffda79b7ca8f5e8b802793426cac1edca95b8d5d4cfc",
+  "cb10_dlad.aggregate_transactions": "9c97fbe1e578cef21bf543963c3da82e157e3e7b1238076469da071bd0cf4bb0",
+  "cb10_dlad.anchor_q": "bb6aa87bce96a9efd56e536b3b5e96e5071e3a390ff80f6ec45572a8f4191c54",
+  "cb10_dlad.apply_exclusions": "d0a2606bdf1d42c468cb3e9df26becba49f8175ba9a1b1b73acba16b26d28ee2",
+  "cb10_dlad.build_units": "cd8de169e78288eac95a396c11a9c1ba73e70f6496840d2eaa956047ea2f8b3c",
+  "cb10_dlad.c9_top_k": "7f85c8291b8551052c107c602ac118025127fb9c2ae87c222c7e867b75cebbf5",
+  "cb10_dlad.census_d": "48854d5f2c839a3e275efd64e7c8745f282d08417ee46b24f70c768c980206cd",
+  "cb10_dlad.chart_bars": "d723c64f73814e4a23ca7361b276d5b9526c32c347b55659d3f036ad45c10cb1",
+  "cb10_dlad.clob_book_state": "de5b054849fd28d1fed4799f49f5282b2e8a9936ad1dd506ada268c6246756cc",
+  "cb10_dlad.d1_reported": "a59aaebe58f561af1175296bfeea9a99abaafef6add3ca48bb372a586da08cbe",
+  "cb10_dlad.d1_stat": "96963d809574023a38d7183275979b0e30bcfe7a91c1ac06395aaa56e4b89898",
+  "cb10_dlad.d2_stat": "0c8502687115c27adb381e183f788d51fe45cab4058ca174ace08905c0172e58",
+  "cb10_dlad.d2_trade": "9bd44bf714be0938f5bf00a78d86aee20b3397d4134d6a9c74d652745a96fd7c",
+  "cb10_dlad.declared": "ff877e8b013fab89d4687f9debe8ac1c583454faa128f6f3a57ff2fd1a4b47cb",
+  "cb10_dlad.deribit_days": "6606a86e172145ea8d167e6c0cf037e896c0f8c6e50e338d3aa1c7bc0ca3d93f",
+  "cb10_dlad.deribit_fetch": "0ae6c2461dd65021b676de73eb11679f7660829b2a02b0d51ea5a02b88d56e70",
+  "cb10_dlad.deribit_trades": "00a03eafc4ef83b843d8510b7461288ab434c95eddc70461f6591f31e84dd779",
+  "cb10_dlad.digital": "9802cab17dfc21f992568ea1479544d980cc5ec5ffab8f9b85d999c339ee1e29",
+  "cb10_dlad.dlad_frame": "2b30d578852c1517c70907d4ab629c4c84945cd3fd3e40826db97fa4677ac5c4",
+  "cb10_dlad.dlad_live_tick": "b2df975f6d95c36c71c7fdd6d13ff05f0741023ecdce96ba015392dcbc8ea707",
+  "cb10_dlad.dvol_rows": "529f6e8e702c3f686eee0b5181a29fa5dfe349159c1dd2952b87a975cc47915c",
+  "cb10_dlad.dvol_sigma": "538340f653b6faffa5fcba904445c09034bb40ca4243745b968349061e77890b",
+  "cb10_dlad.expiry_fits": "0addcb1eeb9c6d42d17e9d7040cf78929d961083e91d4939440164777060fa0c",
+  "cb10_dlad.fee_rate": "27c56db41c55005ab9f88fd94494c0b84a7c34a6fc3ea4921890fce4e1ef4770",
+  "cb10_dlad.fetch_market_prints": "863d89e80bb0f9c2cb8d6a3da2c0d5227b000928e6d657bee2c752780f655c0b",
+  "cb10_dlad.flag_res": "b11108d5a4c9094429bf9e973ed2e01e272be3571b17878507c88fa427341ed1",
+  "cb10_dlad.frame_day": "7e565d272ca93121ea62340640a3a8c9ca0d0b4b33bc4fad4493f234df393e27",
+  "cb10_dlad.gamma_end_window": "ccc358b8119ecc3980e5f14f8f94cee892c6c89c180c6e9f2a6557fd501a1ccf",
+  "cb10_dlad.gdp_mde": "6a27879a080633ca8cbeec19433874c16b98dc96dc5b5b92a21512f174f8eeb5",
+  "cb10_dlad.haircut_from_deribit": "8a8dd505cec04f1088a467242a409493d20a2b6b185e20682d9ec5337aa82652",
+  "cb10_dlad.haircut_h": "0e063fb24982562a2a3dc876dc00c41e27ee20072079639c04bd6f7ec75f8c77",
+  "cb10_dlad.last_index": "75653f2d9210e829d2dfe8cd1333239ae41dcc956b35b64a967503a31150dc79",
+  "cb10_dlad.live_frame_markets": "bd6eb4a1d835ffb7b58da77a7e0f11d4eb1f8e7b4078abac6bffa5cbe5886bce",
+  "cb10_dlad.live_units": "ca6c816fb52749afbfe940c6a1aa491c49d7b5dc16fd2394a53c8d15d1acff07",
+  "cb10_dlad.open_guarded": "ad01d4a264b043e49d9c08c64bd3bf46ed5c9e09784328d3d0e9f7004e510bd4",
+  "cb10_dlad.origin_due": "871a13326f3627f4a89e7f276d5971d66eb08be6572ad5fbfe964b02ab63fb11",
+  "cb10_dlad.origin_row": "4ad45fee4e3a679d5a6e9d58c421e4d852a2f386c93c97805e1df8787509a4b7",
+  "cb10_dlad.origin_trade_rows": "ba9009f3af7ce5e8183152645faba558277486fb529223a06dc83610338da9f6",
+  "cb10_dlad.origins_of": "7c4634a7c964d85c2234610d7cfa576878907f2c512e01323d36d4fed70b42bf",
+  "cb10_dlad.outcome_sweep": "bc1c2610c108b1242f619d0a9abc3796e86b319d8ca1561646d44eb199d68cd7",
+  "cb10_dlad.outcome_y": "77555e50eebef3eb3980e17036ae52e5428fe15e43034022ca4cfb2f9d8ef23b",
+  "cb10_dlad.parse_instrument": "989f1916df077d58fab40729b810c84171c7b092aa9b03792fd023b40f0fec1f",
+  "cb10_dlad.parse_ladder_market": "11af52ef0a2278d52d8e26c1bf866312c74bdf64469d1e131e34f2e4e71698a6",
+  "cb10_dlad.parse_trade": "f5232a0960447e4cae0d44b3410db884d6090e2a071412a172046f8391cd999e",
+  "cb10_dlad.range_ok": "6150eb36a6146b2f6be9ec0601152f66c15e2ba0fc99e11a47429812168d58f7",
+  "cb10_dlad.rep_d_doc": "a7fbb27a3af35f303eefd989931dcc76135e69cd1271504591e19725695489cd",
+  "cb10_dlad.rv_sigma": "ce9880c2730f2d96c05337363eda8195c8e7a69b82a593d468e71929408b0f99",
+  "cb10_dlad.series_date_lookup": "bdcf846164d0301c57143f3614ea98cb44dd59b18e469c7f9fd328c8e40b14f8",
+  "cb10_dlad.slope_test": "0d80c5e096a284fcb3aad9051d02531abe2db7d88c35c8ff74956aba1a66c848",
+  "cb10_dlad.smile_fit": "f2edd48174956d1d34bf4a546c8bf1d71d6e98c7a0e85bae548478378eb82b0b",
+  "cb10_dlad.smoke_data_api": "1df53409e5b7d6c65183029e84de5c8893dc6a6fa66ab7bb673e41306c1c30f6",
+  "cb10_dlad.smoke_deribit": "62ced42701d81030004333daea891459825ba2ecbf8adafa8805d59361b200c6",
+  "cb10_dlad.smoke_failures": "431e0a2e5b696193c05591b65f09958dca2d948b9e8f34d87ae0ab5c128966f1",
+  "cb10_dlad.smoke_ladders": "d4cfeda98009714230b0c86e1598aed7dd4772f71f614f9f44039e00c48f988f",
+  "cb10_dlad.smoke_live_flags": "3ca91bc60b7f8a7b2e405eafcb519c0844af49c4689fc5bb6069d1abdfec442f",
+  "cb10_dlad.smoke_ok": "f880e1ab4b7794acb7c83e82a289c7b1f0e291445d422568f54d5052aa0f192d",
+  "cb10_dlad.smoke_tx_fixture": "ea649f04043f8a3913e3528e31e150b15951deabbaea70c6d05f2fbb628c9e57",
+  "cb10_dlad.source_check": "56017486ebbd2895840d782f3ff0b77f1c647e5d90147756e385bf59586ae180",
+  "cb10_dlad.spot_at_origin": "bd7b8f6be3bb8904f26aa06a79613f9630cf8cfea17aa37d74d1fc860053f28e",
+  "cb10_dlad.spot_at_origin_all": "ebbaffea87fd59195dedb281d97a7e1cede571751104e387bd8238667bd6b29f",
+  "cb10_dlad.stage2_availability": "46f1308bd44a8c4be68dec2546d3d6a66c5af15ed067c859069f3759b25b31ac",
+  "cb10_dlad.stage2_dates": "7599380f0797c7768afe41bbc6eee1194892d6a167767d7d1be8a474fe5bb897",
+  "cb10_dlad.stage2_targets": "33017329be462dd0779adcb60dc51cf52bebdb9e9951a54d73f10a92916f4aed",
+  "cb10_dlad.t10_d2_start": "6a8e2455b8154e8aff1d92f09804f030f5be05d65b6b5760758049070d9b5702",
+  "cb10_dlad.taker_fee": "12eda4058c4ea8b8793f1c94f8892d58b2d0a2293e2714f668b8f0ef5e574e44",
+  "cb10_dlad.unit_features": "188fa153bbcd041dd242d1c1780dc0817e53ffcb49b9fe236d79b6436fb97837",
+  "cb10_dlad.usable_trades": "9898a5c129ff50868dedb133616f7d813fa511b7ee06134eda542c06ec98a9f4",
+  "cb10_dlad.v_of": "5a0b91a81944998afeb0ef45ca781dfcc3be77f61b26a4167598e3e3df44aadc",
+  "cb10_dlad.window_dates": "f68b908a86a039e20409d2c24c8599afa8f38ffba40977b3bd2f8159215f0130",
+  "cb4_data._paged_strict": "3d75adae8c149eec928789285efd38b6f6db34d829715f46b0e548069e407043",
+  "cb8_flow.event_key": "a48040b86c3d4f8e7152673c8fda591498cca71b8befb6f93ce9b48ec6b3adc6",
+  "cb8_flow.event_split": "0ecb84c8c20e98825b7260d49bbc3a4c1835c3cd6f3fd8a73c1e905fc532b114",
+  "cb8_flow.flow_sample": "463786b9a9afe5bc0c9b03eab3467372cd8c7c6598233568a5f105d99108e4b1",
+  "cb8_flow.per_event_cap": "219a82bd3e1328e09ed1efb6a1b05180be70fd2b7687414d9d81360dcd012b3b",
+  "cb9_common.cluster_bootstrap_means": "40f9457f421736bc49b6399ccc4bc208b9fac8a674c72c567dc5b2eae1dfe2f9",
+  "cb9_common.holm": "00f897abbb2444fa983bcb62be53639bfad2b04e5ff76737533c31eacfcd82d0",
+  "cb9_common.top_k_drop_mask": "ca983a19b993ebcfc76179a5579602fdf85a722d3e3e59c4e5a34ae3753d209a"
+ },
+ "funcs_sha256": "aff1f1c8d0c0561ee725c6476978d9bf2473ea2dffc8aad0a319e1a67b2e4ee8",
+ "rules_sha256": "d422cc701b1494fcaa1cb1c67df3e82ed1eba8a1cde90a884aedf3438237b093",
+ "rules_version": "cb10-rules-v2",
+ "wallet": {
+  "note": "no CB10 job reads or stores a wallet field (no HMAC key needed)",
+  "read": false
+ }
+}

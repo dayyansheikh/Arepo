@@ -1,0 +1,56 @@
+{
+ "aux_versions": {
+  "book0": "se-aux-book0-v1"
+ },
+ "broad": true,
+ "derived": [
+  "base",
+  "tte"
+ ],
+ "description": "Broad combination with the order book read strictly before the origin: se7_lgbm_all's learner, params, derived sets and families, except that the v1 book family (sweep 1 of the origin's own pass, ~7 min after the capture, inside the direction label window; DESIGN_V1 section 21) is replaced by the book0 aux family (se-aux-book0-v1: newest complete sweep finished before the origin capture started, at most 3 h old, normally the previous pass's last sweep). Not embargoed (broad); promotion-eligible. Read against se1_lgbm_mm. Trains only when every labelled capture of the window has the book0 table.",
+ "families": [
+  "market_state",
+  "momentum",
+  "flow",
+  "xvenue",
+  "wallet",
+  "book0"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [],
+ "learner": "lgbm",
+ "model_id": "se18_lgbm_all_b0",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

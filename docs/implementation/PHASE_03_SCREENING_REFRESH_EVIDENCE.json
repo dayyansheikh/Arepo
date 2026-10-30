@@ -1,0 +1,2360 @@
+{
+  "accepted_panel": false,
+  "artifacts": [
+    {
+      "bytes": 117,
+      "path": "data-dumps/fs2_screening_refresh_20261003_1_launch.json",
+      "sha256": "d738b2cfd0742cd052cf8530448c8449d5982a200fa6ed0a2ad69734f9afc2fd"
+    },
+    {
+      "bytes": 95,
+      "path": "data-dumps/fs2_screening_refresh_20261003_1_result.json",
+      "sha256": "0109f581a867d4e0f6346dad7bd6eee593d6bf646e14ae713d640df01afe6034"
+    },
+    {
+      "bytes": 13882,
+      "path": "data-dumps/fs2_screening_refresh_20261003_1_stdout.jsonl",
+      "sha256": "edcc07f2e60d79bf8b1bf5ce4dca24904a65a5ab5fd2fac97b4d1885cc95a5d1"
+    },
+    {
+      "bytes": 36197,
+      "path": "data-dumps/fs2_screening_worker_screening_refresh_20261003_1/worker_report.json",
+      "sha256": "3f8cfb8d69beab59e31f9323747435ec36c3bc1102ccb898993617c05df74d14"
+    },
+    {
+      "bytes": 8246,
+      "path": "data-dumps/fs2_screening_worker_screening_refresh_20261003_1/worker_policy.json",
+      "sha256": "071f6d99dc0cfa66c11953e1bc7cf2f234a3b013f01a1ad53a4bc1389184e00a"
+    },
+    {
+      "bytes": 34373,
+      "path": "data-dumps/fs2_screening_worker_screening_refresh_20261003_1/fs2_screening_batch/screening_report.json",
+      "sha256": "9845707b05d5bcaaa8989321e55a9e21bb1ca5c3cd8837b6916362b59d30b658"
+    },
+    {
+      "bytes": 37940,
+      "path": "data-dumps/fs2_screening_worker_screening_refresh_20261003_1/fs2_screening_batch/screening_policy.json",
+      "sha256": "fafae700d0ed7f518ae05774caae48724ff6bbbbb42acb0fef247f56f447125c"
+    },
+    {
+      "bytes": 108289,
+      "path": "data-dumps/fs2_selection_panel_screening_refresh_20261003_1/selection_plan.json",
+      "sha256": "64d33fe0fcbde0ff18df16bed4f8da186f7c17b9e63ff5c8ec198b06ba436ca9"
+    }
+  ],
+  "clocks": {
+    "original_recovery_completed": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905645951420000",
+      "utc": "2026-10-03T04:28:57.489384Z"
+    },
+    "screening_available": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905360813299166",
+      "utc": "2026-10-03T04:24:12.349211Z"
+    },
+    "screening_computed": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905360811083125",
+      "utc": "2026-10-03T04:24:12.346997Z"
+    },
+    "screening_cutoff": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905352990523291",
+      "utc": "2026-10-03T04:24:04.526375Z"
+    }
+  },
+  "decision": "D078",
+  "first_stage_assignments": [
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "124",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "3410",
+        "numerator": "1"
+      },
+      "market_id": "1718710",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "0fba4518c149666556f37b69f45c7c3cc71adabb1a3ad624d179823bccc54f09",
+      "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "124",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "3410",
+        "numerator": "1"
+      },
+      "market_id": "3540340",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "254cc508c13d49d9ca9b7123a749882c769eccce1c3ae439d880eae906ec9768",
+      "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "10945",
+        "numerator": "2"
+      },
+      "market_id": "3919458",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "54c19a877b9bc9f69d0154d4958d33ce088b5b8a418f88a157224fff70345e4c",
+      "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "4187",
+        "numerator": "2"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "230285",
+        "numerator": "4"
+      },
+      "market_id": "4859553",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "a91172939323399cc34df761a25812d826abd97d5b0205b5b54e7a665f4796ee",
+      "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "4187",
+        "numerator": "2"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "230285",
+        "numerator": "4"
+      },
+      "market_id": "4860256",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "4a072f33840e4eccbf69f472fffdcb97f6efd228e61f33ff8d6f8baa207b7375",
+      "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "199",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "10945",
+        "numerator": "2"
+      },
+      "market_id": "5207026",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "7c4b54d9781beb94d2443bc34b8a09b044eba264a41c887e952045dbfa6ac07f",
+      "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "19",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "1045",
+        "numerator": "2"
+      },
+      "market_id": "943826",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "5f4cd781f45bbe305c91c5a3e68621d56d1e2fd6d3c34c347b5ada4241e61ff0",
+      "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127",
+      "trigger_id": null
+    },
+    {
+      "arm": "scheduled",
+      "assessment_evidence_id": null,
+      "assessment_state": "not_assessed",
+      "conditional_market_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "19",
+        "numerator": "1"
+      },
+      "conditional_matching_probability": null,
+      "inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "1045",
+        "numerator": "2"
+      },
+      "market_id": "943828",
+      "matched_trigger_ids": [],
+      "probability_scope": "market in complete eligible frame; stratum then market draw",
+      "source_observation_id": "dc5020ec6096f08b7ac23f84f9ff93e5f5dfd2ad6d386599259a30a964822d4a",
+      "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+      "stratum_inclusion_probability": {
+        "decimal": null,
+        "decimal_state": "nonterminating",
+        "denominator": "55",
+        "numerator": "2"
+      },
+      "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348",
+      "trigger_id": null
+    }
+  ],
+  "implementation_commit": "9ea4e38b87ad242ea8d6d37e2536af2c15a69b2e",
+  "limitations": [
+    "Eight distinct markets, not sixteen independent observations; roles overlap.",
+    "All current event memberships unavailable; economic independence unresolved.",
+    "Four unmatched controls retained without replacement or redraw.",
+    "Conditional second-stage probabilities do not identify global arm inclusion probabilities.",
+    "Screening only: no frozen origin, due outcome, representative accepted panel or predictive evidence.",
+    "Full-population post-screen verification exceeded the frozen 120-second freshness bounds; old observations cannot be refreshed by later processing."
+  ],
+  "origin_admitted": false,
+  "original_recovery": [
+    {
+      "completed_at": {
+        "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+        "monotonic_ns": "1905645951420000",
+        "utc": "2026-10-03T04:28:57.489384Z"
+      },
+      "metadata_read_started_at": {
+        "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+        "monotonic_ns": "1905504066406916",
+        "utc": "2026-10-03T04:26:35.603372Z"
+      },
+      "observation_clocks_changed": false,
+      "origin_admitted": false,
+      "original_provenance_class": "prospective",
+      "original_report_hash": "9845707b05d5bcaaa8989321e55a9e21bb1ca5c3cd8837b6916362b59d30b658",
+      "original_state": "screening_sealed",
+      "output_bytes": 34619,
+      "output_hash": "ce59d26568ef91c7ad654913fe2a168ca0c45b26d8061bdd0a3da20c0bdd0731",
+      "read_policy_hash": "f181ea288a6c0c75c4ea06e5acaeab63b0c188aef5276621c89a9a06821f37e5",
+      "schema_version": "fs2-original-screening-read-v1",
+      "verification_started_at": {
+        "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+        "monotonic_ns": "1905506200064000",
+        "utc": "2026-10-03T04:26:37.737049Z"
+      }
+    }
+  ],
+  "protocol": "docs/implementation/PHASE_03_SCREENING_REFRESH_PROTOCOL.md",
+  "protocol_commit": "6cbcf4d",
+  "requests": {
+    "count": 16,
+    "counts_by_source_status": {
+      "clob.book:200": 8,
+      "gamma.market:200": 8
+    },
+    "first_request": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905318222635333",
+      "utc": "2026-10-03T04:23:29.758226Z"
+    },
+    "last_receipt": {
+      "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+      "monotonic_ns": "1905338261789791",
+      "utc": "2026-10-03T04:23:49.797530Z"
+    },
+    "raw_bytes": 44158,
+    "receipts": [
+      {
+        "capture_id": "f20730f6-6fc9-4ad2-879b-5ed159faf727",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319243669333",
+          "utc": "2026-10-03T04:23:30.779272Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319245680833",
+          "utc": "2026-10-03T04:23:30.781281Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:30 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3901,
+        "raw_hash": "459c3b7fbe0ec18b41c4e2e304fef3753f207cff25b732beab49385984738b78",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "1718710"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/1718710"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905318222635333",
+          "utc": "2026-10-03T04:23:29.758226Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "def84f36791c79433c56022bc380442467d259e9faee841983cc2aaa3ad5a307",
+        "session_id": "45bacc3a-5b0a-40e6-822d-d1a11fb5f289",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "f3ae81f9-5071-4d42-b243-000907ea8008",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320382969958",
+          "utc": "2026-10-03T04:23:31.918578Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905321403673000",
+          "utc": "2026-10-03T04:23:32.939284Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:31 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 1086,
+        "raw_hash": "a0e07b9cf66e22675883f90edbaab481172ac9e2b94e99eba32ac89db2868cbf",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319473817958",
+          "utc": "2026-10-03T04:23:31.009418Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "def84f36791c79433c56022bc380442467d259e9faee841983cc2aaa3ad5a307",
+        "session_id": "45bacc3a-5b0a-40e6-822d-d1a11fb5f289",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "2a3d68e9-6b41-4d75-8ef6-1654d9d075da",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320006451333",
+          "utc": "2026-10-03T04:23:31.542053Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320007898041",
+          "utc": "2026-10-03T04:23:31.543507Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:31 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 1329,
+        "raw_hash": "32035f6ba91e4ba79bd2e5c650297835096d18f7a12f64535c4952e71331147e",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319234528708",
+          "utc": "2026-10-03T04:23:30.770126Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "512350ea62079c77891594b240eb6566f054932b3b77c7ebea720a78db3e15d3",
+        "session_id": "52cc9a98-b618-43aa-8bd3-932e56d74ce7",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "2f53fa31-38c8-403b-97d3-cb537d618985",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319005719000",
+          "utc": "2026-10-03T04:23:30.541313Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319007017250",
+          "utc": "2026-10-03T04:23:30.542615Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:30 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3664,
+        "raw_hash": "2f21342a50f2390b0344e5d83de44710941e9558ba0d86846a1d880588971722",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "3540340"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/3540340"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905318507841083",
+          "utc": "2026-10-03T04:23:30.043434Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "512350ea62079c77891594b240eb6566f054932b3b77c7ebea720a78db3e15d3",
+        "session_id": "52cc9a98-b618-43aa-8bd3-932e56d74ce7",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "34b137b0-77b9-4422-b341-459314a4d937",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320007093833",
+          "utc": "2026-10-03T04:23:31.542702Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320194490208",
+          "utc": "2026-10-03T04:23:31.730097Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:31 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 1440,
+        "raw_hash": "02b22b44cb63ed1f8aef63d9c4f1e69ca83186704b795e963ff04096003ec2e6",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319708068333",
+          "utc": "2026-10-03T04:23:31.243670Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "e3f3d0390c4a142a2cab08fc5392f2d5b1fc4723163012dafa9de205417bc318",
+        "session_id": "673b9fcd-6ad4-46e5-a741-8aca1a72720b",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "cefa2e4b-ec4f-46c5-9731-d75d007d57f7",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319244365708",
+          "utc": "2026-10-03T04:23:30.779970Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319481327291",
+          "utc": "2026-10-03T04:23:31.016929Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:30 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3024,
+        "raw_hash": "d72d04ab6a0defd310ac05f80a96b040070dce81af4096d85ba5ff85195e3876",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "3919458"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/3919458"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905318716618666",
+          "utc": "2026-10-03T04:23:30.252214Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "e3f3d0390c4a142a2cab08fc5392f2d5b1fc4723163012dafa9de205417bc318",
+        "session_id": "673b9fcd-6ad4-46e5-a741-8aca1a72720b",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "789470e7-e034-4576-9e9b-851abfdd6ba4",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319242501750",
+          "utc": "2026-10-03T04:23:30.778101Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319715429250",
+          "utc": "2026-10-03T04:23:31.251034Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:30 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3075,
+        "raw_hash": "3b18648de9f6ac2451074f81d739d684de9f9075527bed5e2aa63cde12cce276",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "4859553"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/4859553"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905318924554166",
+          "utc": "2026-10-03T04:23:30.460149Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "86d015ab4d5619d41bdd2a73cc84b78f317bcfcf2a10431e81cb12be22c411d6",
+        "session_id": "f45e491b-e340-46d2-a3dc-9cb0ccd5c43e",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "d3eaef13-3f7a-457b-88fa-6f38e16d71ad",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320381060583",
+          "utc": "2026-10-03T04:23:31.916666Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905320383548500",
+          "utc": "2026-10-03T04:23:31.919160Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:31 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 1480,
+        "raw_hash": "f83ccfd901cc912be3917d8be6b9ab41b4a3a869ff380a8a7fda3d8229952934",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905319942331333",
+          "utc": "2026-10-03T04:23:31.477935Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "86d015ab4d5619d41bdd2a73cc84b78f317bcfcf2a10431e81cb12be22c411d6",
+        "session_id": "f45e491b-e340-46d2-a3dc-9cb0ccd5c43e",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "3093df26-9723-49b9-bc61-3b52291959fa",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335699944375",
+          "utc": "2026-10-03T04:23:47.235668Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335942733833",
+          "utc": "2026-10-03T04:23:47.478459Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:47 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3143,
+        "raw_hash": "945cb4bc052e69588fefe5bf5b36c72efe3822524a28e07efb9a9c2e7fa2466f",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "4860256"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/4860256"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905334303168791",
+          "utc": "2026-10-03T04:23:45.838873Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "e5813a14684df7b4c543b84f8e54d54f4059694c9757c5463115b316a8cedf7b",
+        "session_id": "d8440e20-da32-4a21-acca-9e5d70fc9cd5",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "3af3fbfe-4200-4c48-a437-3b309d204b2a",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336907981291",
+          "utc": "2026-10-03T04:23:48.443706Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336911042375",
+          "utc": "2026-10-03T04:23:48.446773Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:48 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 1230,
+        "raw_hash": "d6623574270013b14ce223d72b4df60c06a1ce16526d0eb0a38d23be20fbf555",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336174590458",
+          "utc": "2026-10-03T04:23:47.710313Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "e5813a14684df7b4c543b84f8e54d54f4059694c9757c5463115b316a8cedf7b",
+        "session_id": "d8440e20-da32-4a21-acca-9e5d70fc9cd5",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "f6e5b4da-1aaa-4c98-8622-5b0629a53125",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335697523375",
+          "utc": "2026-10-03T04:23:47.233242Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335700259166",
+          "utc": "2026-10-03T04:23:47.235984Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:47 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3296,
+        "raw_hash": "35b7d7aeec1c3563c68e06c18e6934c6e8f50800ba25daf1b61ab9b80cf42a5c",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "5207026"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/5207026"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335023241041",
+          "utc": "2026-10-03T04:23:46.558952Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "018c3a3eba8e098851f0a04e537ffe9cbb25c91d18a89ebe8da3e9d23ed645b4",
+        "session_id": "fe2c23ea-c64a-469d-b809-3b3edbede30c",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "facf171f-01b5-43ec-a965-fced13dee01f",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336715468166",
+          "utc": "2026-10-03T04:23:48.251197Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336715922208",
+          "utc": "2026-10-03T04:23:48.251653Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:48 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 733,
+        "raw_hash": "76377f154a78cb4e6327eb6c1fa8711ecd364d42b1bd8cb14b444e053bd3adbf",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335934969000",
+          "utc": "2026-10-03T04:23:47.470690Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "018c3a3eba8e098851f0a04e537ffe9cbb25c91d18a89ebe8da3e9d23ed645b4",
+        "session_id": "fe2c23ea-c64a-469d-b809-3b3edbede30c",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "31419ec9-7d2f-4ccc-920a-f79de7db7fc4",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336182966875",
+          "utc": "2026-10-03T04:23:47.718693Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336184912708",
+          "utc": "2026-10-03T04:23:47.720641Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:47 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 5475,
+        "raw_hash": "71afad71116cef744f6a2064a20992d8a1abb7e52807c82e68fd032a2ce284c6",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "943826"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/943826"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335436910208",
+          "utc": "2026-10-03T04:23:46.972630Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "8178bf181972a2315ba29d66ec3784e751021d7c0fa0ca49fdfe331eaa9032e8",
+        "session_id": "5876e2de-51b9-4ccd-b2b7-61f5c5ca2779",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "e41522d7-e1da-4f51-894d-350578c96dfd",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336908807916",
+          "utc": "2026-10-03T04:23:48.444539Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905337584233125",
+          "utc": "2026-10-03T04:23:49.119972Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:48 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 3163,
+        "raw_hash": "54b94ab98cbee8008dd187b5c19d514af32bb42428723bacf4801ceacd544672",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336418767375",
+          "utc": "2026-10-03T04:23:47.954493Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "8178bf181972a2315ba29d66ec3784e751021d7c0fa0ca49fdfe331eaa9032e8",
+        "session_id": "5876e2de-51b9-4ccd-b2b7-61f5c5ca2779",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "01ec4a1f-c8a4-41ea-a003-e762cbb26cb2",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336909531291",
+          "utc": "2026-10-03T04:23:48.445265Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905338261789791",
+          "utc": "2026-10-03T04:23:49.797530Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:48 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 2676,
+        "raw_hash": "53d656f98535ebd87d1c8aa6c1813fdfd64a08751b46940c5668458b37b92b22",
+        "receipt_ordinal": 2,
+        "request": {
+          "method": "GET",
+          "params": {
+            "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348"
+          },
+          "url": "https://clob.polymarket.com/book"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336658846000",
+          "utc": "2026-10-03T04:23:48.194573Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "0b956cac14a455d0d917d8c8a59fb4dbd7299598e195a3979fe42d221adbb100",
+        "session_id": "c570cb1f-f742-4b9f-bf1a-fdeda338f796",
+        "source_contract": {
+          "clock_semantics": "snapshot timestamp retained raw; unit admission requires evidence",
+          "documentation": "https://docs.polymarket.com/api-reference/market-data/get-order-book",
+          "endpoint": "https://clob.polymarket.com/book",
+          "parser_version": "clob-book-v1",
+          "protocol": "clob",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "clob.book",
+          "units": "decimal price and share size strings; asset token and condition IDs"
+        },
+        "source_id": "clob.book",
+        "source_version": "9ebc0600c3f2a8643345f936b4ba8c4a936a687dc0db556e653aa5ea2e320918",
+        "status": 200,
+        "transport_error": null
+      },
+      {
+        "capture_id": "d816bc6f-192c-40a0-8595-63737b044d91",
+        "capture_kind": "live_diagnostic",
+        "clock_error_bound_ms": null,
+        "first_byte": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336183742208",
+          "utc": "2026-10-03T04:23:47.719471Z"
+        },
+        "first_received": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905336426302208",
+          "utc": "2026-10-03T04:23:47.962028Z"
+        },
+        "headers": {
+          "content-type": "application/json",
+          "date": "Sat, 03 Oct 2026 04:23:47 GMT"
+        },
+        "previous_capture_id": null,
+        "raw_bytes": 5443,
+        "raw_hash": "a99f89be5c32c5b945952c6b9227762adedbe42f5206c6ef4efa1397e3ad47c1",
+        "receipt_ordinal": 1,
+        "request": {
+          "method": "GET",
+          "params": {},
+          "path_params": {
+            "id": "943828"
+          },
+          "url": "https://gamma-api.polymarket.com/markets/943828"
+        },
+        "request_started": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905335651123083",
+          "utc": "2026-10-03T04:23:47.186842Z"
+        },
+        "schema_version": "fs2-receipt-v2",
+        "scope": "diagnostic_only; no population or historical coverage claim",
+        "session_hash": "0b956cac14a455d0d917d8c8a59fb4dbd7299598e195a3979fe42d221adbb100",
+        "session_id": "c570cb1f-f742-4b9f-bf1a-fdeda338f796",
+        "source_contract": {
+          "clock_semantics": "metadata clocks are not first receipt or lifecycle time",
+          "documentation": "https://docs.polymarket.com/api-reference/markets/get-market-by-id",
+          "endpoint": "https://gamma-api.polymarket.com/markets/{id}",
+          "parser_version": "gamma-market-identity-v1",
+          "protocol": "gamma-by-id",
+          "rights_scope": "bounded local diagnostic; bulk/commercial redistribution unverified",
+          "source_id": "gamma.market",
+          "units": "one exact decimal market ID; ordered outcomes/tokens; nullable lifecycle flags"
+        },
+        "source_id": "gamma.market",
+        "source_version": "aa6a1639cbb92fb5b7b39e775da9fc01e15038a549285631da03fd9b9dda44b3",
+        "status": 200,
+        "transport_error": null
+      }
+    ]
+  },
+  "retained_bytes": {
+    "panel": 8882,
+    "selection": 764959488,
+    "worker": 1232115
+  },
+  "role_capacity": {
+    "accepted_panel": false,
+    "ceilings_per_cycle": {
+      "control": 8,
+      "scheduled": 8,
+      "triggered": 8
+    },
+    "counts_per_cycle": {
+      "control": 2,
+      "scheduled": 8,
+      "triggered": 6
+    },
+    "fits": true,
+    "origin_admitted": false,
+    "overlap_discount_applied": false
+  },
+  "roots": {
+    "panel": "data-dumps/fs2_panel_screening_refresh_20261003_1",
+    "selection": "data-dumps/fs2_selection_panel_screening_refresh_20261003_1",
+    "worker": "data-dumps/fs2_screening_worker_screening_refresh_20261003_1"
+  },
+  "screen_cutoff_to_original_recovery_seconds": "0:04:52.963009",
+  "screen_freshness_seconds": {
+    "max_assessment_age_seconds": 120,
+    "max_window_age_seconds": 120
+  },
+  "second_stage_plan": {
+    "assessment_inventory": [
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:23:44.613656Z"
+          },
+          "evidence_id": "b3e5264f151568aaa5f2858c52aebb89e56320d8de8e1e61399ea3dd68c0d09a",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:32.939284Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:30.781281Z"
+          },
+          "market_id": "1718710",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "untriggered",
+          "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656",
+          "unavailable_reason": null
+        },
+        "effective_state": "untriggered",
+        "market_id": "1718710",
+        "reasons": [],
+        "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:23:41.139127Z"
+          },
+          "evidence_id": "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:31.543507Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:30.542615Z"
+          },
+          "market_id": "3540340",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "3540340",
+        "reasons": [],
+        "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:23:41.238779Z"
+          },
+          "evidence_id": "624991aa14cf991a3c53f01ac51d239560d8899f59f7aacf9e8696303821cc05",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:31.730097Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:31.016929Z"
+          },
+          "market_id": "3919458",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "3919458",
+        "reasons": [],
+        "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:23:43.106340Z"
+          },
+          "evidence_id": "8bcc12c0d8f1f42f1dc6219121f9f1b3434e77c0c6e8bfa96bd4b048c2eb4869",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:31.919160Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:31.251034Z"
+          },
+          "market_id": "4859553",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "4859553",
+        "reasons": [],
+        "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:24:00.488149Z"
+          },
+          "evidence_id": "496818210e04acae0f1016a47707edfcac86cc944cf1afe7d76d229cd4d537e9",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:48.446773Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:47.478459Z"
+          },
+          "market_id": "4860256",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "4860256",
+        "reasons": [],
+        "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:23:54.640914Z"
+          },
+          "evidence_id": "843de8e193455823dfd8120b26109ebdd98131c49f43e360baad34d294f49be1",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:48.251653Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:47.235984Z"
+          },
+          "market_id": "5207026",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "5207026",
+        "reasons": [],
+        "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:24:00.489475Z"
+          },
+          "evidence_id": "f6bae25277bc32543f6ff7b68e9ef28e4c5e4669385282b6b5cc099740b7c272",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:49.119972Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:47.720641Z"
+          },
+          "market_id": "943826",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "untriggered",
+          "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127",
+          "unavailable_reason": null
+        },
+        "effective_state": "untriggered",
+        "market_id": "943826",
+        "reasons": [],
+        "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127"
+      },
+      {
+        "assessment": {
+          "available_at": {
+            "$utc": "2026-10-03T04:24:00.478350Z"
+          },
+          "evidence_id": "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d",
+          "input_window_end": {
+            "$utc": "2026-10-03T04:23:49.797530Z"
+          },
+          "input_window_start": {
+            "$utc": "2026-10-03T04:23:47.962028Z"
+          },
+          "market_id": "943828",
+          "policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+          "state": "triggered",
+          "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348",
+          "unavailable_reason": null
+        },
+        "effective_state": "triggered",
+        "market_id": "943828",
+        "reasons": [],
+        "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348"
+      }
+    ],
+    "assessment_policy": {
+      "declared_at": {
+        "$utc": "2026-10-03T04:23:28.639392Z"
+      },
+      "max_assessment_age_seconds": 120,
+      "max_window_age_seconds": 120,
+      "trigger_policy_hash": "255fc72189e7ac21bc61885e298f1086a38c467a4614758bc5c5bfae81d79c02",
+      "version": "fs2-trigger-assessment-policy-v1"
+    },
+    "assessment_policy_hash": "2541d6ca8a290d7e6790ef3fe4e6acb8924bf1548f5f33d78556135bd8b2c6db",
+    "assignments": [
+      {
+        "arm": "control",
+        "assessment_evidence_id": "b3e5264f151568aaa5f2858c52aebb89e56320d8de8e1e61399ea3dd68c0d09a",
+        "assessment_state": "untriggered",
+        "conditional_matching_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "1718710",
+        "matched_trigger_ids": [
+          "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6"
+        ],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "3410",
+          "numerator": "1"
+        },
+        "source_observation_id": "0fba4518c149666556f37b69f45c7c3cc71adabb1a3ad624d179823bccc54f09",
+        "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+        "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "b3e5264f151568aaa5f2858c52aebb89e56320d8de8e1e61399ea3dd68c0d09a",
+        "assessment_state": "untriggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "1718710",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "3410",
+          "numerator": "1"
+        },
+        "source_observation_id": "0fba4518c149666556f37b69f45c7c3cc71adabb1a3ad624d179823bccc54f09",
+        "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+        "token_id": "48027754653911926850677338217086688656693291731581143283050590391503469045656",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "3540340",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "3410",
+          "numerator": "1"
+        },
+        "source_observation_id": "254cc508c13d49d9ca9b7123a749882c769eccce1c3ae439d880eae906ec9768",
+        "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+        "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "3540340",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "3410",
+          "numerator": "1"
+        },
+        "source_observation_id": "254cc508c13d49d9ca9b7123a749882c769eccce1c3ae439d880eae906ec9768",
+        "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+        "token_id": "27966342897695669899180627294941008041526361568275823908247381766264009220262",
+        "trigger_id": "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6"
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "624991aa14cf991a3c53f01ac51d239560d8899f59f7aacf9e8696303821cc05",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "3919458",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "10945",
+          "numerator": "2"
+        },
+        "source_observation_id": "54c19a877b9bc9f69d0154d4958d33ce088b5b8a418f88a157224fff70345e4c",
+        "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+        "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "624991aa14cf991a3c53f01ac51d239560d8899f59f7aacf9e8696303821cc05",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "3919458",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "10945",
+          "numerator": "2"
+        },
+        "source_observation_id": "54c19a877b9bc9f69d0154d4958d33ce088b5b8a418f88a157224fff70345e4c",
+        "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+        "token_id": "18801875479078636471094390567962502645562305852743781403920822556431120403760",
+        "trigger_id": "624991aa14cf991a3c53f01ac51d239560d8899f59f7aacf9e8696303821cc05"
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "8bcc12c0d8f1f42f1dc6219121f9f1b3434e77c0c6e8bfa96bd4b048c2eb4869",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "4859553",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "230285",
+          "numerator": "4"
+        },
+        "source_observation_id": "a91172939323399cc34df761a25812d826abd97d5b0205b5b54e7a665f4796ee",
+        "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+        "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "8bcc12c0d8f1f42f1dc6219121f9f1b3434e77c0c6e8bfa96bd4b048c2eb4869",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "4859553",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "230285",
+          "numerator": "4"
+        },
+        "source_observation_id": "a91172939323399cc34df761a25812d826abd97d5b0205b5b54e7a665f4796ee",
+        "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+        "token_id": "69014055904325373281426445585210183504998976573805828991804134496738808993504",
+        "trigger_id": "8bcc12c0d8f1f42f1dc6219121f9f1b3434e77c0c6e8bfa96bd4b048c2eb4869"
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "496818210e04acae0f1016a47707edfcac86cc944cf1afe7d76d229cd4d537e9",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "4860256",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "230285",
+          "numerator": "4"
+        },
+        "source_observation_id": "4a072f33840e4eccbf69f472fffdcb97f6efd228e61f33ff8d6f8baa207b7375",
+        "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+        "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "496818210e04acae0f1016a47707edfcac86cc944cf1afe7d76d229cd4d537e9",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "4860256",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "230285",
+          "numerator": "4"
+        },
+        "source_observation_id": "4a072f33840e4eccbf69f472fffdcb97f6efd228e61f33ff8d6f8baa207b7375",
+        "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+        "token_id": "45776783836736345180418837895440637422403476510360172063879093673445765931513",
+        "trigger_id": "496818210e04acae0f1016a47707edfcac86cc944cf1afe7d76d229cd4d537e9"
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "843de8e193455823dfd8120b26109ebdd98131c49f43e360baad34d294f49be1",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "5207026",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "10945",
+          "numerator": "2"
+        },
+        "source_observation_id": "7c4b54d9781beb94d2443bc34b8a09b044eba264a41c887e952045dbfa6ac07f",
+        "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+        "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "843de8e193455823dfd8120b26109ebdd98131c49f43e360baad34d294f49be1",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "5207026",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "10945",
+          "numerator": "2"
+        },
+        "source_observation_id": "7c4b54d9781beb94d2443bc34b8a09b044eba264a41c887e952045dbfa6ac07f",
+        "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+        "token_id": "76275224781672571834510870490547558994817468433622601301060687031724197252736",
+        "trigger_id": "843de8e193455823dfd8120b26109ebdd98131c49f43e360baad34d294f49be1"
+      },
+      {
+        "arm": "control",
+        "assessment_evidence_id": "f6bae25277bc32543f6ff7b68e9ef28e4c5e4669385282b6b5cc099740b7c272",
+        "assessment_state": "untriggered",
+        "conditional_matching_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "943826",
+        "matched_trigger_ids": [
+          "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d"
+        ],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "1045",
+          "numerator": "2"
+        },
+        "source_observation_id": "5f4cd781f45bbe305c91c5a3e68621d56d1e2fd6d3c34c347b5ada4241e61ff0",
+        "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+        "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "f6bae25277bc32543f6ff7b68e9ef28e4c5e4669385282b6b5cc099740b7c272",
+        "assessment_state": "untriggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "943826",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "1045",
+          "numerator": "2"
+        },
+        "source_observation_id": "5f4cd781f45bbe305c91c5a3e68621d56d1e2fd6d3c34c347b5ada4241e61ff0",
+        "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+        "token_id": "13278443981418985302116823794751942747516190107446009911143426402863687470127",
+        "trigger_id": null
+      },
+      {
+        "arm": "scheduled",
+        "assessment_evidence_id": "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "943828",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "1045",
+          "numerator": "2"
+        },
+        "source_observation_id": "dc5020ec6096f08b7ac23f84f9ff93e5f5dfd2ad6d386599259a30a964822d4a",
+        "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+        "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348",
+        "trigger_id": null
+      },
+      {
+        "arm": "triggered",
+        "assessment_evidence_id": "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d",
+        "assessment_state": "triggered",
+        "conditional_matching_probability": null,
+        "inclusion_probability": {
+          "decimal": "1",
+          "decimal_state": "exact",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        "market_id": "943828",
+        "matched_trigger_ids": [],
+        "probability_scope": "conditional on screened sample and observed states",
+        "screening_inclusion_probability": {
+          "decimal": null,
+          "decimal_state": "nonterminating",
+          "denominator": "1045",
+          "numerator": "2"
+        },
+        "source_observation_id": "dc5020ec6096f08b7ac23f84f9ff93e5f5dfd2ad6d386599259a30a964822d4a",
+        "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+        "token_id": "9273056014077248525737106426866852410841224250259842453481519298611852217348",
+        "trigger_id": "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d"
+      }
+    ],
+    "cutoff": "2026-10-03T04:24:04.526375+00:00",
+    "exclusions": [],
+    "frame_evidence_ids": [
+      "d1c3d21b29b26504a5de8c5b36a1e25ebb49d043925cea13f64921c4882a2db4"
+    ],
+    "frame_hash": "e855682a343cdcbafef7d20ae041b20d645916bfdbeb9631278bd321636bbeac",
+    "frame_scope": "predeclared scheduled screen sample; complete frame remains in selection",
+    "frame_size": 8,
+    "frame_status": "explicit_list",
+    "global_arm_inclusion_probability": null,
+    "global_arm_probability_reason": "second-stage pool depends on measured states",
+    "max_frame_members": 256,
+    "origin_admitted": false,
+    "plan_hash": "f4a3b78891f28dbec446fe2282ab361f627e1bcbda05fe42cbba5c39d54168fc",
+    "population_inference_eligible": false,
+    "protocol": {
+      "controls_per_trigger": 1,
+      "liquidity_edges": [
+        "1000",
+        "10000",
+        "100000"
+      ],
+      "max_unique_markets": 8,
+      "probability_edges": [
+        "0.1",
+        "0.5",
+        "0.9"
+      ],
+      "scheduled_per_stratum": 8,
+      "seed": "52245f95326cf072c5291a7e93287b07d88b32b489b21e42b67747a88233375b",
+      "triggered_per_stratum": 2,
+      "version": "fs2-panel-sampling-v1"
+    },
+    "protocol_hash": "74fe45ce76a8455513c33ef74381b65690e4a1b3d1f135c57221b7fbc6183388",
+    "role_count_is_not_independent_sample_size": true,
+    "runtime_assessment_verification_required": true,
+    "runtime_frame_verification_required": true,
+    "schema_version": "fs2-sampling-plan-v3",
+    "scientific_stage": "measurement_development_only",
+    "strata": [
+      {
+        "assessment_counts": {
+          "not_assessed": 0,
+          "triggered": 2,
+          "unavailable": 0,
+          "untriggered": 0
+        },
+        "category": "unknown",
+        "control_pool": 0,
+        "controls_selected": 0,
+        "controls_wanted": 2,
+        "economic_independence": "unresolved",
+        "eligible_count": 2,
+        "event_group": null,
+        "liquidity_band": "1",
+        "probability_band": "1",
+        "scheduled_count": 2,
+        "stratum": "0d7fca54af904e846d93e434c0ce335c7b03eb95faa3a5b3ac6e25cdafd0c20f",
+        "time": "2026-10-03",
+        "time_to_close": "le_7d",
+        "triggered_count": 2,
+        "triggered_pool": 2,
+        "unfilled_control_slots": 2
+      },
+      {
+        "assessment_counts": {
+          "not_assessed": 0,
+          "triggered": 1,
+          "unavailable": 0,
+          "untriggered": 1
+        },
+        "category": "unknown",
+        "control_pool": 1,
+        "controls_selected": 1,
+        "controls_wanted": 1,
+        "economic_independence": "unresolved",
+        "eligible_count": 2,
+        "event_group": null,
+        "liquidity_band": "2",
+        "probability_band": "0",
+        "scheduled_count": 2,
+        "stratum": "30499de574f50916acedaa68b4f145476dd2f8b105eb701de2972663caee68b7",
+        "time": "2026-10-03",
+        "time_to_close": "unknown",
+        "triggered_count": 1,
+        "triggered_pool": 1,
+        "unfilled_control_slots": 0
+      },
+      {
+        "assessment_counts": {
+          "not_assessed": 0,
+          "triggered": 2,
+          "unavailable": 0,
+          "untriggered": 0
+        },
+        "category": "unknown",
+        "control_pool": 0,
+        "controls_selected": 0,
+        "controls_wanted": 2,
+        "economic_independence": "unresolved",
+        "eligible_count": 2,
+        "event_group": null,
+        "liquidity_band": "2",
+        "probability_band": "2",
+        "scheduled_count": 2,
+        "stratum": "509c05013f89adf1a343d64f0e941548503034d1a1e5ae8255696fdcfea1619d",
+        "time": "2026-10-03",
+        "time_to_close": "le_7d",
+        "triggered_count": 2,
+        "triggered_pool": 2,
+        "unfilled_control_slots": 2
+      },
+      {
+        "assessment_counts": {
+          "not_assessed": 0,
+          "triggered": 1,
+          "unavailable": 0,
+          "untriggered": 1
+        },
+        "category": "unknown",
+        "control_pool": 1,
+        "controls_selected": 1,
+        "controls_wanted": 1,
+        "economic_independence": "unresolved",
+        "eligible_count": 2,
+        "event_group": null,
+        "liquidity_band": "0",
+        "probability_band": "3",
+        "scheduled_count": 2,
+        "stratum": "9682bb825c6b2f2142526361cf3092ed1c32aaed45558f4d44e38bab28478d4f",
+        "time": "2026-10-03",
+        "time_to_close": "gt_30d",
+        "triggered_count": 1,
+        "triggered_pool": 1,
+        "unfilled_control_slots": 0
+      }
+    ],
+    "unique_selected_markets": 8
+  },
+  "source_frame": "data-dumps/fs2_capture_f1f8ed0835e544228439115e4c2f8efc",
+  "states": [
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "3abd217c763c68e745ff5cdfd00d2727152fb69a295007cd3f381dd3b85677d1",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "4b2466477d6b342fba9f2d14574b50514f67981033951da6be991bb84f0fada5",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "1718710",
+      "projection_hash": "bed2de01b9e5581dfb00accc93b62506ffdc494c90031650158ecba43a7c8109",
+      "reasons": [],
+      "state": "untriggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905333077952166",
+          "utc": "2026-10-03T04:23:44.613656Z"
+        },
+        "computation_hash": "b3e5264f151568aaa5f2858c52aebb89e56320d8de8e1e61399ea3dd68c0d09a",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905333068123833",
+          "utc": "2026-10-03T04:23:44.603828Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905333068265791",
+          "utc": "2026-10-03T04:23:44.603973Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "bed2de01b9e5581dfb00accc93b62506ffdc494c90031650158ecba43a7c8109",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "untriggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "b53c3b9207b26da168c6dd1bf3b6e61a8f39eabd615af36156ff0d6fedc4a093",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "5756162ef48a21f12c66fd19b114776e4dd4ac5a75708dd1a414f740f8a45d26",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "3540340",
+      "projection_hash": "e5d5785168af90b5f20ce78ef311fddb97ee2317bb418243471c6df88cb7d7a0",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329603448833",
+          "utc": "2026-10-03T04:23:41.139127Z"
+        },
+        "computation_hash": "a99f0dcc07b572c5554e2b453ebb2e0cb4ecf6c265288c0d912c140217fe81e6",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329593445916",
+          "utc": "2026-10-03T04:23:41.129124Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329593619916",
+          "utc": "2026-10-03T04:23:41.129301Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "e5d5785168af90b5f20ce78ef311fddb97ee2317bb418243471c6df88cb7d7a0",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "d082ceef3e3509ceca27f4ecd8293282e970eef7092795ab260cde9a491e9db7",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "5c456191fecd742c75b26d0b6c5997c74e0a6d395cf6065a09e9bb6c8890610a",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "3919458",
+      "projection_hash": "d54c6b4e0581301aeca94412e3b3acaa80e0015de502adf5d7fdfc5b4224506c",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329703101833",
+          "utc": "2026-10-03T04:23:41.238779Z"
+        },
+        "computation_hash": "624991aa14cf991a3c53f01ac51d239560d8899f59f7aacf9e8696303821cc05",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329683914666",
+          "utc": "2026-10-03T04:23:41.219593Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905329684082666",
+          "utc": "2026-10-03T04:23:41.219765Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "d54c6b4e0581301aeca94412e3b3acaa80e0015de502adf5d7fdfc5b4224506c",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "2577504cf9ac16a9fbbef04186d5a734845d913bd04975aa6b0ac26fb4bd9672",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "6969f39c0303e1c5648da75281e067c54372e60e793c0455a9df48126c5422cc",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "4859553",
+      "projection_hash": "4152dd3cc6d9dfdf60ea79b36a3b4e017d17e7c4ba79c6d3a0c9fbaf915405ca",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905331570645291",
+          "utc": "2026-10-03T04:23:43.106340Z"
+        },
+        "computation_hash": "8bcc12c0d8f1f42f1dc6219121f9f1b3434e77c0c6e8bfa96bd4b048c2eb4869",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905331569073625",
+          "utc": "2026-10-03T04:23:43.104767Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905331569247416",
+          "utc": "2026-10-03T04:23:43.104943Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "4152dd3cc6d9dfdf60ea79b36a3b4e017d17e7c4ba79c6d3a0c9fbaf915405ca",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "1c4e6728046ace32120b0ce051847b1bf5ab5c5f7e96c013006dbcbe9eeaa40c",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "d9ffe263ec1ba7e765c2444ff3e7a27754e87177d1cce4d13165cdeeb42c304f",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "4860256",
+      "projection_hash": "a0c24170b4fcd53671c15d4630088f6401bf3197fe698bce3f440f7a5a7eae69",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348952412958",
+          "utc": "2026-10-03T04:24:00.488149Z"
+        },
+        "computation_hash": "496818210e04acae0f1016a47707edfcac86cc944cf1afe7d76d229cd4d537e9",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348949602458",
+          "utc": "2026-10-03T04:24:00.485423Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348949782333",
+          "utc": "2026-10-03T04:24:00.485605Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "a0c24170b4fcd53671c15d4630088f6401bf3197fe698bce3f440f7a5a7eae69",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "10054d38101e8dfdae0698bc2ee7389d073fbb9bb467c7913ddef5580dd55c25",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "4b61a071cd99f1048ddf6d179140c83e92ee96e936dfff8085257fffa1607be5",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "5207026",
+      "projection_hash": "0583688224fb820336622175a2084290b490b9f1f631286067ecc62c1a74400e",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905343105138125",
+          "utc": "2026-10-03T04:23:54.640914Z"
+        },
+        "computation_hash": "843de8e193455823dfd8120b26109ebdd98131c49f43e360baad34d294f49be1",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905343103615791",
+          "utc": "2026-10-03T04:23:54.639395Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905343103760083",
+          "utc": "2026-10-03T04:23:54.639541Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "0583688224fb820336622175a2084290b490b9f1f631286067ecc62c1a74400e",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "d2b07c2a6baad50f390df803ba33e34ab16e8e0abb72c395a96899b27bd5c196",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "c711dcd1886368f6059d22f3d6255fe02e58c49c73a68a44f69a606e1f591070",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "943826",
+      "projection_hash": "b71e8184607eaf7ba91cc665d6ee54d23220ee416ea26ec036c3e2370d0b29b9",
+      "reasons": [],
+      "state": "untriggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348953652833",
+          "utc": "2026-10-03T04:24:00.489475Z"
+        },
+        "computation_hash": "f6bae25277bc32543f6ff7b68e9ef28e4c5e4669385282b6b5cc099740b7c272",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348951798958",
+          "utc": "2026-10-03T04:24:00.487622Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348952018250",
+          "utc": "2026-10-03T04:24:00.487842Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "b71e8184607eaf7ba91cc665d6ee54d23220ee416ea26ec036c3e2370d0b29b9",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "untriggered"
+      }
+    },
+    {
+      "identity_comparison": {
+        "admission_decision": false,
+        "core_identity_equal": true,
+        "current_event_membership": "unavailable",
+        "current_mapping_version": "6693c3e2f04e925c0f5fe64e95c4f4ff6b542fa2742db0120f1761045febb792",
+        "economic_group_status": "unresolved",
+        "frame_mapping_version": "dc07e9845963f8700a8ebc98f07a4d00b7812877ecaf16445e4e6e00ea6c7e87",
+        "schema_version": "fs2-gamma-identity-comparison-v1",
+        "state": "core_equal_event_membership_unavailable"
+      },
+      "market_id": "943828",
+      "projection_hash": "369dec4e13cedafdbace3a487981fbae95f2dd3a7c2167c798ef76e843bbdd3c",
+      "reasons": [],
+      "state": "triggered",
+      "summary": {
+        "computation_available_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348942538916",
+          "utc": "2026-10-03T04:24:00.478350Z"
+        },
+        "computation_hash": "a4db42f5d11516f10d61337c93a4dfc48fc0cf445bb0ccf7eb4aa2ade9a4999d",
+        "computation_started_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348939026083",
+          "utc": "2026-10-03T04:24:00.474841Z"
+        },
+        "computed_at": {
+          "clock_session_id": "0aedd4cc-c097-4c16-9067-62326466a888",
+          "monotonic_ns": "1905348939299125",
+          "utc": "2026-10-03T04:24:00.475109Z"
+        },
+        "feature_store_admitted": false,
+        "origin_admitted": false,
+        "projection_hash": "369dec4e13cedafdbace3a487981fbae95f2dd3a7c2167c798ef76e843bbdd3c",
+        "schema_version": "fs2-snapshot-trigger-computation-v1",
+        "source_provenance_class": "prospective",
+        "state": "triggered"
+      }
+    }
+  ],
+  "stratum_draw": {
+    "design": "uniform_without_replacement_then_within_stratum",
+    "eligible_strata": 110,
+    "ranking_domain": "screening_stratum_v1",
+    "selected_strata": 4,
+    "strata_limit": 4,
+    "stratum_inclusion_probability": {
+      "decimal": null,
+      "decimal_state": "nonterminating",
+      "denominator": "55",
+      "numerator": "2"
+    },
+    "version": "fs2-bounded-stratum-draw-v1"
+  },
+  "unfilled_control_slots": 4,
+  "wrapper_result": {
+    "at": "2026-10-03T04:28:57.618265+00:00",
+    "elapsed_ns": 874429874917,
+    "returncode": 0
+  }
+}

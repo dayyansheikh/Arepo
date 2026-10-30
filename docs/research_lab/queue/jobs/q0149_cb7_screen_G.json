@@ -1,0 +1,37 @@
+{
+ "id": "q0149_cb7_screen_G",
+ "title": "CB7-G: G1 on the sealed h8_geo census (YES longshot net at the modelled ask; inverted tail gate; break-even placebo; theme clustering; worst cases; end-date sensitivity)",
+ "family": "creative_batch_7",
+ "priority": 38,
+ "expected_value": "whether CH61 is carried to a Stage P registration",
+ "data": [
+  "history/h8_geo (verified seal)",
+  "model_specs/cb7_v1.json",
+  "creative_batch7/census.json (h_geo)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0148_cb7_screen_S",
+  "q0150_cb7_screen_X"
+ ],
+ "argv": [
+  "scripts/run_cb7.py",
+  "screen",
+  "--family",
+  "G"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch7/results_G1.json",
+  "seals/cb7_g1_stage1.json (write-once Stage-1 copy; commit it)",
+  "trials.jsonl (count line + per-test, placebo and descriptive lines)"
+ ],
+ "next_action": "if G1 met the Stage-1 batch Holm and every gate: draft the Stage P-G registration",
+ "notes": "CREATIVE_BATCH_7.md CB7-G, code-freeze check 2026-10-30. DRAFT, promote third. G1 waits for the S1 and X1 Stage-1 files via depends_on (Reading A9) instead of exit-75 tempfails. Single historical stage (L1); one fee rule (economics.DOCS_CATEGORY_RATE, conservative policy); no cost register read. Exits 0 'not testable' if GG failed, < 10 YES event clusters, G_theme < 30, disjointness or source unverified, or h8_geo not_run_deadline (counted, p = 1). Screen time compares seal sha256s with the spec pins and refuses on mismatch. No network. Run order q0148, q0150, q0149. not_before is null in this draft: the CB7 freeze commit sets it to model_specs/cb7_v1.json dates.screen_not_before_utc when the draft is promoted (the screen also refuses before that time by itself). Operator: run scripts/oracle/union_jsonl.py on the host before the screen and pass --union-recorded-utc <time> in argv, otherwise the cumulative count in the result is labelled 'pre-union lower bound' (feeds only the BY triage label). Crash recovery: if the job dies after results_<T>.json is written but before the trial lines, a re-run refuses (write-once) and the test stays uncounted; the operator then appends the four trial lines by hand from the results file (see CB7_ANALYSIS_CODE_NOTE section 6b), never rewriting the results.",
+ "not_before": "2026-10-31T06:00:00Z"
+}

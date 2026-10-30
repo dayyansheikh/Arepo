@@ -1,0 +1,280 @@
+{
+  "decision": "D102",
+  "scope": "Bounded local optimisation probes only; no product source modified, source requests, repaired run or full-verifier speed claim",
+  "input_profile_sha256": "874b8be71f73f51494153483a84d4fca55a70660016b42d1003631c52e329340",
+  "input_checks": [
+    {
+      "ordinal": 1,
+      "capture_id": "58f57dc9-445a-402c-838b-a6660a99a6f0",
+      "raw_bytes": 548060,
+      "raw_hash": "6541858cb14bbbd029381f3a4a83e66fd2194226d7ff29f2459a48e9be713948",
+      "page_hash": "8b20e65f2dcc3b3263f76abba9b0993661bb016e4c5e486eb463e16ad7ca2d61"
+    },
+    {
+      "ordinal": 90,
+      "capture_id": "0ecbf524-ba7c-47c4-a807-b4bd75de6352",
+      "raw_bytes": 645836,
+      "raw_hash": "9ac098dcb8b0ff8742da469c396f5e7789779fc7c7d3b689785d53ba753ab221",
+      "page_hash": "bc48afe5c6b653df2311b2e5b0a3c423bc0d1266c97af64a2de39cf0ac8fc7f4"
+    },
+    {
+      "ordinal": 180,
+      "capture_id": "6d454190-8c68-4721-9f87-1f9381988373",
+      "raw_bytes": 540440,
+      "raw_hash": "741eef035d93d8408ae6677c798350c1a6aafffa4d48c41240c05ce1587dad6d",
+      "page_hash": "c2d1d155410f8bd09122f260191d4d29cee973858179102f15bbfde8163b7e5d"
+    },
+    {
+      "ordinal": 269,
+      "capture_id": "73e4f2b6-d60b-4472-9e3f-96dec13ba359",
+      "raw_bytes": 543407,
+      "raw_hash": "cb869b9d1572f386a5a24fe250c2bae78aacd1b2a896939d4ac6b288a81cd2e1",
+      "page_hash": "45a670abbf1655b2518ff846e28b994ab95058cb3950c9ec439322e65a9f5a5d"
+    },
+    {
+      "ordinal": 358,
+      "capture_id": "0dbc3a12-a22a-424d-9bbb-d5c0b0d9a603",
+      "raw_bytes": 609478,
+      "raw_hash": "912fcb9683f1d76f4ba3a7ec476588412a979248d57fc6c308ab5e7544ba4581",
+      "page_hash": "b5c418cd1262f4564c8baf7a8aa53134a0bf772723202f5a2a4ef126a5bc7ec0"
+    },
+    {
+      "ordinal": 447,
+      "capture_id": "20eb5a68-4702-4e26-8469-16bc8cbf3d4d",
+      "raw_bytes": 567272,
+      "raw_hash": "e79db482953f9cc41a00cf10b893df9527701a3d78cee0537093999812ea54ca",
+      "page_hash": "8d5764746bbd1f4ef55633bfcdf133c4b951c6ebe6fd6bd8bd18ad41569df642"
+    },
+    {
+      "ordinal": 537,
+      "capture_id": "4a68df88-87aa-40dc-96d0-3fcab4414bf8",
+      "raw_bytes": 641152,
+      "raw_hash": "0e8db9d065972743a3e260ff9ac0872d7202fcc8f78dc21dd04b4c941a5f4667",
+      "page_hash": "ba7f9cb48451e29794060dc830fdc3f21fefce459ace981a05627fcc585628de"
+    },
+    {
+      "ordinal": 626,
+      "capture_id": "53eff1c2-d3c3-4aff-966d-e94802866e66",
+      "raw_bytes": 525161,
+      "raw_hash": "be5f1c4e9151f6c85679e926f14dc0c6b39b494ecf07590d0e8c87eb45d08b7f",
+      "page_hash": "13194ad3d1184d7bf34714308746188e52519bc43fba79cee0979aac31c662d5"
+    },
+    {
+      "ordinal": 715,
+      "capture_id": "8664fb99-9549-4c46-bf7d-177998d0098e",
+      "raw_bytes": 690334,
+      "raw_hash": "0e9d9aeacf56f865584d4a3ef44572d1fbf8654e349580e6e92e98ff602c3b2b",
+      "page_hash": "1ae741f717e9aa54e892ef33557e139894330081560440f5ddae430797a52c42"
+    },
+    {
+      "ordinal": 805,
+      "capture_id": "127ab6f7-f0d1-4435-94f5-9377b9fc87e3",
+      "raw_bytes": 623133,
+      "raw_hash": "47973add21e5b07c20870a62f90e79d2e33a6a00722f0e84f42a2e6bc9241db5",
+      "page_hash": "c641519e22b050784ad2c8cf0614ab3a7b82733671d4f332f8b9e7e566e504b4"
+    },
+    {
+      "ordinal": 894,
+      "capture_id": "4cf4a231-8f1d-41f7-b3d7-ab8db51edf50",
+      "raw_bytes": 646109,
+      "raw_hash": "ad56ec65a2f146a5a5e3802db267d3f27eda6768a1b9d4b5e0374b197864a68b",
+      "page_hash": "48a7de7c430c519f6214948b298c6b647af48353119b54b8d19452035175d581"
+    },
+    {
+      "ordinal": 983,
+      "capture_id": "f82556ee-174c-4245-9138-be4f228f64e0",
+      "raw_bytes": 540221,
+      "raw_hash": "dd2fc699b5dcea5c9ad1e91a26e79be4c7ba2fed6d504ef02f256560ba089896",
+      "page_hash": "9d93fea30f8f4fcbaf982f3bc498008c89a4705f588af841ef718af94562f0ad"
+    },
+    {
+      "ordinal": 1072,
+      "capture_id": "6b7778b4-7585-4c48-915b-785720cf9681",
+      "raw_bytes": 650566,
+      "raw_hash": "62ac107d117feb0989ea5a38b82e3c70caaf4e18357827295e0c1397d9c74674",
+      "page_hash": "3722bfa217680142cee180e6f17afec89838e85ceadcbc501aa3a88b5def85ff"
+    },
+    {
+      "ordinal": 1162,
+      "capture_id": "50367dcd-771b-40d3-9584-a3ba4d9f852f",
+      "raw_bytes": 530816,
+      "raw_hash": "bc616763b38d14a84add3dc43a43acfb998f2b5e627842b7e8790c66dba5589b",
+      "page_hash": "3640242d3b1309efb4bd0d282429cb34d96cfa870ce2d3a69366d128124efc19"
+    },
+    {
+      "ordinal": 1251,
+      "capture_id": "970ffbe2-4e78-4599-96c0-40d2fd255197",
+      "raw_bytes": 704140,
+      "raw_hash": "a06f4958bda8c008ed8f6361619632ac9b14bd4a2788724ffbbf22c2ee6ea012",
+      "page_hash": "8c626761725b3c50b6b9b020ab4498b3c252844c921dd923ce9ed705ecb8d5c9"
+    },
+    {
+      "ordinal": 1340,
+      "capture_id": "79e05abe-3eac-4d2c-8549-d58a15ba6eed",
+      "raw_bytes": 651291,
+      "raw_hash": "f5e2e70ba249abfb18b69be5fe12b56c020d62b87d1728dee9d0381a9fc47bdf",
+      "page_hash": "dabc6b8033b9e8e4986ecd36b0e6c9764edd3ba8e80b8339a31446d0398e7fb7"
+    },
+    {
+      "ordinal": 1430,
+      "capture_id": "10d873eb-d43b-429a-8058-302b2142242d",
+      "raw_bytes": 690110,
+      "raw_hash": "89947a936e5a79c9818137a9e941dcfdd42f682c3ef69731a6b9ee18cd9ce578",
+      "page_hash": "a0393e579c3764dcebc55b7c064c0c80935876c5699ef9ca8354a429a721e8bc"
+    },
+    {
+      "ordinal": 1519,
+      "capture_id": "8e05f623-3f88-4f39-95ed-4da56b891fb2",
+      "raw_bytes": 665906,
+      "raw_hash": "8ca77891f94a83e9b6fade40c942a9bf3f400526d3147e544149c2c52d3c8e46",
+      "page_hash": "1b97eb9b80c2b0bb0af57464d0913e6f988a9f98235fa285051f735cebce0396"
+    },
+    {
+      "ordinal": 1608,
+      "capture_id": "f4bc6ddc-656b-4e4c-8012-ccccda4debf9",
+      "raw_bytes": 642822,
+      "raw_hash": "25552ef1b2cad89289b44c1a62e76c3c984e5da2031bf71f147d146d9b5c6ef4",
+      "page_hash": "41b3f6ec00a98ac48b171523081b435daad65cbd73482ff3f183ee24031edce1"
+    },
+    {
+      "ordinal": 1698,
+      "capture_id": "b90c3466-7735-48e6-98ed-7beb6aa7a13f",
+      "raw_bytes": 769152,
+      "raw_hash": "b43117a4588c1b9f12a9bfda0f8802196d77a8b20d91a90535f64ae081d43e08",
+      "page_hash": "603029cf9f4e52f43b3999850ffd1740c940a0ae9471027611f2178d315844d8"
+    },
+    {
+      "ordinal": 1787,
+      "capture_id": "efdf741f-9839-4733-90ef-df9a1c1b0bc6",
+      "raw_bytes": 620080,
+      "raw_hash": "de2d0b12e5a2ac23c2463fea271a41add25aed13975ebd753f7606a72b6d1ba8",
+      "page_hash": "3d0683d3a10a933297ca0fa97f062fbcae7d3c9de99e3e130e4e3af0d909ae6f"
+    },
+    {
+      "ordinal": 1876,
+      "capture_id": "91e2f886-81a8-44f7-81eb-1c0207357ed7",
+      "raw_bytes": 740495,
+      "raw_hash": "3b596a5e5ec1fbfa366475bb653b4a9ad2997d1b89882803bd9151df84d70bb5",
+      "page_hash": "2fec1a6700a9a0e0c74ce83402937b5e17d4cf056aa93175e6d4f45036e55735"
+    },
+    {
+      "ordinal": 1965,
+      "capture_id": "e8174d5c-5953-4359-83f1-141c396d972f",
+      "raw_bytes": 631553,
+      "raw_hash": "0385d887ad1f69443f0da57255196b5d5979b16c4f5123f540dfc2f2892e9e8a",
+      "page_hash": "d8e799d28e9e8b70c13641d9e63adf03a880ead6dcb6f30b9e25b224006df5c5"
+    },
+    {
+      "ordinal": 2055,
+      "capture_id": "e26e2dd2-3b1c-4766-ab60-edc5c90e5703",
+      "raw_bytes": 628983,
+      "raw_hash": "e683422c43c1a36cef42bddc15eb6581df527eff63331dfb5d0241aa2bb6b562",
+      "page_hash": "da18f0030638c0824337f8d397c4fbc86a7567c551184d42e6a683e8e8b2df2c"
+    },
+    {
+      "ordinal": 2144,
+      "capture_id": "a86b38c5-53ae-4f71-b205-af66fb5c2587",
+      "raw_bytes": 515355,
+      "raw_hash": "9f2d33a8f1def7eabcb4d763d26edc26c39ebf8de6c8c47da6f2015d1dc1e11e",
+      "page_hash": "4017edb6b88fd5ef32a4de98f12ffbf0190609df292442d1d1aad683f09a719c"
+    },
+    {
+      "ordinal": 2233,
+      "capture_id": "5beb753d-ce2a-43e4-bf1a-6f6459c3138f",
+      "raw_bytes": 524050,
+      "raw_hash": "a47ea8cab38898e0ff6514daa83b363506f8b9716f29d7457065db43b6589c72",
+      "page_hash": "41e41839ad03858bbfd8fa5cb64076821ec073b188858a47e49997245bb804c1"
+    },
+    {
+      "ordinal": 2323,
+      "capture_id": "05bca710-3eb5-47cf-9c7a-f01514469774",
+      "raw_bytes": 651870,
+      "raw_hash": "6ecec898b87b10c5416c94d1c64a54a3512135131473e343a91065a0dfc50213",
+      "page_hash": "1b45a8b8ed8a35e1f791516d64dc98d8cac33c3bba7307d9d2ee9d9148587efa"
+    },
+    {
+      "ordinal": 2412,
+      "capture_id": "535301a2-3870-42f3-a5fb-efde7fcc4355",
+      "raw_bytes": 501957,
+      "raw_hash": "7e49b44eef1a61dd5285dca163e9e30c42d35f90592a66737c64b3f93e5be8a2",
+      "page_hash": "5bfd7d75cd249b9185863009f4a4708068ace0baa3222f5e4800e6cd7d8739fb"
+    },
+    {
+      "ordinal": 2501,
+      "capture_id": "6e7b9106-564b-4da3-9b2e-2e0ddfa4c69d",
+      "raw_bytes": 614000,
+      "raw_hash": "8d1c2aeb0eb792a765b693a07af02de0680152193b632d3d9b50ba3113a96bce",
+      "page_hash": "9b83918edfb0a2e317195be481a280ae606bf9d8a9485a05db57a2f6fed048ac"
+    },
+    {
+      "ordinal": 2590,
+      "capture_id": "65364b5a-c0b0-4ec4-b816-269fbb814c06",
+      "raw_bytes": 677403,
+      "raw_hash": "eae0e8407097e01b63183e0667f9a4d1b8fbb4801293b9f52654118b52eb868c",
+      "page_hash": "388c4ace2573b59ed23e122a8e593dc2c7499888b662ea94f52f18c9465b7ef5"
+    },
+    {
+      "ordinal": 2680,
+      "capture_id": "f15e7bdf-fd4d-4cc3-a394-14a888b7cd67",
+      "raw_bytes": 616624,
+      "raw_hash": "8681b1d2cd19d3ccfd5ffb13cd4ca0b0fd02cd1bbec348f7067ea1613ec37627",
+      "page_hash": "9891fdbdc2ca79939b89051c53da28b753078b6c1b5c600f6f8b2e22899cbe5b"
+    },
+    {
+      "ordinal": 2769,
+      "capture_id": "ed52ff2f-b11b-40d1-b55c-fd977247ac49",
+      "raw_bytes": 670968,
+      "raw_hash": "5551031d2b1854fc756bbd0bde7b830381ed43df6c02bfa8a53f5f82f493328a",
+      "page_hash": "de30e053e961063f5000610841f718f341ac2cd96e9e80e6b12f7d9376bd18db"
+    }
+  ],
+  "probes": [
+    {
+      "rows": 3195,
+      "timings": [
+        {
+          "implementation": "original",
+          "elapsed_ns": 665952459
+        },
+        {
+          "implementation": "candidate",
+          "elapsed_ns": 760604291
+        },
+        {
+          "implementation": "candidate",
+          "elapsed_ns": 736081625
+        },
+        {
+          "implementation": "original",
+          "elapsed_ns": 699775458
+        }
+      ],
+      "candidate_source": "def canonical_value(value: Any) -> Any:\n    \"\"\"Canonical hashing representation; finite derived floats need explicit hex tags.\"\"\"\n    kind = type(value)\n    if kind is str or kind is int or value is None or kind is bool:\n        return value\n    if isinstance(value, Decimal):\n        return {\"$decimal\": str(exact_decimal(value))}\n    if isinstance(value, datetime):\n        return {\"$utc\": utc_text(value)}\n    if value is None or isinstance(value, (str, bool, int)):\n        return value\n    if isinstance(value, (tuple, list)):\n        return [canonical_value(item) for item in value]\n    if isinstance(value, dict):\n        if not all(isinstance(k, str) for k in value):\n            raise ValueError(\"canonical object keys must be strings\")\n        return {k: canonical_value(v) for k, v in value.items()}\n    raise ValueError(f\"unsupported canonical value: {type(value).__name__}\")\n",
+      "script": "import inspect,json,time,hashlib\nfrom pathlib import Path\nfrom astrolabe.feature_store import types\nfrom astrolabe.feature_store.capture import _strict_json\noriginal=inspect.getsource(types.canonical_value)\nnew=original.replace('    if isinstance(value, Decimal):','    kind = type(value)\\n    if kind is str or kind is int or value is None or kind is bool:\\n        return value\\n    if isinstance(value, Decimal):',1)\nns=dict(vars(types));exec(new,ns); candidate=ns['canonical_value']\nprofile=json.loads(Path('docs/implementation/PHASE_03_FRAME_VERIFICATION_PROFILE.json').read_text())\nroot=Path(profile['source_root']);rows=[]\nfor entry in profile['checks']:\n folder=root/entry['capture_id']\n # Raw filename from receipt inventory, no network or product-source edits.\n raw=(folder/'raw.bin').read_bytes() if (folder/'raw.bin').exists() else None\n if raw is None:\n  print([p.name for p in folder.iterdir()]);raise SystemExit('locate raw')\n assert hashlib.sha256(raw).hexdigest()==entry['raw_hash']\n rows.extend(_strict_json(raw)['markets'])\noutputs=[]; timings=[]\nfor label,fn in [('original',types.canonical_value),('candidate',candidate),('candidate',candidate),('original',types.canonical_value)]:\n start=time.perf_counter_ns();out=[json.dumps(fn(v),sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False) for v in rows];elapsed=time.perf_counter_ns()-start\n if outputs:assert out==outputs\n else:outputs=out\n timings.append({'implementation':label,'elapsed_ns':elapsed})\nprint(json.dumps({'rows':len(rows),'timings':timings}))\nPath('/tmp/arepo_canonical_probe_result.json').write_text(json.dumps({'rows':len(rows),'timings':timings,'candidate_source':new,'script':Path(__file__).read_text()},indent=2)+'\\n')\n"
+    },
+    {
+      "rows": 3195,
+      "timings": [
+        {
+          "implementation": "original",
+          "elapsed_ns": 573017084
+        },
+        {
+          "implementation": "candidate",
+          "elapsed_ns": 589666625
+        },
+        {
+          "implementation": "candidate",
+          "elapsed_ns": 623585958
+        },
+        {
+          "implementation": "original",
+          "elapsed_ns": 711615458
+        }
+      ],
+      "candidate_source": "def canonical_value(value: Any) -> Any:\n    \"\"\"Canonical hashing representation; finite derived floats need explicit hex tags.\"\"\"\n    kind = type(value)\n    if kind is dict:\n        if not all(isinstance(k, str) for k in value):\n            raise ValueError(\"canonical object keys must be strings\")\n        return {k: canonical_value(v) for k, v in value.items()}\n    if kind is list or kind is tuple:\n        return [canonical_value(item) for item in value]\n    if kind is str or kind is int or value is None or kind is bool:\n        return value\n    if isinstance(value, Decimal):\n        return {\"$decimal\": str(exact_decimal(value))}\n    if isinstance(value, datetime):\n        return {\"$utc\": utc_text(value)}\n    if value is None or isinstance(value, (str, bool, int)):\n        return value\n    if isinstance(value, (tuple, list)):\n        return [canonical_value(item) for item in value]\n    if isinstance(value, dict):\n        if not all(isinstance(k, str) for k in value):\n            raise ValueError(\"canonical object keys must be strings\")\n        return {k: canonical_value(v) for k, v in value.items()}\n    raise ValueError(f\"unsupported canonical value: {type(value).__name__}\")\n",
+      "script": "import inspect,json,time,hashlib\nfrom pathlib import Path\nfrom astrolabe.feature_store import types\nfrom astrolabe.feature_store.capture import _strict_json\noriginal=inspect.getsource(types.canonical_value)\nnew=original.replace('    if isinstance(value, Decimal):', '    kind = type(value)\\n    if kind is dict:\\n        if not all(isinstance(k, str) for k in value):\\n            raise ValueError(\"canonical object keys must be strings\")\\n        return {k: canonical_value(v) for k, v in value.items()}\\n    if kind is list or kind is tuple:\\n        return [canonical_value(item) for item in value]\\n    if kind is str or kind is int or value is None or kind is bool:\\n        return value\\n    if isinstance(value, Decimal):',1)\nns=dict(vars(types));exec(new,ns); candidate=ns['canonical_value']\nprofile=json.loads(Path('docs/implementation/PHASE_03_FRAME_VERIFICATION_PROFILE.json').read_text())\nroot=Path(profile['source_root']);rows=[]\nfor entry in profile['checks']:\n folder=root/entry['capture_id']\n # Raw filename from receipt inventory, no network or product-source edits.\n raw=(folder/'raw.bin').read_bytes() if (folder/'raw.bin').exists() else None\n if raw is None:\n  print([p.name for p in folder.iterdir()]);raise SystemExit('locate raw')\n assert hashlib.sha256(raw).hexdigest()==entry['raw_hash']\n rows.extend(_strict_json(raw)['markets'])\noutputs=[]; timings=[]\nfor label,fn in [('original',types.canonical_value),('candidate',candidate),('candidate',candidate),('original',types.canonical_value)]:\n start=time.perf_counter_ns();out=[json.dumps(fn(v),sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False) for v in rows];elapsed=time.perf_counter_ns()-start\n if outputs:assert out==outputs\n else:outputs=out\n timings.append({'implementation':label,'elapsed_ns':elapsed})\nprint(json.dumps({'rows':len(rows),'timings':timings}))\nPath('/tmp/arepo_canonical_probe2_result.json').write_text(json.dumps({'rows':len(rows),'timings':timings,'candidate_source':new,'script':Path(__file__).read_text()},indent=2)+'\\n')\n"
+    }
+  ],
+  "result": "Both probes preserved exact JSON for3195 source rows. Scalar fast path was slower; container/scalar fast path had mixed timings. Neither establishes reliable improvement; neither adopted."
+}

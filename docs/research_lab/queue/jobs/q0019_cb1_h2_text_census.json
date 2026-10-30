@@ -1,0 +1,33 @@
+{
+ "id": "q0019_cb1_h2_text_census",
+ "title": "CB1: h2_main question/outcome text fetch + population census (no outcome columns)",
+ "family": "creative_batch_1",
+ "priority": 52,
+ "expected_value": "testability counts and MDEs (recorded, floors not revised)",
+ "data": [
+  "history/h2_main (frame, prices, trades)",
+  "Gamma /markets metadata"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "network": "gamma-api"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb1_history.py",
+  "census",
+  "--run-id",
+  "h2_main",
+  "--fetch-text",
+  "--rps",
+  "4"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 2,
+ "outputs": [
+  "history/h2_main/cb1/{text.csv.gz,census.json}"
+ ],
+ "next_action": "Claude session: record census counts in CREATIVE_BATCH_1.md",
+ "notes": "frozen at 2fc0562; refuses unless the E3 text-rule hash is committed; no outcome columns"
+}

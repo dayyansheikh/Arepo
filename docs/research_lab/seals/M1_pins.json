@@ -1,0 +1,31 @@
+{
+ "measurement": "M1_CH263",
+ "role": "prospective_measurement",
+ "spec_sha": "3afd6ad613e823b117a76b5346dc1b88a2207cb9de4ca6dea8534d1b4be068b0",
+ "code_sha": "9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148",
+ "design_sha256": "7982f199edaf559fc4e6a5150709cc49d26b16984c869b6b75e2ef7dca107639",
+ "design_path": "docs/research_lab/MEASUREMENT_M1_CH263.md",
+ "pinned_modules_sha256": {
+  "boundary_map_ch240": "2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a",
+  "population_map_ch251": "82db7a75995f0b637b469f4abc421ad9be430fdf38f0a4bad7ed5e9e43a55140",
+  "census_map_ch269": "3939f8fd3a3caf44f22076894a1a90ba2fcb9da8714b2cc25c89e9256ed16176",
+  "cb17_census": "6b98bab8bde4238edbe56e32d5672c72a04acc04d662bec7b393e3cbf806a15a",
+  "cb13_label": "2fbf4b91e3ee3db413098866a6d99b24bcdf5e0c97750820de8edbc6fc789380",
+  "live_tests8_base": "4b26756d4d1934c4da9a0b2b26d4ff3f2ac72f199bbc55d4ae6365b8ebc394e0",
+  "calibration": "567cdbe9eab0a8fa5fccdf4350e44cb2fea0104d445e62188e3e363fba12dda1",
+  "costs": "258856fc360fbe70ce7a062a3f156b66d9d71fd50de56bf3669935c4227f844d"
+ },
+ "registration_commit_utc": "2026-10-30T17:17:28Z",
+ "registered_utc": "2026-11-24T00:00:00Z",
+ "end_utc": "2026-12-15T00:00:00Z",
+ "dry_run": {
+  "job": "q0750c_m1_dryrun",
+  "store": "m1_dryruns/q0750c/research_lab/m1_ch263_dryrun",
+  "peak_rss_mb": 345.6,
+  "code_sha": "9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148",
+  "rc": 0
+ },
+ "conditions": "docs/research_lab/reviews/M1_FIX2_CONFIRM_2026-10-30.md",
+ "manifest_sha256": null,
+ "note": "manifest_sha256 is written after J2 (q0751b) closes the unit set, before the analysis; nothing else in this file changes."
+}

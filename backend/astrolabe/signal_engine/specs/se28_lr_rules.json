@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "rules": "se-aux-rules-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + rule-text levels (CANDIDATES CH267's class levels and CH239's text columns, development only): the champion's logistic learner and params on its features + the rules aux family (se-aux-rules-v1: rc_has, the market's gamma_rules row known at the capture start; cl_sched / cl_barrier, CH269's placeholder lexicons verbatim; cl_consensus; rc_inclusive; rc_numeric; rc_n_hosts; rc_log_len; rc_occur_by, the strict deadline wording added after the census's hand audit). Logistic on purpose: trees on market_state (ms_hours_to_end) + the class levels could form the cl_class x tte_h interaction CH267 keeps for LT15's freeze (token close). Read against se0_champion_lr_mm. Tables before the stream's first poll are all-NaN (counted as present), so it trains on the champion's rows; not embargoed (DESIGN_V1 section 41).",
+ "families": [
+  "market_state",
+  "momentum",
+  "rules"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "rules"
+ ],
+ "learner": "logreg",
+ "model_id": "se28_lr_rules",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "rules"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

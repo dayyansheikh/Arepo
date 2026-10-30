@@ -1,0 +1,158 @@
+CB16 design probes, 2026-10-19 (audit trail; round 1 item 18)
+=================================================================
+
+Recreated after challenger round 1 because the drafting session deleted the /tmp copies after running them. The script
+texts below are reconstructed from the drafting session's own record of what it wrote and edited. They were written to
+/tmp on the Mac, copied to the host by scp and run from the host's live_trades/ (G1) or cross_venue/ (G2) directory as
+`nice -n 19 /home/opc/arepo/.venv/bin/python -I <script>`. The host copies no longer exist, so there is no hash of the
+bytes that ran. The reconstruction is exact to the drafter's record and has not been independently verified: the
+"no outcome seen" statement rests on these texts and this account.
+
+Every run, in order (2026-10-19, about 09:05-09:15Z):
+ R0 `ls` of cross_venue/, live_trades/, book_sweeps/ (head and count), trade_samples/ (head and count), history/; df; du.
+ R1 G1, first version: a stub (constants only, no logic) had been copied by mistake. It printed nothing.
+ R2 a one-line check of the first record of trades-20261012.jsonl. It printed type(ts), ts, type(price) and whether
+    ctx_category was None (printed: `int 1791768603 float True`). No price value was printed.
+ R3 G1 with the full logic, but the sports split tested `cat == "sports"`. It never matched, so sports fell into
+    "nonsports". Its output is listed below (superseded by R4).
+ R4 G1 with the sports split fixed (the sed edit below) and the category counter appended. **These are the counts the
+    design cites.**
+ R5 G2.
+Then `rm -f /tmp/cb16probe_grain.py` on the host and on the Mac.
+
+--- G1 script (R4 text; R3 differs only in the `sp =` line and lacks the final category block) ---
+# counts only: grain (third decimal) share and large-print inter-arrival gaps, SCREEN window of CB13-T
+import json, collections
+LO, HI = 1791763200, 1792108800
+files = ["trades-2026101%d.jsonl" % d for d in (2, 3, 4, 5)]
+grain = collections.Counter()
+last = {}
+gaps = collections.Counter()
+seen_tx = set()
+for f in files:
+    with open(f) as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            ts = r.get("ts")
+            if not isinstance(ts, (int, float)) or not (LO <= ts < HI):
+                continue
+            cat = r.get("ctx_category") or "none"
+            sp = "sports" if str(cat).lower().startswith("sport") else ("none" if cat == "none" else "nonsports")
+            p = r.get("price")
+            try:
+                k = round(float(p) * 1000)
+            except Exception:
+                grain[(sp, "bad")] += 1
+                continue
+            band = "mid" if 50 <= k <= 950 else "tail"
+            grain[(sp, band, "sub" if k % 10 else "whole")] += 1
+            cid = r.get("condition_id")
+            key = (cid, r.get("tx16"))
+            if key in seen_tx:
+                continue
+            seen_tx.add(key)
+            prev = last.get(cid)
+            if prev is not None and ts >= prev:
+                g = ts - prev
+                b = "<1h" if g < 3600 else ("1-6h" if g < 21600 else ("6-12h" if g < 43200 else ">=12h"))
+                gaps[(sp, b)] += 1
+            elif prev is None:
+                gaps[(sp, "first")] += 1
+            else:
+                gaps[(sp, "out_of_order")] += 1
+            last[cid] = max(ts, prev or ts)
+for k in sorted(grain):
+    print("grain", k, grain[k])
+for k in sorted(gaps):
+    print("gap", k, gaps[k])
+cats = collections.Counter()
+for f in files:
+    with open(f) as fh:
+        for line in fh:
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            ts = r.get("ts")
+            if isinstance(ts, (int, float)) and LO <= ts < HI:
+                cats[r.get("ctx_category")] += 1
+print("cats", cats.most_common(15))
+--- R3 `sp =` line ---
+            sp = "sports" if cat == "sports" else ("none" if cat == "none" else "nonsports")
+
+Notes on G1. json.loads decodes every field of a monitor record into memory, including the forbidden `side` and `wallet_*`
+fields. The script reads only ts, ctx_category, price, condition_id and tx16, and prints only counts. It reads no
+outcome, mark, forward price or later capture. Prices of prints in [2026-10-12, 2026-10-16) are a feature class that CB13
+H6-H8 had already disclosed.
+
+--- G1 R4 raw output ---
+grain ('none', 'mid', 'sub') 1384
+grain ('none', 'mid', 'whole') 2941
+grain ('none', 'tail', 'sub') 1385
+grain ('none', 'tail', 'whole') 808
+grain ('nonsports', 'mid', 'sub') 1138
+grain ('nonsports', 'mid', 'whole') 1993
+grain ('nonsports', 'tail', 'sub') 1628
+grain ('nonsports', 'tail', 'whole') 329
+grain ('sports', 'mid', 'sub') 4967
+grain ('sports', 'mid', 'whole') 15265
+grain ('sports', 'tail', 'sub') 5197
+grain ('sports', 'tail', 'whole') 1080
+gap ('none', '1-6h') 461
+gap ('none', '6-12h') 126
+gap ('none', '<1h') 3625
+gap ('none', '>=12h') 127
+gap ('none', 'first') 1950
+gap ('nonsports', '1-6h') 811
+gap ('nonsports', '6-12h') 273
+gap ('nonsports', '<1h') 2291
+gap ('nonsports', '>=12h') 459
+gap ('nonsports', 'first') 1223
+gap ('sports', '1-6h') 1402
+gap ('sports', '6-12h') 206
+gap ('sports', '<1h') 21599
+gap ('sports', '>=12h') 195
+gap ('sports', 'first') 2869
+cats [('sports_fees_v3', 25236), (None, 6518), ('crypto_fees_v2', 1251), ('politics_fees', 1139), ('sports_fees_nfl_cfb_oct26', 873), ('economics_fees', 763), ('slug:us', 536), ('sports_fees_v2', 400), ('culture_fees', 272), ('finance_prices_fees', 246), ('slug:will', 202), ('weather_fees', 133), ('tech_fees', 128), ('slug:israel', 115), ('mentions_fees', 55)]
+
+--- G1 R3 raw output (superseded; "nonsports" here includes sports) ---
+grain ('none', 'mid', 'sub') 1384
+grain ('none', 'mid', 'whole') 2941
+grain ('none', 'tail', 'sub') 1385
+grain ('none', 'tail', 'whole') 808
+grain ('nonsports', 'mid', 'sub') 6105
+grain ('nonsports', 'mid', 'whole') 17258
+grain ('nonsports', 'tail', 'sub') 6825
+grain ('nonsports', 'tail', 'whole') 1409
+gap ('none', '1-6h') 461
+gap ('none', '6-12h') 126
+gap ('none', '<1h') 3625
+gap ('none', '>=12h') 127
+gap ('none', 'first') 1950
+gap ('nonsports', '1-6h') 2213
+gap ('nonsports', '6-12h') 479
+gap ('nonsports', '<1h') 23890
+gap ('nonsports', '>=12h') 654
+gap ('nonsports', 'first') 4092
+
+--- G2 (R5), run inline as python -I -c from cross_venue/ ---
+import json, collections
+m = json.load(open("matches_all.json"))
+print(len(m), sorted(m[0].keys()))
+c = collections.Counter(r.get("k_cat") for r in m)
+ev = collections.defaultdict(set)
+for r in m: ev[r.get("k_cat")].add(r.get("p_event_id"))
+print([(k, c[k], len(ev[k])) for k in c])
+ns = set(); [ns.add(r.get("p_event_id")) for r in m if r.get("k_cat") != "Sports"]
+print("nonsports pairs", sum(1 for r in m if r.get("k_cat") != "Sports"), "events", len(ns))
+
+Notes on G2. json.load decodes every field, including p_end (closed_time, hindsight). Only the key names, k_cat and
+p_event_id were used, and only counts were printed. matches_all.json holds no outcome field (keys below).
+
+--- G2 raw output ---
+958 ['gap_days', 'k_cat', 'k_close', 'k_event', 'k_open', 'k_series', 'k_src', 'k_text', 'k_ticker', 'p_end', 'p_event_id', 'p_market_id', 'p_start', 'p_text', 'p_token0', 'score', 'shared']
+[('Elections', 102, 41), ('Sports', 688, 284), ('Politics', 23, 5), ('Entertainment', 88, 22), ('Science and Technology', 9, 3), ('Mentions', 43, 20), ('Financials', 5, 1)]
+nonsports pairs 270 events 92

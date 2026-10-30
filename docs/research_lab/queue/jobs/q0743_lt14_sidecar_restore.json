@@ -1,0 +1,73 @@
+{
+ "id": "q0743_lt14_sidecar_restore",
+ "title": "LT14 span sidecars (DRAFT): restore, byte for byte from the arepo-data releases, of the span's rows_ext.csv.gz (2026-11-07 .. 2026-11-16) that the host no longer holds (sidecars are deleted after 8 days, LIVE_TESTS_14.md 1.14), into a scratch tree; sha256 re-checked; nothing outside --dest written; must run BEFORE the seal",
+ "family": "live_tests_14",
+ "priority": 47,
+ "expected_value": "the span's sidecars available to the one-time seal after host snapshot retention (without them about 27 of the 120 origins would be sealed as uncovered, which cannot be undone)",
+ "data": [
+  "arepo-data GitHub releases (read-only; tags computed at run time by the guard from the catalogue q0744 refreshed)",
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only; the lag-slot readiness check reads manifests only; host copies are accepted by the seal after a sha256 check)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases (private data repo, read-only)",
+  "disk_mb": 4400,
+  "as_cap_mb": 2000
+ },
+ "depends_on": [
+  "q0740b_lt14_schema_precheck",
+  "q0744_lt14_catalogue_refresh"
+ ],
+ "not_before": "2026-11-17T05:01:00Z",
+ "argv": [
+  "scripts/lt14_restore_guard.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--data-dumps-root",
+  "../data-dumps",
+  "--data-cap-gb",
+  "50",
+  "--catalogue",
+  "../data-dumps/research_lab/live_tests14_census/catalogue",
+  "--reserve-gb",
+  "1",
+  "--since",
+  "2026-11-07",
+  "--until",
+  "2026-11-17T06:00:00Z",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261107T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261108T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261109T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261110T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261111T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261112T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261113T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261114T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261115T*/rows_ext.csv.gz",
+  "--path-glob",
+  "data-dumps/research_lab/snapshots/20261116T*/rows_ext.csv.gz",
+  "--dest",
+  "../data-dumps/research_lab/live_tests14_census/restore"
+ ],
+ "timeout_s": 21600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests14_census/restore/data-dumps/research_lab/snapshots/<id>/rows_ext.csv.gz",
+  "data-dumps/research_lab/live_tests14_census/restore/RESTORE_REPORT_*.json"
+ ],
+ "next_action": "the guard (scripts/lt14_restore_guard.py) first checks the three lag slots (2026-11-17T00:31Z, 02:31Z, 04:31Z): it exits 75 ('not now') ONLY while a lag-slot capture is in progress or not yet past its tolerance, so re-run it until it passes; then (F re-check D) it checks the coverage on the host roots and exits 0 'no restore needed' if every span slot with a host meta/ already has its rows_ext.csv.gz (nothing downloaded); only with gaps does it (re-check F1) compute the explicit --tag list from the catalogue q0744 refreshed (the tags with a row matching the span; exit 3 'STOP AND ASK THE OWNER' if none match); then it measures the bytes and exits 3 'STOP AND ASK THE OWNER' if bytes + 1 GiB exceed the free disk OR data-dumps used + bytes + 1 GiB exceed the AREPO data cap (q0743 passes --data-cap-gb 50, the census's own cap, F re-check A; used = `du -sk`, as the census), with nothing downloaded or written; otherwise it runs restore_from_archive.py unchanged and afterwards checks that every span slot with a host meta/ has a rows_ext.csv.gz in the host snapshots or the restore tree (exit 3 'STOP AND ASK THE OWNER' if not). Then q0741 (seal)",
+ "notes": "DRAFT, not in queue/jobs. Added for the LT14 code-freeze check MUST 5 (docs/research_lab/reviews/LT14_CODE_FREEZE_CHECK_2026-10-30.md): q0741 seals once, so the span sidecars must already be on disk (host or this restore) when it runs. The restore tree is the second --snapshot-root of q0741 and q0742; a sidecar found in two roots must have equal bytes (the seal refuses a conflict; the census re-hashes every copy). Sidecars only: the engine stores are on the host within retention (the engine's retention is not active, LIVE_TESTS_14.md 1.14). A file found nowhere is genuinely missing: counted by the seal, never substituted. Counts 0 (descriptive; no trials line). Never while another memory-heavy census, size check or analysis job is running. Runs ONCE; max_retries 1 covers a deterministic crash only. Re-check F1/F2 (reviews/LT14_CODE_RECHECK_2026-10-30.md): depends_on q0744 (the repo catalogue stops at data-20261020 and no cron regenerates it; a selection matching nothing makes restore_from_archive.py exit 0 without restoring, so q0741 would seal about 27 origins as uncovered). disk_mb 4400 is an ESTIMATE, not a measured run: about 110 span sidecars x about 37.8 MB per rows_ext.csv.gz (October catalogue rows) = about 4.16 GB, plus slack; the guard measures the real bytes from the refreshed catalogue (--measure-only) and refuses on the free disk and on the data cap. PROMOTED 2026-10-30 ~10:05Z after the F re-check fixes A-D (reviews/LT14_CODE_F_RECHECK_2026-10-30.md promotion conditions met; live_tests14.py eec6f9ba… re-announced in the ledger). 2026-10-30 ops-only: depends on q0740b (q0740 re-issued after an import MemoryError at the 400 MB cap); as_cap_mb 2000 added."
+}

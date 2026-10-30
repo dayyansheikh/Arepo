@@ -1,0 +1,43 @@
+{
+ "id": "q0012_ml_r5_regime_ix_h2",
+ "title": "SB2-J7: ML regime contrasts and interaction validation (r5_regime_ix) on h2_main, 3 cells",
+ "family": "modelling",
+ "priority": 56,
+ "expected_value": "Q3/Q6 at model level: do flow-augmented GBM gains differ between liquidity/TTE/activity/extremity regimes; do learned pairwise interactions add value beyond free trees",
+ "data": [
+  "history/h2_main panel_H2h, panel_H6h, frame.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ml_history.py",
+  "--run-id",
+  "h2_main",
+  "--max-rows",
+  "150000",
+  "--horizons",
+  "1,3",
+  "--cells",
+  "direction:1,updown:1,updown:3",
+  "--n-boot-ablation",
+  "10000",
+  "--regimes",
+  "--interactions",
+  "5",
+  "--discover-frac",
+  "0.5",
+  "--revision",
+  "r5_regime_ix"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/ml_history_results_r5_regime_ix.json",
+  "docs/research_lab/trials.jsonl (ml_explain lines, source screening_batch_2:J7)"
+ ],
+ "next_action": "q0013 (exits 0 if nothing advanced); Claude session: HISTORICAL_ML_DEV.md section + ledger",
+ "notes": "frozen at 6ad5dff (regime hash c5c143c6974d226a); refuses if the results file exists; beyond h2 revision budget (L1); 27 counted tests"
+}

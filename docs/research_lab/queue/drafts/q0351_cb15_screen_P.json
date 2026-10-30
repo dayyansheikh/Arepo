@@ -1,0 +1,35 @@
+{
+ "id": "q0351_cb15_screen_P",
+ "title": "CB15-P (selected on lifetime volume): P1 (event-weighted slope of the 24-h print move on g_d; birth-minus-later contrast; opening-print joint fit; lowest-volume-tercile sign; within-month shuffle calibration; history-target, worn-window, 72 h, t_d + 30 min, category, top-5, half, leave-one-quarter-out robustness) and P2 (toward-Kalshi taker at recorded prints, |g_d| >= 5c; worst-case reach at -9.3c; lowest-tercile sign; +1c, entry, exit, stale robustness)",
+ "family": "creative_batch_15",
+ "priority": 9,
+ "expected_value": "P verdicts",
+ "data": [
+  "history/h15_birth/",
+  "creative_batch15/census_P.json"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0350_cb15_census_P"
+ ],
+ "argv": [
+  "scripts/run_cb15.py",
+  "screen",
+  "--family",
+  "P",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/results_P.json",
+  "trials.jsonl (cb15_test + creative_batch_15:P n_tests=2)"
+ ],
+ "next_action": "advanced: q0353 after T15_P2_end",
+ "notes": "CREATIVE_BATCH_15.md CB15-P, sections 2.3-2.6. DRAFT. Refuses before the part-P freeze entry (model_specs/cb15_v1.json, printed by freeze-part --part P); a failed GP / GPP test is counted here with p = 1. Rules part sha256 (seals/cb15_rules.json, P declared 2026-10-19): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, P 1c6b7e955bd5cf92e026c4826d879c16aa301b446d54da79e7838847fd3bf876. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part P) and the committed rules file; the coordinator regenerates the rules and these shas if any common / P code changes."
+}

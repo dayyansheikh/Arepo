@@ -1,0 +1,40 @@
+{
+ "id": "q0773_e009_sensitivity",
+ "title": "E009 registered analysis, SENSITIVITY (canonical frozen copy, no validation-copy row): run_cross_venue_live.py --analyze 2026-10-13T00:00:00Z 2026-11-03T00:00:00Z",
+ "family": "e009_e010_analysis",
+ "priority": 94,
+ "expected_value": "E009 canonical-only result, reported beside the primary (gapfill-v2 section 4)",
+ "data": [
+  "data-dumps/research_lab/e009_e010_analysis/inputs/canonical/{predictions,outcomes}.jsonl (read-only; sha256 checked against FREEZE_MANIFEST)"
+ ],
+ "resources": {
+  "mem_mb": 5500,
+  "as_cap_mb": 10000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0772_e009_primary"
+ ],
+ "not_before": "2026-11-03T08:30:00Z",
+ "argv": [
+  "scripts/run_e009_e010_analysis.py",
+  "analyze",
+  "--run-dir",
+  "../data-dumps/research_lab/e009_e010_analysis",
+  "--exp",
+  "e009",
+  "--label",
+  "sensitivity"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/e009_e010_analysis/results/e009_sensitivity.json",
+  "data-dumps/research_lab/e009_e010_analysis/results/e009_sensitivity.run.json"
+ ],
+ "next_action": "q0776 once q0775 is done",
+ "notes": "Chained after q0772 so the two multi-GB runs never overlap (memory-heavy jobs rule). Same memory as q0772 less the about 2.5k outage-window origins. Registered analysis, run ONCE (ledger E009/E010 stopping rule). max_retries 0. If it dies without writing results/<exp>_<label>.json (OOM kill, timeout), nothing was looked at: the wrapper wrote only <exp>_<label>.failed-<attempt UTC>.json (one per attempt, never overwritten) (rc, stderr tail, no statistic); fix the cause and `queue_worker.py retry <id>`, recording the failed attempt in the ledger. A saved output is never re-run (the wrapper refuses). DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only."
+}

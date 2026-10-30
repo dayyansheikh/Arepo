@@ -1,0 +1,6 @@
+captures with features 207; census rows 5,763,429 (0.601 of dir_2h-eligible rows after 12 origins)
+origin label states (eligible rows): {'labelled': 9945811, 'unavailable_one_sided': 35051, 'unavailable_absent': 5198, 'unavailable_missing_capture': 95784}
+KILL LINE 1  share of rows with fr_unavail_12 > 0 = 0.1214  [kill (hygiene only, no family) if < 0.05]
+KILL LINE 2  Pearson(fr_unavail_12, ms_log_liq) = 0.0199  [kill if |.| > 0.8]
+   info: fr_unavail_12 p50/p90/p95/p99 [0.0, 0.0833, 0.0833, 0.0833]; share > 0.25 (display-pool rule) 0.0000
+reading as written: PASS (family may follow); peak RSS 779 MB

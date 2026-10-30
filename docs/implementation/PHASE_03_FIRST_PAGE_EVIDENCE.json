@@ -1,0 +1,47 @@
+{
+  "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+  "conflicting_condition_ids": [],
+  "conflicting_market_ids": [],
+  "conflicting_token_ids": [],
+  "duplicate_market_rows": 0,
+  "eligible_row_count": 100,
+  "enumeration_terminal_observed": false,
+  "errors": [],
+  "exclusion_counts": {},
+  "frame_available_at": {
+    "clock_session_id": "471d09b3-2121-4323-9891-d7e38872b7b9",
+    "monotonic_ns": "1007346690810041",
+    "utc": "2026-09-21T03:40:45.497056Z"
+  },
+  "frame_report_hash": "39af2ee4dfa640bc2b8aef7a150fb64d2bea04efd6ac2100e27e4e9a7a7b6e4f",
+  "implementation_commit": "bf734a06cc92e667ba46d8d3a3a8d97c058a7711",
+  "interval_end": {
+    "clock_session_id": "471d09b3-2121-4323-9891-d7e38872b7b9",
+    "monotonic_ns": "1007346590641083",
+    "utc": "2026-09-21T03:40:45.396883Z"
+  },
+  "interval_start": {
+    "clock_session_id": "471d09b3-2121-4323-9891-d7e38872b7b9",
+    "monotonic_ns": "1007346433441208",
+    "utc": "2026-09-21T03:40:45.239686Z"
+  },
+  "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd",
+  "latency_ns": "157199875",
+  "measurement": "first-page cost/shape measurement only; not a complete population or model panel",
+  "page_manifest_hash": "306084855998cc0f33fc26a7966c8678c5e639626a2a7175cf501e27b4294c7c",
+  "policy_hash": "cca895b2b9d7502d61a7a55b65914ba9a134275b66df58ed2dad852430b93e4e",
+  "population_inference_eligible": false,
+  "provenance_class": "prospective",
+  "raw_bytes": 557140,
+  "retained_file_bytes": 1501764,
+  "retained_files": 12,
+  "schema_version": "fs2-gamma-frame-v1",
+  "scientific_stage": "measurement_development_only",
+  "source_rows": 100,
+  "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+  "state": "incomplete",
+  "stop_reason": "request_budget",
+  "unique_market_ids": 100,
+  "unverified_attempts": 0,
+  "verified_attempts": 1
+}

@@ -1,0 +1,35 @@
+{
+ "id": "q0740b_lt14_schema_precheck",
+ "title": "LT14 schema and input-clock pre-check (LIVE_TESTS_14.md 6 job 1): P's registry sha and status, the column names and types of 1.2 in one capture's predictions / quotes / features files, the predictions-log fields, the sidecar header and P's input-clock audit; no value is read",
+ "family": "live_tests_14",
+ "priority": 47,
+ "expected_value": "pass / fail of the declared schema before the seal; committed with its sha256",
+ "data": [
+  "engine stores: quotes/, features/, predictions/<capture>/se0_champion_lr_mm.parquet (schemas only), logs/predictions-*.jsonl (last line field names), one sidecar header, signal_engine/specs/registry.json"
+ ],
+ "resources": {
+  "mem_mb": 200,
+  "lane": "cpu",
+  "cpu": 1,
+  "network": "none",
+  "as_cap_mb": 3000
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_live_tests14.py",
+  "schema-precheck",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--out",
+  "../docs/research_lab/seals/lt14_schema_precheck.json"
+ ],
+ "timeout_s": 900,
+ "max_retries": 0,
+ "outputs": [
+  "docs/research_lab/seals/lt14_schema_precheck.json"
+ ],
+ "next_action": "commit lt14_schema_precheck.json; any problem is fixed in new code or recorded before the seal (a failed audit is withdrawn_pre_census (input clock))",
+ "notes": "DRAFT, not in queue/jobs. LT14 census code ambiguities: docs/research_lab/reviews/LT14_CODE_NOTE_2026-10-30.md. Counts 0 (descriptive; no trials line). Reads no host price after the origin; the census reads st / t_off at k + 1 only. Runs under the heavy-job lock convention. PROMOTED 2026-10-30 after the diff re-check (reviews/LT14_CODE_RECHECK_2026-10-30.md: q0740 may be promoted now; schemas and registry only). RE-ISSUED 2026-10-30 as q0740b: q0740 attempt 1 (07:32Z) died with MemoryError while importing live_tests14 (address-space cap 2 x 200 MB = 400 MB; the import alone is ~178 MB RSS with a larger virtual reservation); nothing was read or written. Ops-only change: as_cap_mb 3000; argv, code and outputs unchanged."
+}

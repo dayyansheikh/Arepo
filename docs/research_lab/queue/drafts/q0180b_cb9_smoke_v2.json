@@ -1,0 +1,36 @@
+{
+ "id": "q0180b_cb9_smoke_v2",
+ "title": "CB9: smoke v2 (20 receipts per exchange era decoded with pinned topics, T1 = T2; Yahoo bar clock: 7 regular bars after the drop, first open and last close vs daily open/close within 0.2%, 2 out-of-window sessions; Pyth frame paging on 2 out-of-window days; pmxt HEADs); counts only",
+ "family": "creative_batch_9",
+ "priority": 47,
+ "expected_value": "go/no-go for every CB9 source",
+ "data": [
+  "public Polygon JSON-RPC (keyless)",
+  "public Data API, Gamma",
+  "Yahoo chart (hourly and daily, out of window: NVDA 2026-09-15/16)",
+  "pmxt HEAD"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "polygon-rpc, data-api, gamma-api, yahoo, r2v2.pmxt.dev"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb9.py",
+  "smoke",
+  "--rules",
+  "../docs/research_lab/seals/cb9_sign_rules_v5.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 1200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch9/smoke_v2.json",
+  "trials.jsonl (cb9_descriptive)"
+ ],
+ "next_action": "PASS: q0181 after T_seal (net lane). FAIL receipts_v2: S0a/S0b not run (source); FAIL receipts_v1: S0c not run (source); FAIL yahoo_clock or gamma_paging: P not testable (source); counted",
+ "notes": "DRAFT. Smoke v2 (CREATIVE_BATCH_9.md 11.3). q0180 (smoke v1, rules v3) result FAIL kept at creative_batch9/smoke.json, never overwritten: receipts_v1 and receipts_v2 false only because the fixed 10 markets x 2 prints draw gave 8 and 18 receipts (< 20) although every receipt matched with T1 = T2, 0 unavailable, 0 RPC failures (a smoke sampling defect, not a source finding). v2 draws markets in seeded order (seed arepo-cb9-smoke-v2) until 20 distinct receipts, cap 40 markets; pass rule unchanged (>= 20 receipts, >= 18 T1 = T2). Rules file seals/cb9_sign_rules_v5.json (rules_sha256 b60a87ef...; wallet_key_fingerprint 80ce5e81a539a570). WRITE-ONCE result smoke_v2.json. Network failure or > 2 unavailable receipts in an era: nothing written, exit 75. Deploy the code at 6713379 or later to the host before running. Same request budget class as q0180 (<= 1 rps), cap 40 markets per era."
+}

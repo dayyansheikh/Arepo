@@ -1,0 +1,38 @@
+{
+ "id": "q0755c_m2_j2_followup",
+ "title": "M2 (CH264) J2 follow-up close (MEASUREMENT_M2_CH264.md 9.3): on or after READOUT_UTC write the follow-up manifest (sha256 of every follow-up file, slot coverage after the window), committed before the analysis reads any follow-up file",
+ "family": "creative_hypotheses",
+ "priority": 70,
+ "expected_value": "the follow-up manifest sha256 that the ledger records and that the analysis verifies (void 11.2(b) if it is missing or differs); it hashes bytes only and never opens a follow-up file as data",
+ "data": [
+  "data-dumps/research_lab/m2_ch264/ (followup/, status/, manifest.json; read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0755b_m2_j2"
+ ],
+ "not_before": "2027-01-29T06:30:00Z",
+ "argv": [
+  "scripts/run_m2.py",
+  "j2",
+  "--part",
+  "followup",
+  "--store",
+  "../data-dumps/research_lab/m2_ch264",
+  "--pins",
+  "../docs/research_lab/seals/M2_pins.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m2_ch264/followup_manifest.json"
+ ],
+ "next_action": "commit followup_manifest_sha256 to the ledger and into the pins file; then q0755e_m2_analysis (J3 q0755d may run before or after)",
+ "notes": "DRAFT (not in jobs/). The text says 'at READOUT_UTC'. Reading chosen: the first run at or after READOUT_UTC at which every follow-up slot (grid in [END_UTC, READOUT_UTC)) is decided, because a slot is decided only at grid + 6 h: the last slot (grid 2027-01-28T22:31Z) is decided from 2027-01-29T04:31Z by the 04:50Z J1 pass, so not_before is 06:30Z, still 5.5 h before the analysis (READOUT_UTC + 12 h). The job refuses (exit 2) while any follow-up slot is undecided, before READOUT_UTC, without the unit manifest, and when a follow-up file's sha256 differs from the one in its capture's status file. Once the manifest exists J1 refuses (remove its cron entry). Write-once. Code: backend/scripts/run_m2.py with astrolabe/research_lab/m2_spec.py, m2_j1.py, m2_j2.py, m2_readout.py, m2_analysis.py; pins checked at start (exit 3 / exit 2 as for J1)."
+}

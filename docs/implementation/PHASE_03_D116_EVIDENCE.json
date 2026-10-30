@@ -1,0 +1,1691 @@
+{
+ "decision": "D116",
+ "title": "Single integrated live prospective validation of the final Phase 3 implementation",
+ "outcome": "PASS_WITH_LIMITATION:no_eligible_untriggered",
+ "authoritative": true,
+ "interpretation": "PASS WITH LIMITATION: all engineering gates E0-E9 passed with zero ENGINEERING findings; >=1 complete chain (4); no matched trigger/control pair because no eligible untriggered member existed in triggered strata (predeclared data-availability sub-label). Per the frozen protocol and D115 item 5 this permits Phase 3 closure with the limitation recorded. No predictive, calibration, prevalence or edge claim.",
+ "launch": {
+  "implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+  "started_at": "2026-10-11T00:31:34.353581+00:00",
+  "script_sha256": "b1c091401d013defac20d73cb94fa5d21536a35abed5627c91520d9d67e07c21",
+  "protocol_sha256": "1b1b81bb124554191197ca280a0c8a7917dfd684b28f4e26681629b02a6fe7c9",
+  "frozen_hashes_verified": true,
+  "ancestor_8afbdff": true,
+  "free_bytes": 29885972480,
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d116/arepo_d116_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "/private/tmp/claude-501/arepo_d116/d116_isolated.sqlite"
+  }
+ },
+ "result": {
+  "implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+  "started_at": "2026-10-11T00:31:34.353581+00:00",
+  "script_sha256": "b1c091401d013defac20d73cb94fa5d21536a35abed5627c91520d9d67e07c21",
+  "protocol_sha256": "1b1b81bb124554191197ca280a0c8a7917dfd684b28f4e26681629b02a6fe7c9",
+  "frozen_hashes_verified": true,
+  "ancestor_8afbdff": true,
+  "free_bytes": 29885972480,
+  "command": [
+   "caffeinate",
+   "-is",
+   "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+   "/private/tmp/claude-501/arepo_d116/arepo_d116_frozen.py"
+  ],
+  "env_overrides": {
+   "AUTO_MIGRATE": "false",
+   "DIGEST_EMAIL_ENABLED": "false",
+   "DATABASE_URL": "/private/tmp/claude-501/arepo_d116/d116_isolated.sqlite"
+  },
+  "completed_at": "2026-10-11T00:55:11.602050+00:00",
+  "elapsed_ns": "1417259988333",
+  "returncode": 0
+ },
+ "artefact_sha256": {
+  "docs/implementation/PHASE_03_D116_INTEGRATED_VALIDATION_PROTOCOL.md": "1b1b81bb124554191197ca280a0c8a7917dfd684b28f4e26681629b02a6fe7c9",
+  "docs/implementation/PHASE_03_D116_FREEZE_RECORD.md": "4f4cb2d3b5b7827cb4b8afe30b211803291507ed309b623a71abbd3997b82ae2",
+  "backend/astrolabe/research_panel/d116_evaluator.py": "772b984a83f7d984f9d127401d3fe38cd68fcb339bb828f88438176a29893ab9",
+  "backend/scripts/evaluate_d116.py": "41eadf25bf1445de6e3d2bd53bc37592ec90cecb40b67b2109cca66ff7f1a4ad",
+  "backend/tests/unit/test_research_panel_d116_evaluator.py": "4a27a4b63bbffe963644f2aea5f9863cb9e78e3903ca7750ae0a7baa05d56248",
+  "backend/scripts/d116_launch.py": "a3c18b0fd49da96ede6514a3b2dc664fdef47dbf1f562e8757431b3de831f2ac"
+ },
+ "run_file_sha256": {
+  "fs2_d116_integrated_1_launch.json": "66c9430ed65c86bd4d21c5a1d7486c5d9e0cf69a8d45193541c2dda3ec3bfd7e",
+  "fs2_d116_integrated_1_result.json": "4dd46d0f24697c0ff48c69cc28ebca14949c562a7aff87971fa7281ec2f49f4f",
+  "fs2_d116_integrated_1_stdout.log": "76c985940be8b5e29c95b6bfe09f452ac660fef8881e966619385f969daa9e73",
+  "fs2_d116_integrated_1_stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "fs2_d116_integrated_1_evaluation.json": "876f50ae6ec74c554bfa98cd278bd91fd192f77ea03eac4997a1d2037350af39"
+ },
+ "run_roots": {
+  "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d116_integrated_1",
+  "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d116_integrated_1",
+  "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d116_integrated_1",
+  "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d116_integrated_1",
+  "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d116_integrated_1"
+ },
+ "stdout_stages": [
+  {
+   "stage": "preflight",
+   "at": "2026-10-11T00:31:34.864060Z"
+  },
+  {
+   "stage": "frame_owned",
+   "at": "2026-10-11T00:31:34.864278Z"
+  },
+  {
+   "stage": "frame_complete",
+   "at": "2026-10-11T00:41:10.908959Z",
+   "eligible_row_count": 262793,
+   "interval_end": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "8150885333333",
+    "utc": "2026-10-11T00:36:35.539535Z"
+   },
+   "interval_start": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "7889798283875",
+    "utc": "2026-10-11T00:32:14.452141Z"
+   },
+   "state": "exhausted_consistent",
+   "frame_available_at": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "8236675097166",
+    "utc": "2026-10-11T00:38:01.329398Z"
+   }
+  },
+  {
+   "stage": "panel_declared",
+   "at": "2026-10-11T00:41:10.963265Z"
+  },
+  {
+   "stage": "selection_complete",
+   "at": "2026-10-11T00:46:30.907942Z"
+  },
+  {
+   "stage": "complete",
+   "at": "2026-10-11T00:55:11.446835Z",
+   "state": "pilot_collected_unaccepted",
+   "peak_resident_bytes": 709197824,
+   "elapsed_ns": "1416594150167"
+  },
+  {
+   "stage": "accounting",
+   "at": "2026-10-11T00:55:11.447779Z",
+   "unique_selected_markets": 8,
+   "arm_counts": {
+    "scheduled": 8,
+    "triggered": 4
+   },
+   "screening_states": {
+    "triggered": 4,
+    "unavailable": 4
+   },
+   "origin_states": {
+    "observed": 4,
+    "one_sided_or_missing": 4
+   },
+   "target_states": {
+    "observed": 4,
+    "origin_ineligible": 4
+   },
+   "attempt_states": {
+    "origin_ineligible": 4,
+    "recorded": 4
+   },
+   "frame_interval_start": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "7889798283875",
+    "utc": "2026-10-11T00:32:14.452141Z"
+   },
+   "frame_interval_end": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "8150885333333",
+    "utc": "2026-10-11T00:36:35.539535Z"
+   },
+   "frame_available_at": {
+    "clock_session_id": "93532ee8-7900-41e9-9697-dbe75d11e78a",
+    "monotonic_ns": "8236675097166",
+    "utc": "2026-10-11T00:38:01.329398Z"
+   }
+  }
+ ],
+ "evaluator_report": {
+  "authoritative": true,
+  "classification_table_sha256": "6c7f273e43d51de7850d656d48b5913a589ec40f4edcd745d876c6e04130cbc4",
+  "common_mode": [],
+  "diagnostics": {
+   "descriptive_only": "not acceptance; for comparability with D089-era counts",
+   "eligible_completed_histories": 4,
+   "eligible_histories_of_8": "4/8",
+   "n": 8,
+   "observed_matched_pairs": 0,
+   "observed_origins": 4,
+   "observed_origins_of_8": "4/8",
+   "per_window": {
+    "3377353": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5176734": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5313309": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5316097": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5402156": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5478000": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5518402": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    },
+    "5522386": {
+     "close_state": "closed",
+     "last_event": "closed",
+     "missing_reason": null,
+     "terminal": "interval_ended"
+    }
+   },
+   "target_ratio_5v_ge_4o": true,
+   "valid_targets": 4
+  },
+  "evaluator_version": "d116-evaluator-v3",
+  "finding_counts": {
+   "DATA_SOURCE": 16,
+   "OK": 52
+  },
+  "findings": [
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5316097",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5316097",
+    "rule": "origin_state:one_sided_or_missing",
+    "stage": "origin",
+    "state": "one_sided_or_missing"
+   },
+   {
+    "basis": "origin_window.py:85",
+    "citation": {
+     "citation": {
+      "empty_sides": [
+       "bids"
+      ],
+      "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+      "raw_verified": true,
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+     },
+     "class": "DATA_SOURCE",
+     "pre_quote_state": "one_sided_or_missing",
+     "quote_state": "one_sided_or_missing",
+     "rule": "quote_state:one_sided_or_missing"
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5316097",
+    "rule": "history_reason:snapshot_unavailable",
+    "stage": "history",
+    "state": "snapshot_unavailable"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5316097",
+    "rule": "freeze_reason:origin_one_sided_or_missing",
+    "stage": "history",
+    "state": "origin_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5402156",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5402156",
+    "rule": "origin_state:one_sided_or_missing",
+    "stage": "origin",
+    "state": "one_sided_or_missing"
+   },
+   {
+    "basis": "origin_window.py:85",
+    "citation": {
+     "citation": {
+      "empty_sides": [
+       "bids"
+      ],
+      "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+      "raw_verified": true,
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+     },
+     "class": "DATA_SOURCE",
+     "pre_quote_state": "one_sided_or_missing",
+     "quote_state": "one_sided_or_missing",
+     "rule": "quote_state:one_sided_or_missing"
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5402156",
+    "rule": "history_reason:snapshot_unavailable",
+    "stage": "history",
+    "state": "snapshot_unavailable"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids"
+     ],
+     "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5402156",
+    "rule": "freeze_reason:origin_one_sided_or_missing",
+    "stage": "history",
+    "state": "origin_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5478000",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5478000",
+    "rule": "origin_state:one_sided_or_missing",
+    "stage": "origin",
+    "state": "one_sided_or_missing"
+   },
+   {
+    "basis": "origin_window.py:85",
+    "citation": {
+     "citation": {
+      "empty_sides": [
+       "bids",
+       "asks"
+      ],
+      "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+      "raw_verified": true,
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+     },
+     "class": "DATA_SOURCE",
+     "pre_quote_state": "one_sided_or_missing",
+     "quote_state": "one_sided_or_missing",
+     "rule": "quote_state:one_sided_or_missing"
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5478000",
+    "rule": "history_reason:snapshot_unavailable",
+    "stage": "history",
+    "state": "snapshot_unavailable"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5478000",
+    "rule": "freeze_reason:origin_one_sided_or_missing",
+    "stage": "history",
+    "state": "origin_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5518402",
+    "rule": "trigger_reason:snapshot_one_sided_or_missing",
+    "stage": "screening",
+    "state": "snapshot_one_sided_or_missing"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5518402",
+    "rule": "origin_state:one_sided_or_missing",
+    "stage": "origin",
+    "state": "one_sided_or_missing"
+   },
+   {
+    "basis": "origin_window.py:85",
+    "citation": {
+     "citation": {
+      "empty_sides": [
+       "bids",
+       "asks"
+      ],
+      "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+      "raw_verified": true,
+      "source_id": "clob.book",
+      "status": 200,
+      "transport_error": null
+     },
+     "class": "DATA_SOURCE",
+     "pre_quote_state": "one_sided_or_missing",
+     "quote_state": "one_sided_or_missing",
+     "rule": "quote_state:one_sided_or_missing"
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5518402",
+    "rule": "history_reason:snapshot_unavailable",
+    "stage": "history",
+    "state": "snapshot_unavailable"
+   },
+   {
+    "basis": "targets.py:54",
+    "citation": {
+     "empty_sides": [
+      "bids",
+      "asks"
+     ],
+     "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+     "raw_verified": true,
+     "source_id": "clob.book",
+     "status": 200,
+     "transport_error": null
+    },
+    "class": "DATA_SOURCE",
+    "detail": null,
+    "member": "5518402",
+    "rule": "freeze_reason:origin_one_sided_or_missing",
+    "stage": "history",
+    "state": "origin_one_sided_or_missing"
+   }
+  ],
+  "gates": {
+   "E0": {
+    "ancestry_note": "ancestry of the required commit is a launch precondition",
+    "commits": {
+     "frame_read_policy.implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+     "panel_policy.frame_implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+     "runtime_read_policy.implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+     "selection_policy.implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+     "worker_policy.implementation_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692"
+    },
+    "pass": true,
+    "provenance": {
+     "3377353.origin_capture": "prospective",
+     "3377353.screening_capture": "prospective",
+     "3377353.socket_policy": "prospective",
+     "3377353.socket_report": "prospective",
+     "3377353.target_capture[0]": "prospective",
+     "5176734.origin_capture": "prospective",
+     "5176734.screening_capture": "prospective",
+     "5176734.socket_policy": "prospective",
+     "5176734.socket_report": "prospective",
+     "5176734.target_capture[0]": "prospective",
+     "5313309.origin_capture": "prospective",
+     "5313309.screening_capture": "prospective",
+     "5313309.socket_policy": "prospective",
+     "5313309.socket_report": "prospective",
+     "5313309.target_capture[0]": "prospective",
+     "5316097.origin_capture": "prospective",
+     "5316097.screening_capture": "prospective",
+     "5316097.socket_policy": "prospective",
+     "5316097.socket_report": "prospective",
+     "5402156.origin_capture": "prospective",
+     "5402156.screening_capture": "prospective",
+     "5402156.socket_policy": "prospective",
+     "5402156.socket_report": "prospective",
+     "5478000.origin_capture": "prospective",
+     "5478000.screening_capture": "prospective",
+     "5478000.socket_policy": "prospective",
+     "5478000.socket_report": "prospective",
+     "5518402.origin_capture": "prospective",
+     "5518402.screening_capture": "prospective",
+     "5518402.socket_policy": "prospective",
+     "5518402.socket_report": "prospective",
+     "5522386.origin_capture": "prospective",
+     "5522386.screening_capture": "prospective",
+     "5522386.socket_policy": "prospective",
+     "5522386.socket_report": "prospective",
+     "5522386.target_capture[0]": "prospective",
+     "activation_facts": "prospective",
+     "frame_original_report": "prospective",
+     "read_receipt.original_provenance_class": "prospective",
+     "runtime_policy": "prospective",
+     "runtime_report": "prospective",
+     "screening_policy.source": "prospective",
+     "screening_report": "prospective",
+     "selection_report": "prospective",
+     "worker_policy": "prospective",
+     "worker_report.recovery[0].original_provenance_class": "prospective",
+     "worker_report.runtime": "prospective",
+     "worker_report.screening": "prospective"
+    },
+    "reasons": [],
+    "required_ancestor_commit": "8afbdff",
+    "screening_schemas": {
+     "screening_policy": "fs2-screening-owned-selection-v4",
+     "screening_report": "fs2-screening-owned-selection-v4",
+     "worker_report.screening": "fs2-screening-owned-selection-v4"
+    }
+   },
+   "E1": {
+    "pass": true,
+    "reasons": []
+   },
+   "E2": {
+    "pass": true,
+    "reasons": [],
+    "selection_counts": {
+     "duplicate_market_rows": 0,
+     "eligible_row_count": 262793,
+     "excluded:identity_unresolved": 44,
+     "metadata:category:missing": 262793,
+     "metadata:close_time_utc:missing": 489,
+     "metadata:close_time_utc:present": 262304,
+     "metadata:liquidity:missing": 44053,
+     "metadata:liquidity:present": 218740,
+     "metadata:metadata_probability:missing": 80,
+     "metadata:metadata_probability:present": 262713,
+     "sampling_members": 262793,
+     "source_rows": 262837
+    },
+    "underfill_strata": [],
+    "unique_selected_markets": 8,
+    "zero_inclusion_exclusions": 54211
+   },
+   "E3": {
+    "pass": true,
+    "reasons": [],
+    "states": {
+     "triggered": 4,
+     "unavailable": 4
+    }
+   },
+   "E4": {
+    "pass": true,
+    "reasons": []
+   },
+   "E5": {
+    "pass": true,
+    "reasons": []
+   },
+   "E6": {
+    "pass": true,
+    "reasons": []
+   },
+   "E7": {
+    "pass": true,
+    "reasons": []
+   },
+   "E8": {
+    "pass": true,
+    "reasons": []
+   },
+   "E9": {
+    "pass": true,
+    "reasons": []
+   }
+  },
+  "launch_commit": "de934f31b6c9aeb4d7d13a70624d6f4435022692",
+  "members": {
+   "3377353": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "3377353",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "0def128f48701e48c66ffb3548883acd623ebaa682684c352b5d6346f8ff7ea8",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "0def128f48701e48c66ffb3548883acd623ebaa682684c352b5d6346f8ff7ea8",
+      "trigger_id": "9f7f0724417d52eb5372fd1e2272dab298121e2c3824064f1d53281a18215450"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "89597655531530433138423269731684179266399316402878477493927466923100816390022"
+   },
+   "5176734": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "5176734",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "0def128f48701e48c66ffb3548883acd623ebaa682684c352b5d6346f8ff7ea8",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "0def128f48701e48c66ffb3548883acd623ebaa682684c352b5d6346f8ff7ea8",
+      "trigger_id": "c4f81ab61bdc92aed138c1f61c16250567c49ae14e7b6873bfc7c35ec745ccb2"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "59661843592502983961372483690404685459956383855590766548305461003405420323595"
+   },
+   "5313309": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "5313309",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "52b6f8306e5f43905de4d8fa935d2f6de75db0a6c2492d9a183853934a46eb6f",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "52b6f8306e5f43905de4d8fa935d2f6de75db0a6c2492d9a183853934a46eb6f",
+      "trigger_id": "19d3d8b79b70ff80a7237a1f89fa783bf5bd6ae126f6a968cf739c9f4beb1cfa"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "79938942882988963024090839669829886592448878860262374210089273599922968930314"
+   },
+   "5316097": {
+    "authenticated_state": false,
+    "causes": [
+     {
+      "citation": {
+       "empty_sides": [
+        "bids"
+       ],
+       "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+       "raw_verified": true,
+       "source_id": "clob.book",
+       "status": 200,
+       "transport_error": null
+      },
+      "class": "DATA_SOURCE",
+      "rule": "trigger_reason:snapshot_one_sided_or_missing",
+      "stage": "screening",
+      "state": "snapshot_one_sided_or_missing"
+     }
+    ],
+    "complete_chain": false,
+    "effective_assessment_state": "unavailable",
+    "market_id": "5316097",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "unavailable",
+      "matched_trigger_ids": [],
+      "stratum": "eb4305002b6c86bb7cf29dace8d7f9c0e5157bef3cac9e31d82c77f87c1572a9",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [
+       {
+        "citation": {
+         "citation": {
+          "empty_sides": [
+           "bids"
+          ],
+          "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+          "raw_verified": true,
+          "source_id": "clob.book",
+          "status": 200,
+          "transport_error": null
+         },
+         "class": "DATA_SOURCE",
+         "pre_quote_state": "one_sided_or_missing",
+         "quote_state": "one_sided_or_missing",
+         "rule": "quote_state:one_sided_or_missing"
+        },
+        "class": "DATA_SOURCE",
+        "rule": "history_reason:snapshot_unavailable",
+        "state": "snapshot_unavailable"
+       },
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "freeze_reason:origin_one_sided_or_missing",
+        "state": "origin_one_sided_or_missing"
+       }
+      ],
+      "eligible": false,
+      "freeze_reasons": [
+       "snapshot_unavailable",
+       "origin_one_sided_or_missing"
+      ],
+      "reasons": [
+       "snapshot_unavailable"
+      ],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "origin_state:one_sided_or_missing",
+        "state": "one_sided_or_missing"
+       }
+      ],
+      "eligible": null,
+      "state": "one_sided_or_missing"
+     },
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "79245a3e46e2e1d2b0607d1fedae5531e8aaaad992dc87363689d7c0a144e4a1",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     },
+     "target": {
+      "attempt_states": [
+       "origin_ineligible"
+      ],
+      "causes": [
+       {
+        "class": "DATA_SOURCE",
+        "rule": "follows_origin_state",
+        "state": "origin_ineligible"
+       }
+      ],
+      "exclusions": [],
+      "state": "origin_ineligible"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "31176384977475438299010466488530206737747267532365650216184858244694273262313"
+   },
+   "5402156": {
+    "authenticated_state": false,
+    "causes": [
+     {
+      "citation": {
+       "empty_sides": [
+        "bids"
+       ],
+       "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+       "raw_verified": true,
+       "source_id": "clob.book",
+       "status": 200,
+       "transport_error": null
+      },
+      "class": "DATA_SOURCE",
+      "rule": "trigger_reason:snapshot_one_sided_or_missing",
+      "stage": "screening",
+      "state": "snapshot_one_sided_or_missing"
+     }
+    ],
+    "complete_chain": false,
+    "effective_assessment_state": "unavailable",
+    "market_id": "5402156",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "unavailable",
+      "matched_trigger_ids": [],
+      "stratum": "eb4305002b6c86bb7cf29dace8d7f9c0e5157bef3cac9e31d82c77f87c1572a9",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [
+       {
+        "citation": {
+         "citation": {
+          "empty_sides": [
+           "bids"
+          ],
+          "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+          "raw_verified": true,
+          "source_id": "clob.book",
+          "status": 200,
+          "transport_error": null
+         },
+         "class": "DATA_SOURCE",
+         "pre_quote_state": "one_sided_or_missing",
+         "quote_state": "one_sided_or_missing",
+         "rule": "quote_state:one_sided_or_missing"
+        },
+        "class": "DATA_SOURCE",
+        "rule": "history_reason:snapshot_unavailable",
+        "state": "snapshot_unavailable"
+       },
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "freeze_reason:origin_one_sided_or_missing",
+        "state": "origin_one_sided_or_missing"
+       }
+      ],
+      "eligible": false,
+      "freeze_reasons": [
+       "snapshot_unavailable",
+       "origin_one_sided_or_missing"
+      ],
+      "reasons": [
+       "snapshot_unavailable"
+      ],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "origin_state:one_sided_or_missing",
+        "state": "one_sided_or_missing"
+       }
+      ],
+      "eligible": null,
+      "state": "one_sided_or_missing"
+     },
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids"
+         ],
+         "raw_hash": "2ce5d9eb1340777f39f0742773d9e6cd36eb26e38b531ced550a5e76026817be",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     },
+     "target": {
+      "attempt_states": [
+       "origin_ineligible"
+      ],
+      "causes": [
+       {
+        "class": "DATA_SOURCE",
+        "rule": "follows_origin_state",
+        "state": "origin_ineligible"
+       }
+      ],
+      "exclusions": [],
+      "state": "origin_ineligible"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "8648079133749065755887580128389071590863584782853585825120397816870164015536"
+   },
+   "5478000": {
+    "authenticated_state": false,
+    "causes": [
+     {
+      "citation": {
+       "empty_sides": [
+        "bids",
+        "asks"
+       ],
+       "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+       "raw_verified": true,
+       "source_id": "clob.book",
+       "status": 200,
+       "transport_error": null
+      },
+      "class": "DATA_SOURCE",
+      "rule": "trigger_reason:snapshot_one_sided_or_missing",
+      "stage": "screening",
+      "state": "snapshot_one_sided_or_missing"
+     }
+    ],
+    "complete_chain": false,
+    "effective_assessment_state": "unavailable",
+    "market_id": "5478000",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "unavailable",
+      "matched_trigger_ids": [],
+      "stratum": "5ecfa8cb425ffdf8102551acb9f109cd54b8c21de47efc931da0b4d04bfad5e7",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [
+       {
+        "citation": {
+         "citation": {
+          "empty_sides": [
+           "bids",
+           "asks"
+          ],
+          "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+          "raw_verified": true,
+          "source_id": "clob.book",
+          "status": 200,
+          "transport_error": null
+         },
+         "class": "DATA_SOURCE",
+         "pre_quote_state": "one_sided_or_missing",
+         "quote_state": "one_sided_or_missing",
+         "rule": "quote_state:one_sided_or_missing"
+        },
+        "class": "DATA_SOURCE",
+        "rule": "history_reason:snapshot_unavailable",
+        "state": "snapshot_unavailable"
+       },
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "freeze_reason:origin_one_sided_or_missing",
+        "state": "origin_one_sided_or_missing"
+       }
+      ],
+      "eligible": false,
+      "freeze_reasons": [
+       "snapshot_unavailable",
+       "origin_one_sided_or_missing"
+      ],
+      "reasons": [
+       "snapshot_unavailable"
+      ],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "origin_state:one_sided_or_missing",
+        "state": "one_sided_or_missing"
+       }
+      ],
+      "eligible": null,
+      "state": "one_sided_or_missing"
+     },
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "e82370a14f4b8b173afc422ac2062e31547485cca9a96e829ec406168b307648",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     },
+     "target": {
+      "attempt_states": [
+       "origin_ineligible"
+      ],
+      "causes": [
+       {
+        "class": "DATA_SOURCE",
+        "rule": "follows_origin_state",
+        "state": "origin_ineligible"
+       }
+      ],
+      "exclusions": [],
+      "state": "origin_ineligible"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "38072242418710599135849013547143906124989397642525881905678692978098291902172"
+   },
+   "5518402": {
+    "authenticated_state": false,
+    "causes": [
+     {
+      "citation": {
+       "empty_sides": [
+        "bids",
+        "asks"
+       ],
+       "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+       "raw_verified": true,
+       "source_id": "clob.book",
+       "status": 200,
+       "transport_error": null
+      },
+      "class": "DATA_SOURCE",
+      "rule": "trigger_reason:snapshot_one_sided_or_missing",
+      "stage": "screening",
+      "state": "snapshot_one_sided_or_missing"
+     }
+    ],
+    "complete_chain": false,
+    "effective_assessment_state": "unavailable",
+    "market_id": "5518402",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "unavailable",
+      "matched_trigger_ids": [],
+      "stratum": "5ecfa8cb425ffdf8102551acb9f109cd54b8c21de47efc931da0b4d04bfad5e7",
+      "trigger_id": null
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [
+       {
+        "citation": {
+         "citation": {
+          "empty_sides": [
+           "bids",
+           "asks"
+          ],
+          "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+          "raw_verified": true,
+          "source_id": "clob.book",
+          "status": 200,
+          "transport_error": null
+         },
+         "class": "DATA_SOURCE",
+         "pre_quote_state": "one_sided_or_missing",
+         "quote_state": "one_sided_or_missing",
+         "rule": "quote_state:one_sided_or_missing"
+        },
+        "class": "DATA_SOURCE",
+        "rule": "history_reason:snapshot_unavailable",
+        "state": "snapshot_unavailable"
+       },
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "freeze_reason:origin_one_sided_or_missing",
+        "state": "origin_one_sided_or_missing"
+       }
+      ],
+      "eligible": false,
+      "freeze_reasons": [
+       "snapshot_unavailable",
+       "origin_one_sided_or_missing"
+      ],
+      "reasons": [
+       "snapshot_unavailable"
+      ],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "origin_state:one_sided_or_missing",
+        "state": "one_sided_or_missing"
+       }
+      ],
+      "eligible": null,
+      "state": "one_sided_or_missing"
+     },
+     "screening": {
+      "causes": [
+       {
+        "citation": {
+         "empty_sides": [
+          "bids",
+          "asks"
+         ],
+         "raw_hash": "89fd1f50e51e82d23093dddce562c313939e08cfb1855a189ed1cda928397ebb",
+         "raw_verified": true,
+         "source_id": "clob.book",
+         "status": 200,
+         "transport_error": null
+        },
+        "class": "DATA_SOURCE",
+        "rule": "trigger_reason:snapshot_one_sided_or_missing",
+        "state": "snapshot_one_sided_or_missing"
+       }
+      ],
+      "effective_state": "unavailable",
+      "reasons": [
+       "snapshot_one_sided_or_missing"
+      ],
+      "state": "unavailable"
+     },
+     "target": {
+      "attempt_states": [
+       "origin_ineligible"
+      ],
+      "causes": [
+       {
+        "class": "DATA_SOURCE",
+        "rule": "follows_origin_state",
+        "state": "origin_ineligible"
+       }
+      ],
+      "exclusions": [],
+      "state": "origin_ineligible"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "9998978430769204602235571185384218817969919684239069567325259128258533921849"
+   },
+   "5522386": {
+    "authenticated_state": true,
+    "causes": [],
+    "complete_chain": true,
+    "effective_assessment_state": "triggered",
+    "market_id": "5522386",
+    "roles": [
+     {
+      "arm": "scheduled",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "52b6f8306e5f43905de4d8fa935d2f6de75db0a6c2492d9a183853934a46eb6f",
+      "trigger_id": null
+     },
+     {
+      "arm": "triggered",
+      "assessment_state": "triggered",
+      "matched_trigger_ids": [],
+      "stratum": "52b6f8306e5f43905de4d8fa935d2f6de75db0a6c2492d9a183853934a46eb6f",
+      "trigger_id": "fdd07c92a83b41659621e740e246bf57d0c0e212bbf6321e7122ef5c163f6fe6"
+     }
+    ],
+    "stages": {
+     "history": {
+      "causes": [],
+      "eligible": true,
+      "freeze_reasons": [],
+      "reasons": [],
+      "socket_close_state": "closed",
+      "socket_terminal": "interval_ended"
+     },
+     "origin": {
+      "causes": [],
+      "eligible": null,
+      "state": "observed"
+     },
+     "screening": {
+      "causes": [],
+      "effective_state": "triggered",
+      "reasons": [],
+      "state": "triggered"
+     },
+     "target": {
+      "attempt_states": [
+       "recorded"
+      ],
+      "causes": [],
+      "exclusions": [],
+      "state": "observed"
+     },
+     "window": {
+      "causes": [],
+      "close_state": "closed",
+      "last_event": "closed",
+      "missing_reason": null,
+      "terminal": "interval_ended"
+     }
+    },
+    "token_id": "32866001399571586774163508934846652430135695555704839125844346922393324776607"
+   }
+  },
+  "non_authoritative_logic_only": false,
+  "outcome": "PASS_WITH_LIMITATION:no_eligible_untriggered",
+  "outcome_reasons": [
+   "triggered members exist but no eligible untriggered member in their strata"
+  ],
+  "pairs": [],
+  "required_ancestor_commit": "8afbdff",
+  "roots": {
+   "activation": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_activation_d116_integrated_1",
+   "panel": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_panel_d116_integrated_1",
+   "runtime": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_runtime_d116_integrated_1",
+   "selection": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_selection_panel_d116_integrated_1",
+   "worker": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_screening_worker_d116_integrated_1"
+  },
+  "summary": {
+   "authenticated_state_members": 4,
+   "common_mode": [],
+   "complete_chains": 4,
+   "control_assignments": 0,
+   "control_pool_zero_in_triggered_strata": true,
+   "engineering_findings": 0,
+   "failed_gates": [],
+   "n_members": 8,
+   "n_triggered_members": 4,
+   "n_unavailable_members": 4,
+   "n_untriggered_members": 0,
+   "pairs_both_complete": 0,
+   "pairs_drawn": 0,
+   "pass_pair_requires": "both pair members' origins observed with eligible histories and valid (observed) targets",
+   "strata_report_computed": true
+  },
+  "test_override_used": [],
+  "timeline": {
+   "margins": {
+    "assessment_ages_at_activation": [
+     {
+      "assessment_age_s": 19.111159,
+      "market_id": "3377353",
+      "window_age_s": 22.051109
+     },
+     {
+      "assessment_age_s": 19.112859,
+      "market_id": "5176734",
+      "window_age_s": 22.265959
+     },
+     {
+      "assessment_age_s": 19.062177,
+      "market_id": "5313309",
+      "window_age_s": 22.473857
+     },
+     {
+      "assessment_age_s": 20.899882,
+      "market_id": "5316097",
+      "window_age_s": 22.903441
+     },
+     {
+      "assessment_age_s": 20.549925,
+      "market_id": "5402156",
+      "window_age_s": 22.715574
+     },
+     {
+      "assessment_age_s": 20.931896,
+      "market_id": "5478000",
+      "window_age_s": 22.847072
+     },
+     {
+      "assessment_age_s": 20.901722,
+      "market_id": "5518402",
+      "window_age_s": 23.003719
+     },
+     {
+      "assessment_age_s": 20.864948,
+      "market_id": "5522386",
+      "window_age_s": 22.966581
+     }
+    ],
+    "assessment_limits_s": {
+     "assessment": 120,
+     "window": 120
+    },
+    "frame_age_margin_at_activation_ack_s": 2605.282904,
+    "window_age_at_freeze": [
+     {
+      "market_id": "3377353",
+      "window_age_at_freeze_s": 16.33385
+     },
+     {
+      "market_id": "5176734",
+      "window_age_at_freeze_s": 11.424068
+     },
+     {
+      "market_id": "5313309",
+      "window_age_at_freeze_s": 14.405245
+     },
+     {
+      "market_id": "5316097",
+      "window_age_at_freeze_s": 12.319481
+     },
+     {
+      "market_id": "5402156",
+      "window_age_at_freeze_s": 16.739955
+     },
+     {
+      "market_id": "5478000",
+      "window_age_at_freeze_s": 15.300536
+     },
+     {
+      "market_id": "5518402",
+      "window_age_at_freeze_s": 12.355422
+     },
+     {
+      "market_id": "5522386",
+      "window_age_at_freeze_s": 15.091511
+     }
+    ]
+   },
+   "note": "estimates of measured clocks; frame age (fail-closed) is the real bound",
+   "seconds_after_interval_start": {
+    "activation_acknowledged_at": 994.717096,
+    "activation_read_completed_at": 994.706441,
+    "frame_available_at": 346.877257,
+    "interval_end": 261.087394,
+    "interval_start": 0.0,
+    "panel_declared_at": 536.501955,
+    "runtime_declared_at": 993.482524,
+    "runtime_finished_at": 1078.678499,
+    "screening_available_at": 994.092527,
+    "screening_cutoff": 993.497021,
+    "screening_declared_at": 970.856645,
+    "selection_computed_at": 752.654299,
+    "selection_cutoff": 734.517283,
+    "selection_declared_at": 536.534782,
+    "worker_declared_at": 858.67213,
+    "worker_reported_at": 1376.97983
+   }
+  }
+ }
+}

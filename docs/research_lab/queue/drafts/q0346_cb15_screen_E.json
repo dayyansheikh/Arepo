@@ -1,0 +1,36 @@
+{
+ "id": "q0346_cb15_screen_E",
+ "title": "CB15-E: E1 (stratified balanced D-terms drift t_a -> t_a+12h by state sign within closing-hour strata; within-stratum permutation 9,999 draws seed 15101; sign share >= 0.60; net-of-control logit check; pre-night placebo; t_a/t_b, Senate+Governor, second-tier, key-overlap, leave-one-state-out, top-2 robustness) and E2 (recorded best ask at t_a, best bid at t_b, no bid -> -9.3c, fee, +1c, no-depth worst case, exit t_a+6h, LOSO, top-2); gates GE and availability; judged at p < 0.01 strict when it runs",
+ "family": "creative_batch_15",
+ "priority": 9,
+ "expected_value": "E case-study verdicts (one night)",
+ "data": [
+  "history/h15_elect_live/",
+  "docs/research_lab/seals/cb15_ge0/ (bundle sha256 pinned)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb15.py",
+  "screen",
+  "--family",
+  "E",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--ge0-sha256",
+  "a571f58b045fd1bc075070d13b80a3bb091446091310406fd73d5464b4752fc0"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/results_E.json",
+  "trials.jsonl (cb15_test + creative_batch_15:E n_tests=2)"
+ ],
+ "next_action": "ledger; a pass yields a 2028 registration draft only",
+ "notes": "RETIRED 2026-10-19 (not run, not counted): family E terminal \"not testable (frame completeness)\" written by q0341b (share 0.051 < 0.95), audited FAITHFUL by the science-reviewer (EXPERIMENT_LEDGER.md, CB15-E completeness audit). Never promote. CREATIVE_BATCH_15.md CB15-E, sections 2.3-2.6. DRAFT. Refuses (exit 75) before 2026-11-06T00:00Z; refuses (exit 2) without the part-E freeze pinning the rules, GE0 files and race map; writes the counted not-run (calendar) lines if part E was first frozen after 2026-11-01T12:00Z. TODO-COORDINATOR: --ge0-sha256 as q0344. Rules part sha256 (seals/cb15_rules.json, resealed 2026-10-19 after the part-E freeze-check fixes, CREATIVE_BATCH_15.md section 11): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, E 10ab88e7728e9956e84036f29bdb534d4b3359a04d78103f277d245e00e8dcf6. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part E first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / E code changes. 2026-10-19: --ge0-sha256 pinned to a571f58b (GE0 committed b7e1f0a after the archive audit; effective signs MS +1, 50 x 0).",
+ "not_before": "2026-11-06T00:00:00Z"
+}

@@ -1,0 +1,34 @@
+{
+ "id": "q0107_cb5_rinc",
+ "title": "CB5-L: historical inconsistent-resolution rate on audited closed families (guarded outcome read; family-level Wilson bound)",
+ "family": "creative_batch_5",
+ "priority": 40,
+ "expected_value": "r_inc and r_inc_plus for the L1 divergence gate (unknown below 30 resolved families blocks)",
+ "data": [
+  "creative_batch5/cdf_frame/families_vN.json (historical families, all legs closed before 2026-10-11T12:00Z)",
+  "public Gamma /markets (outcomes of those markets only)"
+ ],
+ "resources": {
+  "mem_mb": 400,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api"
+ },
+ "depends_on": [
+  "q0104_cb5_cdf_frame"
+ ],
+ "argv": [
+  "scripts/run_cb5.py",
+  "rinc",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch5/rinc.json",
+  "trials.jsonl (cb5_descriptive)"
+ ],
+ "next_action": "freeze",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Pre-freeze job: no declaration guard (the freeze binds rinc.json by sha256 in model_specs/cb5_v1.json); it refuses until the family list is frozen (cdf-audit-apply passed). Reads outcomes only of historical families, never of live families, prices or captures. Network-bound: lane net as instructed by the coordinator; CREATIVE_BATCH_5 section 2.8 said cpu because q0002 holds net for days, so switch lane to cpu at release if q0002 still holds it. | HELD 2026-10-17 20:45 UTC+1 (autopilot): q0104b cdf frame has 0 families under the frozen cdf-grouper-v1 (ledger a1dad42), so G59 will fail and this job would read an empty family list. Do not promote unless a reviewed design change admits families."
+}

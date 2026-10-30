@@ -1,0 +1,43 @@
+{
+ "W": {
+  "frozen_utc": "2026-10-20T06:50:00Z",
+  "rules_W_sha256": "a3a16f987f7478143c9210e22ef7edddcaca7902f8ada55191d53f21755af0aa",
+  "census": {
+   "file": "research_lab/creative_batch11/census_W_b.json",
+   "job": "q0231b_cb11_census_W",
+   "sha256_file_bytes": "debb66ac23d44d7bdeb670e4d9299af07bc002d7c6633d8a29d8d45912d6b271",
+   "counts": {
+    "GW": {
+     "units": 11774,
+     "end_dates": 98,
+     "categories_ge200_fit": 1,
+     "need": {
+      "units": 5000,
+      "dates": 90,
+      "categories": 6,
+      "fit_min": 200
+     },
+     "pass": false
+    },
+    "fit_category_counts": {
+     "tech": 1,
+     "unknown": 18329
+    }
+   },
+   "label_W1": "not testable (GW: units, dates or categories)",
+   "label_W2": "not testable (GW: units, dates or categories)"
+  },
+  "seals": {
+   "cb11_w_hold_SEAL.json": "58bbf0d704199f32b0f6872892f0c714f35594a06e0158795256497fb3bff1f0",
+   "cb11_wprints_holdout_SEAL.json": "eaf08ff46a08b9f5b40ef20a17f8b8099da72985b6e3253533293312ae1d50b1"
+  },
+  "decisions": [
+   "census accepted under rules W a3a16f98 (W chain v2, CREATIVE_BATCH_11.md 11.3)",
+   "GW fails on categories: science-reviewer ruling 2026-10-20 TERMINAL (source limitation, not a defect): Gamma feeType is empty for markets ending before the 2026 fee rollout (h2/h3 frames 100% unknown for Oct-Dec 2025 end dates; first non-crypto/sports categories in Mar 2026), and the W_fit window is 2025-10-01..2026-02-08; documented before the freeze in CREATIVE_BATCH_4.md:1702",
+   "no alternative category source is substituted (would be a data-driven design change; a new registered design and counted trial if ever wanted)",
+   "W1 and W2 are counted with p = 1 by q0232: screen_w opens no target, guarded or unit file; cmd_screen only sha256-hashes the W_hold files for the seal check; writes results_W.json plus 2 cb11_test (p = 1) and 2 ml_explain count lines; no Stage-2 W test can trigger",
+   "census_W.json (v1, half-open window defect, CREATIVE_BATCH_11.md 11.3) superseded, never counted",
+   "minor (no effect): cats_ok counts 'unknown' itself as a category; the gate fails either way"
+  ]
+ }
+}

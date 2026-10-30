@@ -1,0 +1,42 @@
+{
+ "id": "q0731_m1_j0",
+ "title": "M1 (CH263) J0: counts-only pre-freeze check (MEASUREMENT_M1_CH263.md 9.1): one read-only pass over the last 8 days of snapshots (rows, sidecar), sweep 1 (token, receipt, finiteness of ask_size_1 only) and the engine's state/labels.json res_candidates ids, applying E1-E7 at each capture from k - 1 and k only, printing the class funnel, eligible units a day, events and units per event, S1-S10 counts, sweep-1 coverage by S1 / S7, receipt gaps, status-string forms and transitions, unavailable classes by category and the decision lines (a) / (b)",
+ "family": "creative_hypotheses",
+ "priority": 60,
+ "expected_value": "the only pre-freeze inputs M1 declares: rules (a) / (b) (window 21 or 42 days) and the observed distribution of S2's fixed cells; plus counts the R1 and re-check reviews asked for (sweep coverage, status history forms, events per unit)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots, book_sweeps, signal_engine/state/labels.json (all read-only)"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_m1_j0.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--last-days",
+  "8",
+  "--warmup-captures",
+  "12",
+  "--out",
+  "../data-dumps/research_lab/m1_j0/M1_J0.json",
+  "--data-dumps-cap-gb",
+  "50"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m1_j0/M1_J0.json (counts only; informed (M1-J0))"
+ ],
+ "next_action": "copy decisions.rule_a / rule_b and splits_counts.S2_fee_category into MEASUREMENT_M1_CH263.md before the design-text freeze (the only effects J0 may have); report sweep_1_coverage, status_forms, units_per_event_projected and unavailable_by_category as counts in the review; a null decision means no full day was covered (unavailable), not a pass",
+ "notes": "DRAFT (not in jobs/; promote only after the orchestrator's review of the M1 third draft). Counts only, k = 0, uncounted. Read-only on every store; refuses roots that are not research_lab/snapshots, research_lab/book_sweeps, research_lab/signal_engine, missing roots, an output outside research_lab and an existing output (write-once by os.link); exits 75 above the 50 GiB dumps guard or under 1 GiB free. Lane cpu (local stores only, CPU-bound on the csv parse; as q0730). Memory: about 165 MB at import (pandas / pyarrow through the CH240 helpers), plus per capture about two status dicts and two row-id sets of about 300k markets each and the E3 history; planned peak 350-450 MB, mem_mb 600 per the text's 'under 600 MB'; peak_rss_mb is recorded in the output and the dry run on the host must confirm it (the CH269 map ran 558.8 MB against a 450 spec). Every input file is sha256-hashed into the output. The first 12 captures are a warm-up (E3 history and k - 1 state only, never classified). No resolution, label, outcome field, sweep price or size value, or capture after k is read for a unit; c appears only as the S6 zone count."
+}

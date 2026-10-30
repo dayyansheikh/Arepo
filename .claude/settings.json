@@ -1,0 +1,60 @@
+{
+  "_note": "Active project settings (reviewed 2026-10-10). The evidence hook is best-effort, fails open on its own errors, and cannot stop scripts that delete files internally; it is not absolute protection.",
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git merge-base:*)",
+      "Bash(git rev-list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff check:*)",
+      "Bash(python scripts/check_v2_contract.py)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run lint)",
+      "Bash(df -h:*)",
+      "Bash(du -sh:*)",
+      "Bash(git branch --list:*)",
+      "Bash(git branch -vv)",
+      "Bash(git branch --show-current)"
+    ],
+    "deny": [
+      "Edit(/docs/implementation/*EVIDENCE*.json)",
+      "Edit(/docs/implementation/PHASE_03_*_PROTOCOL.md)",
+      "Edit(/data-dumps/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin --delete:*)",
+      "Bash(vercel:*)",
+      "Bash(supabase:*)",
+      "Bash(render:*)"
+    ],
+    "ask": [
+      "Bash(git branch -D:*)",
+      "Bash(git branch -d:*)",
+      "Bash(git worktree remove:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect_evidence.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

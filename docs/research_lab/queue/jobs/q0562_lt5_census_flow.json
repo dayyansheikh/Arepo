@@ -1,0 +1,43 @@
+{
+ "id": "q0562_lt5_census_flow",
+ "title": "LT5 censuses CJ (J, jump or grind) and CO (O, token-weighted overhang) on the 23 sealed active-frame samples of 2026-10-16/17 with their captures (look-back k - 12) from the LT4 capture seal (DRAFT): counts only, origin-side fields only (trade rows with ts < t_k), no target, no P&L; refuses unsealed or mismatched inputs",
+ "family": "live_tests_5",
+ "priority": 97,
+ "expected_value": "J and O census gates (LIVE_TESTS_5.md section 8): zO centre/scale, terciles and gap, VIF, perm strata, family exclusions; decides part of k before the pin",
+ "data": [
+  "data-dumps/research_lab/live_tests3_census/restore (q0471 tree, read-only; seals/lt3_census_inputs_C2.json)",
+  "data-dumps/research_lab/live_tests4_census/restore (q0480 tree, read-only; seals/lt4_census_inputs_captures.json)"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0561_lt5_census_captures"
+ ],
+ "argv": [
+  "scripts/run_live_tests5.py",
+  "census-flow",
+  "--sample-seal",
+  "../docs/research_lab/seals/lt3_census_inputs_C2.json",
+  "--capture-seal",
+  "../docs/research_lab/seals/lt4_census_inputs_captures.json",
+  "--sample-root",
+  "../data-dumps/research_lab/live_tests3_census/restore/data-dumps/research_lab/trade_samples",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests4_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests5_census/work_flow",
+  "--out",
+  "../data-dumps/research_lab/live_tests5_census/CJ_CO.json"
+ ],
+ "timeout_s": 7200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests5_census/CJ_CO.json (counts only; the work dir is cleaned up at exit)"
+ ],
+ "next_action": "commit CJ_CO.json and its sha256 (seals/), fill the O scale, cuts and gap, J/O perm_stratum and exclude_family and the J/O entries of k_tests in the spec, record any drop in LIVE_TESTS_5.md 7.3 and the ledger",
+ "notes": "OPS 2026-10-22 ~06:40Z (experiments autopilot): priority 59 -> 97 so this live-test step runs before the 6 h exclusive MC1 run q0116f (95); the cpu lane still serialises it with every LT5 / LT6 census. Nothing else changed. | PROMOTED 2026-10-22 ~00:40Z (autopilot): re-checked on the host just before promotion: live_tests3_census/restore/.../trade_samples 23 entries (284 MB) and live_tests4_census/restore/.../snapshots 39 entries (2.7 GB), as at 15:22Z; both seals committed. Priority 25 -> 59 so it runs right after q0561 (depends_on keeps them apart); its inputs are restore trees outside every retention rule, so a stop by tonight's 02:40Z resize only re-queues it. argv and gates unchanged. | CHECKED 2026-10-21 15:22Z (autopilot, read-only on the host): live_tests3_census/restore/.../trade_samples has 23 entries (284 MB; the seal lists 23 samples) and live_tests4_census/restore/.../snapshots 39 entries (2.7 GB); no archive_retention.json rule covers live_tests*_census/ (prefixes are trade_samples/, live_trades/, snapshots/). Re-check just before promotion; the census re-hashes every file against the seals anyway. | DRAFT, not in queue/jobs (LIVE_TESTS_5.md, design not yet reviewed). No new seal: the same 23 samples LT3's C2 and LT4's CF read, and the LT4 capture seal (2026-10-14T22:31Z .. 10-17). CHECK BEFORE PROMOTION: whether the q0471 and q0480 restore trees still exist (both were to be cleared after their own registrations); if not, re-run identical restores into the same paths (same tags, globs and seals) and let the census re-hash every file. Every gate threshold is stated in LIVE_TESTS_5.md section 8 before this runs. Counts 0 (descriptive; no trials line). R1: J's MDE gate uses SD 5c (skip target k+1..k+3); J liquidity-tier gate; O's block-gate recurrence share (units in markets with >= 2 units in the census days >= 50%). Census code check finding 9: 1,200 MB, so it runs after q0561 (1,500 MB, exclusive), never alongside it (memory-heavy-jobs rule); depends_on q0561. Samples the census skips (missing capture or file) are counted in samples_skipped, not in n_samples."
+}

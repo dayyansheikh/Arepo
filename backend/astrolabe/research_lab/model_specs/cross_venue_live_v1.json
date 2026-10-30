@@ -1,0 +1,117 @@
+{
+ "evidence_role_of_fit_data": "exploratory_historical",
+ "feature_definitions": {
+  "dk1": "Kalshi mid(t) - Kalshi mid(t-10m)",
+  "dk6": "Kalshi mid(t) - Kalshi mid(t-60m)",
+  "gap": "Kalshi mid(t) - Polymarket mid(t)",
+  "lvl": "Polymarket mid(t) - 0.5",
+  "lvl2": "lvl^2",
+  "mid": "two-sided quote (0<bid<ask<1, ask-bid<=0.10), both mids in [0.03, 0.97] at every endpoint used; lagged value = latest poll in [t-L-240s, t-L]",
+  "r1": "Polymarket mid(t) - mid(t-10m)",
+  "r6": "Polymarket mid(t) - mid(t-60m)",
+  "target": "Polymarket mid(t+h) - mid(t), h in {10, 20, 60} min"
+ },
+ "features": [
+  "r1",
+  "r6",
+  "lvl",
+  "lvl2",
+  "gap",
+  "dk1",
+  "dk6"
+ ],
+ "fit": {
+  "alignment": "cross_venue.align_pair with pm_lag_s=0 (a Polymarket history point is usable at its own stamp), the closest analogue of a receipt-timed live quote; the conservative 600 s alignment is not used for coefficients",
+  "method": "unpenalised OLS with intercept, raw units, all usable historical origins per horizon (no walk-forward; one fit, never refitted)"
+ },
+ "frozen_utc": "2026-10-12T21:31:57Z",
+ "historical_primary_h20_frozen": {
+  "cluster_boot_se": 0.014203997405870486,
+  "n_clusters": 190,
+  "n_origins": 220358,
+  "origins_per_cluster_median": 376.0,
+  "rel_mse_gain": 0.07105759705396593
+ },
+ "models": {
+  "10": {
+   "dk1_only_slope": 0.430982854935792,
+   "in_sample_rel_mse_gain": 0.0963823690725698,
+   "m0": {
+    "intercept": -8.028474294929287e-05,
+    "lvl": -0.0004158940587597002,
+    "lvl2": -7.172815944607154e-05,
+    "r1": -0.17882449556763721,
+    "r6": -0.06908403676223042
+   },
+   "m1": {
+    "dk1": 0.3606043030294709,
+    "dk6": 0.09919825712172647,
+    "gap": 0.015358814998272626,
+    "intercept": -8.462905603964587e-05,
+    "lvl": -0.00011646217836007176,
+    "lvl2": -0.0003116169843034379,
+    "r1": -0.18247898491939543,
+    "r6": -0.09968785576135322
+   },
+   "n_obs": 453825,
+   "target_sd": 0.014240687737542385
+  },
+  "20": {
+   "dk1_only_slope": 0.4289838527339501,
+   "in_sample_rel_mse_gain": 0.07105759705396575,
+   "m0": {
+    "intercept": -0.0001870777891146023,
+    "lvl": -0.0006754300963890571,
+    "lvl2": 0.000543711694520856,
+    "r1": -0.22703380670537565,
+    "r6": -0.0868408658327861
+   },
+   "m1": {
+    "dk1": 0.3392823633031129,
+    "dk6": 0.12337141419377771,
+    "gap": 0.023994822337072945,
+    "intercept": -0.00023555718145914074,
+    "lvl": -0.0001784458350600711,
+    "lvl2": 0.00042457807138052264,
+    "r1": -0.2300127099468306,
+    "r6": -0.12007488176824993
+   },
+   "n_obs": 220358,
+   "target_sd": 0.017724117799958757
+  },
+  "60": {
+   "dk1_only_slope": 0.3426487290536803,
+   "in_sample_rel_mse_gain": 0.04088988430413498,
+   "m0": {
+    "intercept": -0.0004913749761484857,
+    "lvl": -0.0013545716630910388,
+    "lvl2": 0.0024599273428161706,
+    "r1": -0.2655569439575504,
+    "r6": -0.08479588643222107
+   },
+   "m1": {
+    "dk1": 0.2091772042175111,
+    "dk6": 0.16068016551455272,
+    "gap": 0.04248559888258228,
+    "intercept": -0.0006486697158361132,
+    "lvl": -0.0004540058621962433,
+    "lvl2": 0.0027790737330520175,
+    "r1": -0.25005430287377584,
+    "r6": -0.11850300408618049
+   },
+   "n_obs": 70411,
+   "target_sd": 0.023326065495716287
+  }
+ },
+ "provenance": {
+  "code_commit": "70da1eee7ea02caa0c5e3194be927d0ac2cfb0a2",
+  "matches_json_sha256": "f21457665518e6a8a7d2afe7337c730fac3ebb889fa3476ff51bc1ae16d0e945",
+  "n_clusters": 190,
+  "n_pairs": 341,
+  "pair_rule": "study analysis set: >= 200 usable steps under the conservative alignment (341 pairs, 190 events)",
+  "results_json_sha256": "3def1ae3ad4252c9ff995a2657ef5167a27e66b62614858ad6dc7f2284442a26",
+  "source_study": "docs/research_lab/CROSS_VENUE_STUDY.md (cross-venue-v1)"
+ },
+ "spec_id": "cross_venue_live_v1",
+ "version": "cross-venue-live-v1"
+}

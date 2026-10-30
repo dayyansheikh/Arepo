@@ -1,0 +1,43 @@
+{
+ "id": "q0101_cb5_listings_backfill",
+ "title": "CB5-F: listings/ extract (first sightings of new markets) from complete captures since 2026-10-11T12:00Z (host raw, else verified release copies)",
+ "family": "creative_batch_5",
+ "priority": 57,
+ "expected_value": "preserves the first-seen seeded touches needed for the CH56 seed-semantics gate before raw captures become deletable",
+ "data": [
+  "research_lab/snapshots rows + rows_ext + book_sweeps (host, else verified release copies)"
+ ],
+ "resources": {
+  "mem_mb": 700,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb5.py",
+  "extract",
+  "--backfill-from",
+  "2026-10-11T12:00Z",
+  "--tables",
+  "listings",
+  "--release-stream",
+  "--retry-missing",
+  "--budget-min",
+  "150",
+  "--disk-cap-gb",
+  "0.05",
+  "--data-dumps-max-gb",
+  "12"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 2,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"backfill_complete\": true"
+ },
+ "outputs": [
+  "data-dumps/research_lab/cb5_extract/{listings/,_chain/,manifest.json}"
+ ],
+ "next_action": "pass step continues (scripts/run_cb5.py extract --all-new); Done only when the log shows \"backfill_complete\": true (the repeat regex); a headroom refusal exits 75 and is retried after 30 min without burning an attempt.",
+ "notes": "DRAFT: the coordinator copies this to queue/jobs/ only after the science-reviewer CB5 freeze check of the code. Idempotent by (capture_id, table); CB1-CB4 extract roots and tables are not touched; release copies are streamed through cb4_data.ReleaseCopies one capture at a time (scratch <= 0.2 GB). Priority 57 sits below the T_seal-bound h7 jobs (58). First sighting = absent from the previous complete capture; a broken chain is recorded (first_seen_certain 0), never repaired. Refuses (exit 75, EX_TEMPFAIL: the queue waits and retries) when data-dumps size + the output allowance + scratch would pass 12 GB; the coordinator records the section 2.8 headroom precondition in the release commit. 2026-10-17 04:45Z (autopilot): headroom 10 -> 12 GB with the collector cap raised 12 -> 13 GB (arepo_pass.sh) and 8-day snapshot deletion enabled; data-dumps sat at 9.9 GB so every attempt tempfailed. Operational only: the job writes <= 0.05 GB and its outputs do not depend on this value."
+}

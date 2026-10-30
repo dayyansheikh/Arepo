@@ -1,0 +1,46 @@
+{
+ "aux_versions": {
+  "book0": "se-aux-book0-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + the order book read strictly before the origin (book0 aux family, se-aux-book0-v1: newest complete sweep finished before the origin capture started, at most 3 h old): the honest counterpart of se3_lr_book (DESIGN_V1 sections 21-22). Embargoed under book and book0 (2026-12-31). A LightGBM version waits for refit budget. Trains only when every labelled capture of the window has the book0 table.",
+ "families": [
+  "market_state",
+  "momentum",
+  "book0"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "book0",
+  "book"
+ ],
+ "learner": "logreg",
+ "model_id": "se19_lr_book0",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "book0"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

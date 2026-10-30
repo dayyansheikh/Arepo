@@ -1,0 +1,36 @@
+{
+ "id": "q0383_cb16_k_census",
+ "title": "CB16-K census, counts only, no outcome, no price, no network: strict / topic / absent / unlistable labels; LABELLER class x volume-decile cells; events per label per cell; cells with both labels >= 30 events; key overlaps; feature-free MDE bounds; re-entry verdict",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "the CH143 map inputs and the re-entry decision",
+ "data": [
+  "research_lab/cross_venue/{poly_markets.json,kalshi_markets*.jsonl,matches_all.json,audit_flags.json} (sha256 pinned; field-restricted)",
+  "creative_batch16/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 1200,
+  "cpu": 1,
+  "lane": "cpu",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0380_cb16_exclusion_keys",
+  "q0381_cb16_smoke"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "k-census",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 4200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/census_K.json",
+  "trials.jsonl (cb16_descriptive)"
+ ],
+ "next_action": "record in the ledger; topic audit only if the re-entry counts pass",
+ "notes": "OPS: not_before 2026-10-22T06:00Z so this exclusive job cannot delay LT5 q0561 (must start before 02:45Z) tonight. | PROMOTED 2026-10-21 ~12:10Z (autopilot): q0380 complete 11:18Z (exclusion_keys.csv.gz sha256 56dc953ed91aa430..., exclusion_report.json e1b9787cc0b0919a...), q0381 smoke done; CB16 freeze-checked and re-checked; rules part hashes re-verified 2026-10-21. exclusive (the draft says run alone, 1,200 MB). | CREATIVE_BATCH_16.md section 4, CB16 code. DRAFT. No network. Heavy (mem_mb 1200): the coordinator runs it alone. Needs the exclusion-keys file of q0380 for key overlap counts. Requires part K declared (matches_all.json pin). Rules part sha256 (seals/cb16_rules.json, written 2026-10-19 after the freeze-check fixes): common 9a087b8c463ec40e51ea795887ddb5332fba03aef1b09780dffe6e317ac577cb, A 8f395a7db285bebade752bd898be0b03e472a54d833cd560b89acdaae4ff6320, K cfe9bea5c1b97166dba84212d829a8ea31e57e3aa118891660702b8843909d01. CB16 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part A first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / A / K code changes.",
+ "not_before": "2026-10-22T06:00:00Z"
+}

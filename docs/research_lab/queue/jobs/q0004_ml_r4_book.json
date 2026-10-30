@@ -1,0 +1,39 @@
+{
+ "id": "q0004_ml_r4_book",
+ "title": "HISTORICAL_ML_DEV revision r4_book on h2_main (book family)",
+ "family": "book/liquidity",
+ "priority": 55,
+ "expected_value": "pre-declared pending revision; tests whether depth/spread/imbalance add out-of-sample value beyond M2v",
+ "data": [
+  "history/h2_main",
+  "history_sources/book_features/book_features.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [
+  "q0003_books_finalize"
+ ],
+ "argv": [
+  "scripts/run_ml_history.py",
+  "--run-id",
+  "h2_main",
+  "--max-rows",
+  "150000",
+  "--n-boot-ablation",
+  "10000",
+  "--revision",
+  "r4_book",
+  "--book-table",
+  "../data-dumps/research_lab/history_sources/book_features/book_features.csv.gz"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/history/h2_main/ml/r4_book (run dir)",
+  "docs/research_lab/trials.jsonl rows"
+ ],
+ "next_action": "Claude session: read results, update HISTORICAL_ML_DEV.md + ledger, decide follow-ups",
+ "notes": "DEVELOPMENT / exploratory_historical; no edge claim. Same flags as r2 except the book table."
+}

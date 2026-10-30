@@ -1,0 +1,38 @@
+{
+ "id": "q0700_ch251_population_map",
+ "title": "CH251 LT12 population map (counts only, k = 0, uncounted): one streaming pass over the 2-hourly captures of 2026-10-13..10-22 counting two-member neg-risk events and complete pairs (receipt-span retention at 120 s, mirror gaps, thin/sym/dense, same-slot spread-innovation correlation), mixed ladders, fee-free traded and quote-only movers by fee source, the 2 x 2 fee x reward cells and who printed in two-member events; uses only capture k and k-1, no price target, no P&L",
+ "family": "creative_hypotheses",
+ "priority": 60,
+ "expected_value": "measured counts that replace the planning ranges of CREATIVE_HYPOTHESES_2026-10-31.md section 0.1 and decide whether LT12 (CH245, CH244, CH243) is drafted",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "as_cap_mb": 4000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ch251_map.py",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--start-utc",
+  "2026-10-13T00:00:00Z",
+  "--end-utc",
+  "2026-10-23T00:00:00Z",
+  "--out",
+  "../data-dumps/research_lab/ch251_map/CH251_map.json",
+  "--data-dumps-cap-gb",
+  "44"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/ch251_map/CH251_map.json (counts only)"
+ ],
+ "next_action": "copy the counts into the section 0.1 census table of CREATIVE_HYPOTHESES_2026-10-31.md (reported, not tuned); then decide whether LT12 is drafted",
+ "notes": "Counts only, k = 0, uncounted (CREATIVE_HYPOTHESES_2026-10-31.md CH251). SPAN (orchestrator decision): [2026-10-13T00:00Z, 2026-10-23T00:00Z), ten UTC days already on the host, disjoint from LT11's census seal [10-28, 11-07) and LT11's window (11-18..12-09), so LT12's own census can use a fresh later seal; it overlaps the CH240 map's span (also counts-only), disclosed. Streams one capture at a time and keeps only capture k-1 state; mem_mb stays below 500 so it may run beside an exclusive job. Reward reading is the simple MAP reading (clob_rewards non-empty at capture k = rewarded), not listed_carry24h_v2. NOT MAPPED (stated in the output's not_mapped): CH246 matcher (needs gamma_rules text), CH242 split resolutions (needs the label store), CH250 tier cut and minute-pay distribution, CH243 tier x category x age cell-matched control (only a category x age proxy). Exits 75 when data-dumps is above 44 GiB. Refuses to overwrite its output. Reads rows.csv.gz, rows_ext.csv.gz and manifest.json only; output carries each opened file's size and sha256 and the code sha256 of the runner and module."
+}

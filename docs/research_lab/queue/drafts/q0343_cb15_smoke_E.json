@@ -1,0 +1,37 @@
+{
+ "id": "q0343_cb15_smoke_E",
+ "title": "CB15-E smoke: part hashes; refusals (live stores, holdouts, refused roots, forbidden fields, collector requests before T15_E_pre); GE0 schema rule; Gamma paging to hasMore=false; POST /books with 100 out-of-frame tokens; one full-size pass of about 1,000 out-of-frame tokens with stored bytes measured (sets the q0345 cap: 3x, >= 1.0 GB); receipt clock vs NTP <= 1 s; forced-failure gap log; storage degradation path; cpu-lane hold flag on a test queue dir",
+ "family": "creative_batch_15",
+ "priority": 99,
+ "expected_value": "go/no-go and storage sizing for the election-night collector",
+ "data": [
+  "public Gamma",
+  "public CLOB /books",
+  "pool.ntp.org (SNTP)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api, clob, ntp"
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_cb15.py",
+  "smoke",
+  "--part",
+  "E",
+  "--rules",
+  "../docs/research_lab/seals/cb15_rules.json",
+  "--rps",
+  "1"
+ ],
+ "timeout_s": 900,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch15/smoke_E.json",
+  "trials.jsonl (cb15_descriptive; a FAIL writes E1, E2 not testable (source), counted once)"
+ ],
+ "next_action": "PASS: collector cap = detail.e_full_pass_bytes.cap_gb (freeze-part E reads it); q0344. FAIL: E not testable (source), counted",
+ "notes": "RETIRED 2026-10-19 (not run, not counted): family E terminal \"not testable (frame completeness)\" written by q0341b (share 0.051 < 0.95), audited FAITHFUL by the science-reviewer (EXPERIMENT_LEDGER.md, CB15-E completeness audit). Never promote. CREATIVE_BATCH_15.md CB15-SM. DRAFT. <= 30 requests; write-once. Needs scripts/oracle/queue_worker.py with the LANE_HOLD flag deployed (e_lane_hold_flag). Calendar exception (CREATIVE_BATCH_15.md round 1 item 4): priority 99 with a 2-h net promotion hold placed by the coordinator before the start (or a one-shot command with the same argv after the running net job ends). Rules part sha256 (seals/cb15_rules.json, resealed 2026-10-19 after the part-E freeze-check fixes, CREATIVE_BATCH_15.md section 11): common 13c703222500e502cd29acb94cdec497c43ff68cfc9415bd0efbfd4699718f3a, E 10ab88e7728e9956e84036f29bdb534d4b3359a04d78103f277d245e00e8dcf6. CB15 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer, part E first) and the committed rules file; the coordinator regenerates the rules and these shas if any common / E code changes."
+}

@@ -1,0 +1,296 @@
+{
+ "declared": {
+  "books": {
+   "audit": {
+    "available_min_share": 0.8,
+    "hour": 13,
+    "n_days": 20,
+    "pass_share": 0.9,
+    "rule": "count per (market, day) whether the condition id has any event; PASS iff >= 90% of pairs",
+    "seed": "arepo-cb8-pmxt-audit"
+   },
+   "ingress_cap_gb": 90.0,
+   "lookback": "hour 14Z only for tokens without a book event by t_end - 600 s",
+   "offsets_s": [
+    600,
+    300,
+    120,
+    60
+   ],
+   "order": {
+    "rule": "seeded, alternating SCREEN and HOLDOUT days",
+    "seed": "arepo-cb8-updown-order"
+   },
+   "plus_s": [
+    0,
+    10
+   ],
+   "prints": {
+    "pages": 3,
+    "post_t_end": "guarded file",
+    "wallet": "not stored",
+    "window_s": [
+     -900,
+     120
+    ]
+   },
+   "seal": {
+    "copy": "cb8_updown_holdout_SEAL.json",
+    "drops": "by id and key against every seal copy committed by then (DROPPED_* blocks)",
+    "name": "HOLDOUT_SEAL.json",
+    "output_cap_gb": 0.02
+   },
+   "top_ask_levels": 10
+  },
+  "cost": {
+   "docs_crypto_rate": 0.07,
+   "fee": "r a (1 - a), r = max(fee_rate_bps/1e4 of the token's latest pmxt event <= t, economics.DOCS_CATEGORY_RATE['crypto'])",
+   "robustness": "+0.75c on a"
+  },
+  "disk": {
+   "data_dumps_fetch_cap_gb": 12.5,
+   "frame_output_cap_gb": 0.02,
+   "keys_output_cap_gb": 0.01
+  },
+  "features": {
+   "candle_usable_s": 65,
+   "checkpoints_s": [
+    300,
+    120,
+    60
+   ],
+   "fresh_s": 120,
+   "guarded": [
+    "outcomes_guarded.csv.gz",
+    "klines_settle_guarded.csv.gz"
+   ],
+   "n_sigma": 60,
+   "pre_candle_minutes": 75,
+   "reported_checkpoint_s": 600,
+   "sigma_min_present": 55,
+   "strike": "close of the 1m candle opening at t_end(d - 1)",
+   "z_min": 3.0
+  },
+  "gate": {
+   "edge_floor": 0.005,
+   "source_disagree_max": 0.02,
+   "tail": "day units; W_d = sum(1-a-f), L_d = sum(a+f); losing day = any unit with y_fav < 1 (a 50-50 resolution, y_fav = 0.5, is a losing day); q_U one-sided 99% Clopper-Pearson upper bound (bisection) of the losing-day share; mean_d(W_d)(1-q_U) - mean_d(L_d) q_U >= 0",
+   "tail_conf": 0.99
+  },
+  "population": {
+   "assets": {
+    "BNB": [
+     "BNB",
+     "spot"
+    ],
+    "Bitcoin": [
+     "BTC",
+     "spot"
+    ],
+    "Dogecoin": [
+     "DOGE",
+     "spot"
+    ],
+    "Ethereum": [
+     "ETH",
+     "spot"
+    ],
+    "HYPE": [
+     "HYPE",
+     "um"
+    ],
+    "Solana": [
+     "SOL",
+     "spot"
+    ],
+    "XRP": [
+     "XRP",
+     "spot"
+    ]
+   },
+   "days": "[2026-04-13, 2026-08-10) minus the pmxt gap [2026-06-12, 2026-06-18)",
+   "down_re": "resolve to \"Down\" if the \"Close\" price for the Binance 1 minute candle for ([A-Z]+/USDT) ([A-Z][a-z]{2} \\d{1,2} '\\d{2}) 12:00 in the ET timezone \\(noon\\) is higher than the final \"Close\" price for the ([A-Z][a-z]{2} \\d{1,2} '\\d{2}) 12:00 ET candle",
+   "endDate_exact": "endDate must equal t_end(d)",
+   "flag_res": {
+    "binance": "(?i)binance",
+    "candle_1m": "(?i)1[- ]?minute|1m\\b",
+    "noon_et": "12:00\\s*(PM)?\\s*ET",
+    "tie_50_50": "50-50|50/50"
+   },
+   "gamma_window": [
+    "15:59:00",
+    "16:01:00"
+   ],
+   "outcome_labels": [
+    "Up",
+    "Down"
+   ],
+   "question_re": "^(Bitcoin|Ethereum|Solana|XRP|Dogecoin|HYPE|BNB) Up or Down on [A-Z][a-z]+ \\d{1,2}\\??$",
+   "source_spot_re": "^https?://(?:www\\.)?binance\\.com/(?:[A-Za-z]{2}(?:-[A-Za-z]{2})?/)?trade/([A-Z0-9]+)_USDT/?(?:\\?.*)?$",
+   "source_um_re": "^https?://(?:www\\.)?binance\\.com/(?:[A-Za-z]{2}(?:-[A-Za-z]{2})?/)?futures/([A-Z0-9]+)USDT/?(?:\\?.*)?$",
+   "strike_rule": "mirrored groups; strike date = d - 1; settlement date = d; symbol = asset map",
+   "t_end": "d 16:00:00Z (12:00 EDT)",
+   "up_re": "resolve to \"Up\" if the \"Close\" price for the Binance 1 minute candle for ([A-Z]+/USDT) ([A-Z][a-z]{2} \\d{1,2} '\\d{2}) 12:00 in the ET timezone \\(noon\\) is lower than the final \"Close\" price for the ([A-Z][a-z]{2} \\d{1,2} '\\d{2}) 12:00 ET candle"
+  },
+  "smoke": {
+   "candidates": 200,
+   "criterion_a": "one paged day [end-5d, end-4d) at limit 1000 per pool market; rows in bounds, newest first, no duplicate across pages, >= 14 of 20 non-empty, <= 2 capped (10 pages or venue 400 at offset > 0); deep-offset probe at offset 4000: 400 = capped by the venue, 200 = deep paging works, anything else = failed (criterion not met)",
+   "criterion_b": "Binance .CHECKSUM matches for BTCUSDT spot and HYPEUSDT futures/um 2026-03 (outside the B window), archive parses",
+   "criterion_c": "pmxt HEAD returns a size for 3 seeded B-window 15Z hours",
+   "n": 20,
+   "network_failure": "nothing written, exit 75",
+   "pool": "closed, end in [2026-05-01T00:00:00Z, 2026-10-01T00:00:00Z), volume >= 50000, life >= 10 d",
+   "seed_pmxt": "arepo-cb8-smoke-pmxt",
+   "seed_pool": "arepo-cb8-smoke-pool",
+   "version": "cb8-smoke-v1"
+  },
+  "sources": {
+   "binance": {
+    "base": "https://data.binance.vision/data",
+    "checksum": "<zip>.CHECKSUM sha256",
+    "months": [
+     "2026-04",
+     "2026-05",
+     "2026-06",
+     "2026-07",
+     "2026-08"
+    ],
+    "rps": 2.0,
+    "stored": "pre-t_end candles, strikes, guarded settlement candles"
+   },
+   "exclusion": {
+    "max_unverified_key_share": 0.02,
+    "pins": "cb7_common.EXCLUSION_PINS + committed seal copies at q0164 + REQUIRED extra id pins c1_legs/cb5_listings (derived ids CSV with a source-sha sidecar)"
+   },
+   "pmxt": "cb8_books"
+  },
+  "split": {
+   "rule": "ISO weeks in pairs (16,17)..(30,31): a seeded coin picks which week of the pair is SCREEN; week 32 by its own coin",
+   "seed": "arepo-cb8-updown-split",
+   "table": {
+    "16": "holdout",
+    "17": "screen",
+    "18": "holdout",
+    "19": "screen",
+    "20": "screen",
+    "21": "holdout",
+    "22": "screen",
+    "23": "holdout",
+    "24": "holdout",
+    "25": "screen",
+    "26": "holdout",
+    "27": "screen",
+    "28": "holdout",
+    "29": "screen",
+    "30": "holdout",
+    "31": "screen",
+    "32": "screen"
+   },
+   "weeks": [
+    16,
+    32
+   ]
+  },
+  "units": {
+   "buy_cap": 0.99,
+   "latency_rule": "fill at max(a_t, a_{t+10 s}) only if >= 5 shares at <= that price remain at t + 10 s (stored best 10 ask levels) and a* <= 0.99",
+   "latency_s": 10,
+   "traded": "best ask <= 0.99 and size at the ask >= 5"
+  }
+ },
+ "func_sources_sha256": {
+  "Pacer.wait": "1b3215b0431782f5649450e9497d638ed3440240099a07c1da376d3724c7d0bf",
+  "RangeFile": "02abb054dffac06249fe1de8186580427b81cf27876b6c952c93b2862e720266",
+  "_binom_cdf": "56f56f606549c27a9becdcec2bd900df517929e78a3dff2c05b244c5f8842b11",
+  "_books_declared": "9752b2c9919ef633d683292c351edb20e582d2c45e2225f960a9a95f612b4bd1",
+  "_check_clock": "2155e9ff78b77054ad2ffd7e7ec40c72d7f657c82ed62fc5b0897babef6c939b",
+  "_extra_pin_sources": "4d2fa111543b38adb6d158a6e9203d16ee61820bd3535e403acebe2467da98d6",
+  "_fail_counts": "e9f273ffb3bbdbb63660fb8ec8e1c8a79f0ab22cec12280a0ed0b99966f1fab5",
+  "_ids_of_file": "00aadf56cc51fd57a2a99278ef151df64752e714c7348591065227f227a858ae",
+  "_levels": "7c7dc235e1d3e0f59b413e8b3539c1805d379c360ef985f30ddbb6673ed6c9a2",
+  "_month_items": "0036e998e5f9b96b0866ad93c37f193d0b00e6f6d46803c93bb982680b643fed",
+  "_ms": "f1fa393dd17f143ae8c05a33a97c5ea71ebd970c6254876e1f16e099342a912b",
+  "_num": "d78686e4524747b09fc234946ada0274b1386084b461570e94f5e308e7b40d5d",
+  "_parse_print": "a1df96ca5f44670591f0188534b55157ff030d89ff70ee442240606fd3260a74",
+  "_pd": "1f157c28d1232baf2765310e9b0a7018ada2632799a36559f63865275040b87a",
+  "_rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "_read_exclusion": "d0ffc354bd688f8e639d8fa1340a8a0b92c77f775162649aad395b8d8a500ba7",
+  "_read_frame": "bee9a3d4af912adcb16d83806ee03690a53514a685d338423e66d2b0ae241875",
+  "_split_dir": "8e6c3e83ad71e0ca0dcbc6fd91b7220d6e6130442f000dd45e67408adedec22d",
+  "all_days": "5bfe76119dccd0912a03aa35b45c479ad6d25a67c5f253ce5c15c1d4d6783ace",
+  "archive_name": "c1350dcf3319c5b61ba87b275694fed5a58aa8f9c38b62455c603e62721d83c2",
+  "archive_url": "442238b0147540c7aa3d884a1c2d7b6dbab1d0373b693b777f67bd4b5e59b543",
+  "audit_day_list": "595a8a17fb0cd231d61a88bc7acaa483db2ef46d7e03f9a9ef862cad9b1a136d",
+  "b_days": "2369ac38928ed6339af166b1246811cc854ae87f8c388f976a31847a42ad4d72",
+  "binance_fetch": "4b0f86d9743c196dea870ab064f0e4b1224af45f8d65b79a9aa8dd97389ae19e",
+  "books_fetch": "99a2ab94bd1ab89c427ac5b9b27f47c894fdbbb3635f5a31ea350238fbc1d1d3",
+  "candle_usable": "1ddce20cf1fb72981a17a1c30335e9ee1c9dd71ee0263ce370e59a094eb4a173",
+  "clopper_pearson_upper": "e3aa45a716d13f0860dfc826595a871e02f399456df8f3db7ccb10ce47c60c02",
+  "coverage_audit": "32c04dffcb2d24d45f94279a6e259c1dabbda60ab8878e06269cd1718682c65c",
+  "d_of": "39df83691da469f82ddc66964a4703b4f58f5640553f04186828e8f98940208f",
+  "day_order": "c08ad50c2635a63078ba2cfce2e54c1615a4681f77b8024366b9bc7a0a26ddba",
+  "day_split": "a0ac787f1d070203a9a59c88171674aeef680bd79c4be5ed8f031a4cbcb13970",
+  "day_states": "038e6d95f607a6166da7d7dd15dfb9286ea299d03b76b5263b6d0ec30b6de2be",
+  "declared": "bf456dc65b983fbeb9f52e76b345bab6e774faa35947abe5cef262cc447c46f1",
+  "derive_exclusion_ids": "ffcbe81f1b1cbc1db0768eedc04b023c032307b655d9d20ea3ef7a0931b918ef",
+  "drop_and_split": "25da06f6c60cd05c2e185297214c7d78dcb62ec221b02e3c6d1436e004ba4166",
+  "eligible_unit": "197c575c6aa65fbf443d1e0c60e24bbe21958961aff68af7a16d3a604603a9cd",
+  "exclusion_ids_cb8": "ccd7670c7e3548ab86c7af83219fc46b4a5a18b625fbdbed53df202811047f69",
+  "exclusion_keys": "112dbba5c10336dd6869eb3191e790f79301ca36eed81f44d88f374c5e8d4d0c",
+  "exclusion_stage": "d730812a0706aa865ecd07a3485dca4f7f514632faef05911eaff53b2fa3a108",
+  "extract_month": "3bef3495c7475cc69a439847a490c3cf12b70dcb23636f065f623cd0d9299f21",
+  "fee_rate": "cab159419c92265e8f292183bd53c674fb4c56cd108e8dff622933ef7b9a06e2",
+  "fetch_archive": "10183118e3b04828c22fa3f91c36ad43a62e195e13cb3e1eb5179234d8a9a7a7",
+  "finalize_books": "0c9a1966fb1646f227f051c284d8ac42868de35e377673c101c086937dc4b1c3",
+  "finalize_frame": "532bbe78b33f1fc0cb283dc47df0fe8ba0d704a226787367291bac5f2eb391e1",
+  "frame_reason": "70bea2fe148b7b79b9396c764cc542a01874099c3dc9f9ef4f637c358b8466be",
+  "frame_row": "d9fc5acf7d123ca379cf06cb7e7b168fb4c6a8546694d5f8f2f2be26ca2c087b",
+  "hour_dt": "657128a72888793077e842624aab93d38f9bf54a9e135e52f77e7edfc73e3814",
+  "httpx_blob_get": "a46f6be95db007121c13356298cf129800de582fbf2fbe8279b9c3c5274c186b",
+  "ingress_add": "7ce3766387d5df40dbb17d5ec58cf6c5ce4469d8058e1aaf5848285a24618ed9",
+  "ingress_used": "c4f87ac92b7e365685506c29e65792ae39591f7a92a2b80f4f118929682c466a",
+  "key_fields": "88d27e08e810b4e71c593ba9e5ca6c27469993d620a3945e857ba6a6495d606f",
+  "key_types_matched": "28fbd54f1bdaed2d468aef956c964b1f6daece450c95baad647f3944f66511dd",
+  "kline_rows": "7719e6436aad5a8e3803399dd598048bf128436ce1d875b918dea9ed8d170afa",
+  "latency_fill": "4bcf9019f40c15f8f822101afbf2a0fb18652c3dae1530e0294340ec6b7fa89a",
+  "list_files": "aff14ad39ccba420c941db36293ca741807d5e2da999647bed4e8c2b06a315ad",
+  "listing_sha256": "ee48bf45af2fbada416a38de2b78739d783b6741891015d52ffab6f32ebb4c5a",
+  "load_exclusion_keys": "2c76ceec14b9e7b3809841a47a81ec6423edef385f81000e491e1bfb3b778b7b",
+  "lookup_keys": "6f74d45659599efb8e6323b2521a2ab20b50c9064c38fc5b48192f8c6a85f850",
+  "min_present": "6910202cefee457fbfa1c348403cd1ea294cdecb054eaf9265df10b514e84652",
+  "outcome_label_order": "da2cc6ae31cd64105ee46ea9a538734b031d937f5fd24da8754faa19676b396e",
+  "parse_checksum": "59f76690e5492794b27f0984ee2188466f602a5dc15aabf010bd0b305b8c37ec",
+  "parse_updown": "872f4bf17a9064290d204c63b78f8bc275e0d2f2eb05539eb585edfb5f9aafb6",
+  "pmxt_url": "49aa2e801736dad3bbaa3b256b3e956c370c66c1659296d75913f73772ff1a35",
+  "read_hour_events": "d0890736de0dadfb569838947de30deaf198d04f0ba471d995556f37f2dbbf95",
+  "read_presence": "0f9c28254430d67b02b00c2c741c3cb5b80add88237952e032027e277881d443",
+  "required_margin": "fb0b4a96393a39286cde53f90d95fe6a2d44e3978b36f11a90b501e2d8d6b79f",
+  "run_smoke": "deb9cca54df9c02504484ef63a9548aa623f3d211dfebaadc9fc057ce869020a",
+  "seal_copy_ids": "d3dcab555304c5b8608fb5437f014f74c3fcf2ba76b48110e9a2e611bb3d9f3b",
+  "seal_copy_ids_audited": "32cb7d6a72748799474f853a829c6860672fba51d5fd736c0b8f3fd81e7d84de",
+  "seal_holdout": "61442e4777a33cad423260ef2f3948fec3d38c3248e72f21ea7dbd0e640cd02d",
+  "smoke_ok": "80ca1126c124df5455cdca6c698f8f1f017df66466e1f8429ac98afc308f3214",
+  "smoke_pmxt_hours": "5ef26af3925931fd162b6fb6d8f5d96d0cee4f7b239245896b81944bfd4d6ff4",
+  "smoke_pool": "787281f315f4297d7925f1b1e94cc0825e71289148cc9c07da94d5ed3d535317",
+  "smoke_pool_ids": "45f33e06bc108a7b640cc35fe704f1e9a1fc0d6ca407b3d01f999ca3dfc414bb",
+  "state_at": "96268de824d2819f477c3281d63daa69c7d1f259c8214d62073077b005b5d85c",
+  "t_end": "7c416c77c155867cdcf8b34832d59b0f3cf3029e0e8e5e6a45fd015a10d41fa7",
+  "tail_gate": "de0ae25e753d7ad21848f75f533ceb524533f19c5c47c083880c9933f0877cd2",
+  "taker_fee_per_share": "16fa694b70339c76f69c9805089b56bfa1872b44296a9b4edf0be00f795f8016",
+  "terminal_prints": "fd8cb18055f6b20ae6b525b436df1c53571aa61dbc64d151b4f535e1f408b4be",
+  "token_rows": "e195ad068c83a8d8ad66323f9d9c579f552d0618ec4de081f9052dfc37066c99",
+  "traded_unit": "2014d5c46f394034fb09847acc575ab06de8af78f5e54e16ac56db3539a200cf",
+  "unit_net": "26c155e957d72018ccc32a0162567df9728ea11c83a50cd51f4a1e405f47ef08",
+  "updown_frame": "fe2a5e8cf55b15caba81abb350d0473259e7f8cab054a5a53aa0f69350df843a",
+  "updown_row": "5737da3d4126dca4fc6583e1a5308477e9262631a8cf98597fa69520ef9bbddf",
+  "verify_manifest_files": "d9bbbd9f8c656e7a4a64edd8491d594378922482293e3003bd2493ceaac986fd",
+  "verify_zip": "89f4ad43942c00e84b498f896d100944609e65b0758dfaafe02bf32ffcbce793",
+  "walk_frame": "e802d9647355a01493a2c35bdd1cc0d619f7c7013e5fb340e237c171e26b3f44",
+  "week_split": "c5dce3734238bb446c7341da07a979378d57b53342a7cba38104176dc2ef12b1",
+  "windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757",
+  "z_features": "3584aa8c482f66158292adf7f11dda93f4a5e5f56d6b2fb17589510ec32ee95c"
+ },
+ "funcs_sha256": "61ddb3c0a8eccca8c7f23664ff58e2d77f9279cfebb21e40e64e78aa1436dd59",
+ "rules_sha256": "33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d",
+ "rules_version": "cb8-updown-rules-v2"
+}

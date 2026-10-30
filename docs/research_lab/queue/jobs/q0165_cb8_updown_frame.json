@@ -1,0 +1,47 @@
+{
+ "id": "q0165_cb8_updown_frame",
+ "title": "CB8-B: Gamma frame of daily crypto Up/Down markets ending 16:00Z on 2026-04-13..08-09 (minus the pmxt gap 06-12..06-17) (rule-text flags, frozen strike-clause regexes UP_RE/DOWN_RE with strike date = d - 1 and settlement date = d, resolutionSource parse, key drops, seeded ISO-week SCREEN/HOLDOUT split) + Binance 1m monthly archives 2026-04..08 (6 spot symbols, HYPEUSDT USD-M futures; CHECKSUM verified; settlement candles to the guarded file)",
+ "family": "creative_batch_8",
+ "priority": 48,
+ "expected_value": "population, split and Binance features for CH76",
+ "data": [
+  "public Gamma markets (closed, endDate windows)",
+  "data-dumps/research_lab/creative_batch8/exclusion_keys.csv.gz",
+  "data.binance.vision spot and futures/um monthly 1m klines"
+ ],
+ "resources": {
+  "mem_mb": 600,
+  "cpu": 1,
+  "network": "gamma-api, data.binance.vision",
+  "lane": "net"
+ },
+ "depends_on": [
+  "q0161_cb8_smoke",
+  "q0164c_cb8_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb8.py",
+  "updown-frame",
+  "--days",
+  "2026-04-13:2026-08-10",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.02",
+  "--data-dumps-cap-gb",
+  "40",
+  "--budget-min",
+  "50"
+ ],
+ "timeout_s": 3300,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/creative_batch8/updown_frame/{frame.csv.gz,split.json,klines_pre.csv.gz,strikes.csv.gz (SCREEN days only),holdout/klines_pre.csv.gz,holdout/strikes.csv.gz (HOLDOUT days; sealed by q0166),klines_settle_guarded.csv.gz,outcomes_guarded.csv.gz,manifest.json}"
+ ],
+ "next_action": "q0166 (reads updown_frame/ after verifying every file hash against its manifest)",
+ "notes": "CREATIVE_BATCH_8.md CB8-B. DRAFT. Not T_seal-bound (rows end 2026-08-10); commit after the q0161 PASS. Split written before any pmxt or kline read (seed arepo-cb8-updown-split). No code path compares consecutive strikes. About 1,300 Gamma requests and 35 archive files (about 80 MB). IMPLEMENTED 2026-10-17 (cb8_updown.updown_frame). Disk cap 0.02 GB (updown_frame run dir; with q0166's 0.02 the updown total is the declared 0.04 GB; --disk-cap-gb must equal the declared cap, else exit 2). Resumable per Gamma day and per (asset, month) archive; 3 failed attempts on an archive ends 'source_unverified' (B not run (source)); a disjointness_unverified exclusion report ends the run before any Binance request. The run directory is updown_frame/ (the books run is updown/). strikes.csv.gz holds K_d (previous day's settlement close) per asset-day; it is the only place the strike appears and no code path compares consecutive strikes. FREEZE-CHECK FIXES 2026-10-17: HOLDOUT-day klines_pre and strikes are written to updown_frame/holdout/ (listed in the q0166 HOLDOUT seal as frame_holdout/), the SCREEN files hold SCREEN days only; outcomes_guarded.csv.gz also stores outcome_labels (the order of outcome_prices); the walk partial is frame_partial_guarded.jsonl.gz (it holds outcomePrices; deleted at finalize); split.json reports frame_request_failed_days apart from days_without_market. Needs the committed seals/cb8_rules_v2.json (rules_sha256 33decb528bbafd46336296be57c91b76e6aaa0c69d7d3eecf92eaa83c4f12a6d). | 2026-10-17 15:35Z autopilot: data-dumps headroom guard 12.5 -> 40 GiB (ops only, not a declared argument): the user grew the host boot volume to 100 GB (root 89 GB, 60 GB free); collector cap 45 GiB, 4 GB free-disk guard unchanged. | 2026-10-22 ~16:15Z autopilot: PROMOTED. q0161 smoke criteria (b) Binance checksums and (c) pmxt HEADs PASS (ledger 2026-10-22; (a) FAIL only ends W1); q0164 pins done. | 2026-10-23: depends_on q0164b -> q0164c (q0164b cancelled after its disk-budget failure; q0164c resumes the same run directory, ops fix only, CB8 hashes unchanged).",
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "\"status\": \"(updown_frame_complete|disjointness_unverified|source_unverified)\""
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "id": "q0792_e011_inputs_archive",
+ "title": "E011 backup: point-in-time archive of the frozen inputs to arepo-data (archive_rotate --include-active on e011_analysis/inputs; archive only, never deletes)",
+ "family": "e011_analysis",
+ "priority": 97,
+ "expected_value": "an off-host verified copy of exactly the bytes analysed",
+ "data": [
+  "data-dumps/research_lab/e011_analysis/inputs/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "as_cap_mb": 8000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github"
+ },
+ "depends_on": [
+  "q0790_e011_precheck_freeze"
+ ],
+ "not_before": "2026-11-11T13:30:00Z",
+ "argv": [
+  "scripts/archive_rotate.py",
+  "--root",
+  "/home/opc/arepo",
+  "--scan",
+  "data-dumps/research_lab/e011_analysis",
+  "--older-than-days",
+  "1",
+  "--include-active",
+  "data-dumps/research_lab/e011_analysis/inputs/*"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "GitHub release data-YYYYMMDD-<host>-active in dayyansheikh/arepo-data (VERIFY.json)"
+ ],
+ "next_action": "cite the release tag and the ACTIVE_SNAPSHOT.json sha256s (must equal FREEZE_MANIFEST) in the result entry",
+ "notes": "Optional for the verdict: it does NOT gate the analysis (same ruling as q0777). Same command shape as the weekly active snapshot, default --state, no --delete. gh must be on the worker PATH (~/.local/bin). The result entry must cite its archive tag or state that it failed; the frozen inputs are byte prefixes of append-only live files (FREEZE_MANIFEST records sha256 and length) and can be rebuilt from the host or later snapshots. No retention step may touch the live surprise_live files until an archive covering the frozen byte length is verified. PROMOTED 2026-10-30 (reviews/E011_FIX_DIFF_CHECK_2026-10-30.md ACCEPT); was draft, not in queue/jobs; promote with q0790/q0791. Runbook: docs/research_lab/E011_ANALYSIS_RUNBOOK_2026-10-30.md."
+}

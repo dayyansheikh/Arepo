@@ -1,0 +1,142 @@
+{
+  "selection": "one token from two most recent public taker rows; diagnostic only",
+  "selection_capture": {
+    "capture_id": "1956f9dc-d78f-4828-9591-047e22142f70",
+    "source_id": "data.v2.trades",
+    "status": 200,
+    "raw_bytes": 1825,
+    "raw_hash": "36084d9b67d15891320565b5ec3b00700f6072d20b2c83546e15855ed612198a",
+    "received_at": "2026-09-20T22:07:44.210697Z",
+    "parse_error": null,
+    "parsed_artifact_available_at": "2026-09-20T22:07:44.212267Z",
+    "capture_kind": "live_diagnostic",
+    "research_admitted": false
+  },
+  "selection_directory": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_934c3aa7939040e4ad34f7fdbaea5507",
+  "report": {
+    "schema_version": "fs2-stream-probe-v1",
+    "capture_directory": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_a4670cc9edc04387b2470dad0570b003",
+    "frames_or_failed_attempts": 5,
+    "bytes": 5973,
+    "elapsed_seconds": "1.407636082964018",
+    "research_admitted": false,
+    "complete_continuous_history": false
+  },
+  "captures": [
+    {
+      "capture_id": "be8eef53-defc-4740-8c31-91a16200e2ad",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 3509,
+      "raw_hash": "46d1c333dcf785154edbcedcdec4ab06f7be045a5438f4619f8e72fb8b41970b",
+      "received_at": "2026-09-20T22:07:44.610442Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:07:44.612060Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "book"
+      ],
+      "replay_results": [
+        {
+          "accepted": true,
+          "bid_levels": 98,
+          "ask_levels": 1,
+          "complete_continuous_history": false
+        }
+      ]
+    },
+    {
+      "capture_id": "9cdef318-26cb-4d85-a331-78183fef6140",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 616,
+      "raw_hash": "f91fca1ed50f1ba7fd704e220e8518f743b5269ca5397708be29f5fb08d5bce8",
+      "received_at": "2026-09-20T22:07:44.612598Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:07:44.613606Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "price_change"
+      ],
+      "replay_results": [
+        {
+          "accepted": true,
+          "bid_levels": 98,
+          "ask_levels": 1,
+          "complete_continuous_history": false
+        }
+      ]
+    },
+    {
+      "capture_id": "f4591d26-859f-4d4f-b9aa-4745559153f5",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 618,
+      "raw_hash": "81fb89f8647252d2384a0f63f1ad95a76ae4feacee9bdb425c605d1ab70fa6e2",
+      "received_at": "2026-09-20T22:07:44.614068Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:07:44.615085Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "price_change"
+      ],
+      "replay_results": [
+        {
+          "accepted": true,
+          "bid_levels": 98,
+          "ask_levels": 1,
+          "complete_continuous_history": false
+        }
+      ]
+    },
+    {
+      "capture_id": "ba0fc4f7-ac2c-4a8a-8192-721086eee7ae",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 616,
+      "raw_hash": "05f4f3a33e148b4f14b80dcfd302a2f5240f993678351c3d0e536568b8b28311",
+      "received_at": "2026-09-20T22:07:44.615488Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:07:44.617397Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "price_change"
+      ],
+      "replay_results": [
+        {
+          "accepted": true,
+          "bid_levels": 98,
+          "ask_levels": 1,
+          "complete_continuous_history": false
+        }
+      ]
+    },
+    {
+      "capture_id": "c2a8d04e-d17b-472f-b0a8-685c6f83221f",
+      "source_id": "clob.market_stream",
+      "status": null,
+      "raw_bytes": 614,
+      "raw_hash": "66044dabb6db0ccca522119f7b6fb07cf1ee9cb6fe36472cae48dedea47ea7cf",
+      "received_at": "2026-09-20T22:07:44.617857Z",
+      "parse_error": null,
+      "parsed_artifact_available_at": "2026-09-20T22:07:44.618772Z",
+      "capture_kind": "live_diagnostic",
+      "research_admitted": false,
+      "message_types": [
+        "price_change"
+      ],
+      "replay_results": [
+        {
+          "accepted": true,
+          "bid_levels": 98,
+          "ask_levels": 1,
+          "complete_continuous_history": false
+        }
+      ]
+    }
+  ]
+}

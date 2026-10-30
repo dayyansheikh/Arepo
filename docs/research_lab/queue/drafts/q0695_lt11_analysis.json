@@ -1,0 +1,33 @@
+{
+ "id": "q0695_lt11_analysis",
+ "title": "LT11 single analysis (DRAFT): run_live_tests11.py analyze once, on or after 2026-12-10T12:00Z, on the pinned spec and code; refuses before the date, on an unpinned / null / NaN spec, a code-hash mismatch, or a k_tests naming a dropped test",
+ "family": "live_tests_11",
+ "priority": 60,
+ "expected_value": "the k counted LT11 verdicts (Holm over k, one-sided, familywise 0.05), F, labels, economics (never a verdict)",
+ "data": [
+  "data-dumps/research_lab/live_tests11/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 4000,
+  "as_cap_mb": 8000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "exclusive": true
+ },
+ "depends_on": [],
+ "not_before": "2026-12-10T12:00:00Z",
+ "argv": [
+  "scripts/run_live_tests11.py",
+  "analyze",
+  "--out",
+  "../data-dumps/research_lab/live_tests11/ANALYSIS.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests11/ANALYSIS.json"
+ ],
+ "next_action": "commit the analysis output and the ledger entry (k counted tests, kind live_tests11)",
+ "notes": "not_before is the analysis date (END_UTC + 36 h); it slides with the registration (1.1). Exclusive, single run. DRAFT, not in queue/jobs. Promote only after: the challenger review, the LT11 design-text freeze (LIVE_TESTS_11.md design text frozen at sha256 991100db5d6c75e3f76e3d0d10cc5f957dd755108e09ec05edd8dad0f91b3583), the LT11 code and the science-reviewer freeze check of the census and size-check code against LIVE_TESTS_11.md sections 1.4, 1.8, 1.8.1 and 7 (8.4 step 3), and never while E011's, LT2's or E015's analysis job, or an LT9 or LT10 census, size-check or analysis job, is running (memory-heavy-jobs rule). Counts 0 (descriptive; no trials line) except q0695, which writes the single counted trials line (kind live_tests11). Reads the DRAFT spec unpinned (except q0694 and q0695, which read the pinned spec); the code_sha256 of every hashed module is written into the output. Every gate threshold is stated in section 7 before this runs; nothing is re-tuned after it. Each census runs once; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 40 where the runner accepts it (exit 75 above the cap)."
+}

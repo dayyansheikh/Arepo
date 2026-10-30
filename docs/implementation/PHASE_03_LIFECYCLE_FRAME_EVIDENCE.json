@@ -1,0 +1,126 @@
+{
+  "report": {
+    "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+    "conflicting_condition_ids": [],
+    "conflicting_market_ids": [],
+    "conflicting_token_ids": [],
+    "duplicate_market_rows": 0,
+    "eligible_row_count": 235180,
+    "enumeration_terminal_observed": true,
+    "errors": [],
+    "exclusion_counts": {
+      "identity_unresolved": 44
+    },
+    "frame_available_at": {
+      "clock_session_id": "12d9007c-c468-4ff5-bc34-9c6d5550b572",
+      "monotonic_ns": "2080018194131333",
+      "utc": "2026-10-05T04:55:11.024151Z"
+    },
+    "frame_report_hash": "2d8207931e33773f2b021fe61de0056be51df2142d35fc68d00f9bb1e25f12b7",
+    "interval_end": {
+      "clock_session_id": "12d9007c-c468-4ff5-bc34-9c6d5550b572",
+      "monotonic_ns": "2079907589504750",
+      "utc": "2026-10-05T04:53:20.418720Z"
+    },
+    "interval_start": {
+      "clock_session_id": "12d9007c-c468-4ff5-bc34-9c6d5550b572",
+      "monotonic_ns": "2079482310559500",
+      "utc": "2026-10-05T04:46:15.136623Z"
+    },
+    "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f",
+    "page_manifest_hash": "6fcdf672876888d7b3dc96d053404e28868fd578730e57045797e074e0ca6027",
+    "policy_hash": "448c3acafc87f70ce1729c10ca920862ac9300a424900aeaa8d1b9b9fa0ee71b",
+    "population_inference_eligible": false,
+    "process_elapsed_ns": "811758475791",
+    "process_peak_resident_bytes": 583254016,
+    "provenance_class": "prospective",
+    "raw_bytes": 1524579122,
+    "recovered_failed_attempts": 0,
+    "retained_file_bytes": 3739809659,
+    "retained_files": 16476,
+    "retry_attempts": 0,
+    "schema_version": "fs2-gamma-frame-v4",
+    "scientific_stage": "measurement_development_only",
+    "source_rows": 235224,
+    "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+    "state": "exhausted_consistent",
+    "stop_reason": "terminal",
+    "unique_market_ids": 235224,
+    "unrecovered_errors": [],
+    "unverified_attempts": 0,
+    "verified_attempts": 2353
+  },
+  "wrapper": {
+    "implementation_commit": "f5eee00a6f294b0ce040b94ca95cec71b258dc94",
+    "started_at": "2026-10-05T04:45:24.985867+00:00",
+    "command": [
+      "caffeinate",
+      "-is",
+      "/Users/DayyanSheikh/Projects/astrolabe/backend/.venv/bin/python",
+      "-m",
+      "astrolabe.research_panel.frame_cli",
+      "enumerate",
+      "--output-parent",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps",
+      "--first-page-journal",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_c63c72a0fe194f47824ccc862b0619cd",
+      "--request-capacity-journal",
+      "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71",
+      "--request-capacity-commit",
+      "726cec27ff6eeb4c10b01dd0ebde84b9804d3fb0",
+      "--bounded-retries",
+      "--reuse-connections"
+    ],
+    "free_bytes": 18124161024,
+    "completed_at": "2026-10-05T04:58:57.299064+00:00",
+    "elapsed_ns": "812307276917",
+    "returncode": 0
+  },
+  "artifacts": [
+    {
+      "path": "data-dumps/fs2_frame_refresh_20261005_1_launch.json",
+      "bytes": 821,
+      "sha256": "f8f1cfb6a5a1202ad27a41d4cde2d3d31e6963730d50fa2701508e972e625ed0"
+    },
+    {
+      "path": "data-dumps/fs2_frame_refresh_20261005_1_result.json",
+      "bytes": 926,
+      "sha256": "2bb5fac78b30bf3259feb12439ef5853b8cfd2efb79a8012095eea67a305a462"
+    },
+    {
+      "path": "data-dumps/fs2_frame_refresh_20261005_1_stdout.jsonl",
+      "bytes": 1972,
+      "sha256": "a5f961c70c4aaa093997a94610ebf72bac8f53c4daeeb699680a06c62035d0de"
+    },
+    {
+      "path": "data-dumps/fs2_frame_refresh_20261005_1_stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f/frame_policy.json",
+      "bytes": 14162,
+      "sha256": "448c3acafc87f70ce1729c10ca920862ac9300a424900aeaa8d1b9b9fa0ee71b"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f/frame_policy_ack.json",
+      "bytes": 227,
+      "sha256": "70410822151bc9d9738393cfaac5da1975df8fe48e7f59696eba162f7fc33373"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f/frame_report.json",
+      "bytes": 2635290,
+      "sha256": "2d8207931e33773f2b021fe61de0056be51df2142d35fc68d00f9bb1e25f12b7"
+    },
+    {
+      "path": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_0da49550169349f9adc9947dcaecc76f/frame_report_ack.json",
+      "bytes": 227,
+      "sha256": "dca695c95a9b06ec0696c8a06c5ad7a345b8104b4e53a83284f1dc06c11d9c99"
+    }
+  ],
+  "accepted_complete_frame": true,
+  "accepted_panel": false,
+  "selection_permitted_under_one_hour_rule_at_0947_utc": false,
+  "limitation": "Completed04:58UTC; not consumed until09:47 continuation. Outside prospective1h rule; retained as complete historical evidence, never re-aged.",
+  "next": "One separately frozen end-to-end refresh/selection/pilot process to remove assistant-turn dependency."
+}

@@ -1,0 +1,49 @@
+{
+ "id": "q0017_h5_cb1_ladders_fetch",
+ "title": "CB1-F: pre-IF-H2 ladder universe (events 2024-01..2025-05), rung prices and trades (chunked <=150 min)",
+ "family": "history_data",
+ "priority": 61,
+ "expected_value": "ladder-disjoint data for CB1-B B1/B2",
+ "data": [
+  "public Gamma events/CLOB/Data API",
+  "if_h2 ladders.jsonl.gz (exclusion ids only)",
+  "history h1/h2/h3 sample.csv.gz (exclusion ids only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "network": "gamma-api, clob, data-api"
+ },
+ "depends_on": [
+  "q0033_h5_fix_gate"
+ ],
+ "argv": [
+  "scripts/cb1_h5.py",
+  "ladders-fetch",
+  "--run-id",
+  "h5_cb1_ladders",
+  "--start",
+  "2024-01-01",
+  "--end",
+  "2025-05-31",
+  "--exclude-runs",
+  "h1_first,h2_main,h3_power",
+  "--rps",
+  "4",
+  "--disk-cap-gb",
+  "0.15",
+  "--budget-min",
+  "150"
+ ],
+ "timeout_s": 10800,
+ "max_retries": 3,
+ "repeat": {
+  "max_runs": 4,
+  "until_log_regex": "ladders_fetch_complete|probe_failed"
+ },
+ "outputs": [
+  "data-dumps/research_lab/history/h5_cb1_ladders/{events,ladders}.jsonl.gz, probe.json, prices/, trades/, progress.jsonl, request_clock.json, manifest.json"
+ ],
+ "next_action": "q0018 (seal)",
+ "notes": "Probe of 20 seeded rungs first; exits 0 with status probe_failed if fewer than 80% have prices (B1/B2 not testable). The IF-H2 ladder file defaults to data-dumps/research_lab/if_h2/ladders.jsonl.gz and must exist on the host (fails loudly otherwise). Wall time is dominated by the hourly price windows; yields to the collector. | Fixes 1 (window union independent of close time) and 2 (trades capped at T_fetch, no chunk after T_seal 2026-10-22T00:00Z) landed; gated by q0033_h5_fix_gate."
+}

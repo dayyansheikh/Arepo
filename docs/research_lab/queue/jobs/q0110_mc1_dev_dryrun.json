@@ -1,0 +1,37 @@
+{
+ "id": "q0110_mc1_dev_dryrun",
+ "title": "MC1 multi-signal dev: dry run on the host captures (panel + folds + family coverage; fits and logs nothing)",
+ "family": "ml_multi_signal",
+ "priority": 50,
+ "expected_value": "measured panel size/memory/time and coverage before the real MC1 dev run (40-snapshot gate ~2026-10-17T19Z); also warms the parquet panel cache",
+ "data": [
+  "research_lab/snapshots (70 complete; longest consecutive run 30 at 2026-10-16T23Z)",
+  "research_lab/book_sweeps",
+  "research_lab/trade_samples"
+ ],
+ "resources": {
+  "mem_mb": 2000,
+  "cpu": 1
+ },
+ "depends_on": [],
+ "argv": [
+  "scripts/run_ml_dev.py",
+  "--dry-run",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--sweep-root",
+  "../data-dumps/research_lab/book_sweeps",
+  "--cache-root",
+  "../data-dumps/research_lab/ml_cache",
+  "--out-dir",
+  "../data-dumps/research_lab/ml_dev"
+ ],
+ "timeout_s": 5400,
+ "max_retries": 1,
+ "outputs": [
+  "dry-run report in the job log",
+  "ml_cache parquet"
+ ],
+ "next_action": "Claude session: read peak RSS/time from the log; size mem_mb for the real run q0111 (gate q0111a after the 40th consecutive capture, ~2026-10-17T19:00Z); snapshots since 2026-10-14T12:31Z must stay until the panel is cached (8-day retention deletes them from ~10-22)",
+ "notes": "MULTI_SIGNAL_PIPELINE_DESIGN.md section 6; never run before (gate was ~14-15 Oct, delayed by the 10-14 Mac outage gap). Dry run writes no trials."
+}

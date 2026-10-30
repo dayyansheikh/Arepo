@@ -1,0 +1,69 @@
+{
+ "capped_window_exclusions": {
+  "dropped_capped_by_day": null,
+  "rows_in_dropped_windows": null,
+  "windows_dropped_capped": null
+ },
+ "declaration": {
+  "dataset_role": "CB7 h8_geo: fresh fetch for the CB7 geopolitics longshot (G) screen; exploratory_historical, not prospective, not an edge claim",
+  "information_end": "manifest request_clock_now (T_fetch) < T_seal of h4_seal",
+  "read_rules": "verify the listing hash first; append every read to ACCESS_LOG.jsonl; outcomes only from outcomes_guarded.csv.gz and not before the CB7 freeze; DROPPED_* blocks of drops.csv.gz are never read",
+  "run_id": "h8_geo"
+ },
+ "declaration_sha256": "d9dce9bad8d7ed8415b8390803c33fb62dbde3bb2ac20c264bbdaff95e08f9ef",
+ "drops": {
+  "counts": {
+   "DROPPED_GEO_FRAME": 0,
+   "DROPPED_SEALED_RUNS": 218,
+   "KEPT": 2849
+  },
+  "drop_ids_from_seal_copies": 5414,
+  "drop_ids_without_metadata": 12,
+  "fetched_files_rehashed": 11,
+  "geo_frame": "n/a",
+  "geo_frame_ids": 0,
+  "n_sample": 3067,
+  "sources": {
+   "h7_cb4_era": "sealed",
+   "h7_cb4_series": "sealed",
+   "h8_tail": "sealed"
+  }
+ },
+ "exclusion_keys_sha256": "ce7fe2a4efca4320e1aa289075f19b06543215b5d089873147ae0d522a369a8d",
+ "files": {
+  "capped.csv.gz": "a3f30f1ead8faa2e091935ad984afe7e884f64494aa3e6d5897305c8b2aedb54",
+  "drops.csv.gz": "fbf32fc369486f63d14c246f85bd09c25890c5a8e455725081ff857992680c89",
+  "drops_report.json": "bd4a1286e1017781de2fe34af365f8f277847f37bfe19d1a00dbac2fe8a04b3e",
+  "frame.csv.gz": "4154a9ab27a1fa9ad2d7df0f4277e0fc2fe31d544b1740768efa504b0ddd5281",
+  "frame_report.json": "7ae4d7144a6aaba1c564e86bce5b9e1029d7478ac95660ccb798867f2a50800b",
+  "key_drops.json": "a2db23d8ef2cf83279daf458e507a9efa8c21504f69fed69d01c0cc5630b39cf",
+  "manifest.json": "329156a15658b73d92a55e7c2b328974ec6ee2ff68bb6f88abfb73512a9cb2cb",
+  "origin_prices.csv.gz": "3fb72259d4aa7b5a3a765cf0632b708b2522fe0925a4bd6ca0647fbd3203f614",
+  "origin_prints.csv.gz": "19240937a58149420fca0b02362be51fac67f5a2dc89123ea139516cdc8737a8",
+  "origins.csv.gz": "78935c9a931fa6be5bb8af566bdc99d9c01ab81ba9d9b032c53c2ad349535ff9",
+  "outcomes_guarded.csv.gz": "8f1817fd931bca3b47ebe358fc1985d8a980ce92551e0cc6fcf3c234562a5d12",
+  "progress.jsonl": "0757010b8b0281662af8707ef5b0b20fad2b2f87278172689c61812d2c2308f6",
+  "request_clock.json": "93e3eb24eb29e9c57bdc606089cd5524485d38f7a010a2ece24ea5123e0762fe",
+  "sample.csv.gz": "ca4d9ffe7d6e56cf1d3dfbc32de0527f222d8c3b7e8bc521e77dd4d585c1a5b9"
+ },
+ "git_commit": "8df23f1f7d92763aa26e97dc03254db2d85005b8",
+ "listing_sha256": "37a808b9036b7626e7a5b6978001b2698ae24afa0ce93d1fd3e36bd8eb64effd",
+ "manifest_sha256": "329156a15658b73d92a55e7c2b328974ec6ee2ff68bb6f88abfb73512a9cb2cb",
+ "n_files": 14,
+ "read_location": {
+  "data_root": "/home/opc/arepo/data-dumps/research_lab/history",
+  "host": "dsheikh",
+  "location": "host",
+  "note": "one read location for the life of h8; a change needs a committed note and the access log carried across",
+  "platform": "linux",
+  "run_dir_gb": 2.7983
+ },
+ "request_clock_now": "2026-10-17T13:26:03Z",
+ "rules_sha256": "05bf365cbb885d0183f31da1b032b2337830afaf262c90bfa1f0e9f9061221e9",
+ "run_id": "h8_geo",
+ "seal_version": "h5-seal-v1",
+ "sealed_incomplete": false,
+ "sealed_utc": "2026-10-22T05:27:52Z",
+ "t_fetch": "2026-10-17T13:26:03Z",
+ "total_bytes": 7735614
+}

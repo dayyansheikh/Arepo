@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LIVE cross-venue (Kalshi -> Polymarket) prospective test. Research only, read-only, never trades.
+     Install: replace __REPO__ and __HOME__, copy to ~/Library/LaunchAgents/com.arepo.cross-venue-live.plist,
+     then `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.arepo.cross-venue-live.plist`.
+     Stop: `launchctl bootout gui/$(id -u)/com.arepo.cross-venue-live`. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.arepo.cross-venue-live</string>
+  <key>ProgramArguments</key><array>
+    <string>__REPO__/backend/.venv/bin/python</string>
+    <string>__REPO__/backend/scripts/run_cross_venue_live.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO__/backend</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>Crashed</key><true/></dict>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/arepo-cross-venue-live.err</string>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/arepo-cross-venue-live.out</string>
+</dict></plist>

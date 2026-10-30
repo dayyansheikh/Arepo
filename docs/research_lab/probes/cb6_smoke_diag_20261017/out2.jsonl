@@ -1,0 +1,72 @@
+{"set": "A_smoke_life", "k": 0, "life_d": 0.7, "window_start_minus_created_d": -11.3, "life_trades_n_cap1000": 33, "first_trade_minus_window_start_d": 11.9, "last14d_f60_points": 16, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 1, "life_d": 0.1, "window_start_minus_created_d": -11.9, "life_trades_n_cap1000": 25, "first_trade_minus_window_start_d": 12.0, "last14d_f60_points": 1, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 2, "life_d": 6.5, "window_start_minus_created_d": -5.5, "life_trades_n_cap1000": 1000, "first_trade_minus_window_start_d": 11.6, "last14d_f60_points": 151, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 3, "life_d": 2.0, "window_start_minus_created_d": -10.0, "life_trades_n_cap1000": 45, "first_trade_minus_window_start_d": 12.5, "last14d_f60_points": 25, "last14d_first_point_minus_created_d": 0.9}
+{"set": "A_smoke_life", "k": 4, "life_d": 6.1, "window_start_minus_created_d": -5.9, "life_trades_n_cap1000": 3, "first_trade_minus_window_start_d": 12.1, "last14d_f60_points": 146, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 5, "life_d": 13.6, "window_start_minus_created_d": 1.6, "life_trades_n_cap1000": 109, "first_trade_minus_window_start_d": 6.2, "last14d_f60_points": 325, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 6, "life_d": 13.6, "window_start_minus_created_d": 1.6, "life_trades_n_cap1000": 654, "first_trade_minus_window_start_d": -1.4, "last14d_f60_points": 325, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 7, "life_d": 2.0, "window_start_minus_created_d": -10.0, "life_trades_n_cap1000": 1000, "first_trade_minus_window_start_d": 12.0, "last14d_f60_points": 44, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 8, "life_d": 0.9, "window_start_minus_created_d": -11.1, "life_trades_n_cap1000": 56, "first_trade_minus_window_start_d": 11.7, "last14d_f60_points": 8, "last14d_first_point_minus_created_d": 0.6}
+{"set": "A_smoke_life", "k": 9, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 1000, "first_trade_minus_window_start_d": 12.0, "last14d_f60_points": 24, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 10, "life_d": 0.6, "window_start_minus_created_d": -11.4, "life_trades_n_cap1000": 2, "first_trade_minus_window_start_d": 12.1, "last14d_f60_points": 13, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 11, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 261, "first_trade_minus_window_start_d": 11.9, "last14d_f60_points": 24, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 12, "life_d": 3.9, "window_start_minus_created_d": -8.1, "life_trades_n_cap1000": 158, "first_trade_minus_window_start_d": 8.2, "last14d_f60_points": 91, "last14d_first_point_minus_created_d": 0.1}
+{"set": "A_smoke_life", "k": 13, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 0, "first_trade_minus_window_start_d": null, "last14d_f60_points": 0, "last14d_first_point_minus_created_d": null}
+{"set": "A_smoke_life", "k": 14, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 0, "first_trade_minus_window_start_d": null, "last14d_f60_points": 0, "last14d_first_point_minus_created_d": null}
+{"set": "A_smoke_life", "k": 15, "life_d": 0.7, "window_start_minus_created_d": -11.3, "life_trades_n_cap1000": 0, "first_trade_minus_window_start_d": null, "last14d_f60_points": 0, "last14d_first_point_minus_created_d": null}
+{"set": "A_smoke_life", "k": 16, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 1000, "first_trade_minus_window_start_d": 12.0, "last14d_f60_points": 24, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 17, "life_d": 1.0, "window_start_minus_created_d": -11.0, "life_trades_n_cap1000": 141, "first_trade_minus_window_start_d": 11.2, "last14d_f60_points": 22, "last14d_first_point_minus_created_d": 0.0}
+{"set": "A_smoke_life", "k": 18, "life_d": 27.4, "window_start_minus_created_d": 15.4, "life_trades_n_cap1000": 1000, "first_trade_minus_window_start_d": 11.4, "last14d_f60_points": 335, "last14d_first_point_minus_created_d": 13.4}
+{"set": "A_smoke_life", "k": 19, "life_d": 26.2, "window_start_minus_created_d": 14.2, "life_trades_n_cap1000": 234, "first_trade_minus_window_start_d": 5.8, "last14d_f60_points": 336, "last14d_first_point_minus_created_d": 12.2}
+{"n_pool_h8like": 976}
+{"set": "B_h8like_origin", "k": 0, "j": 0, "n_origins": 3, "life_d": 154.3, "f60_n": 238, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 8}
+{"set": "B_h8like_origin", "k": 0, "j": 1, "n_origins": 3, "life_d": 154.3, "f60_n": 53, "expected": 240, "med_gap_s": 10785.0, "usable_at_t": false, "first_off_h": 0.0, "trades_n": 173}
+{"set": "B_h8like_origin", "k": 0, "j": 2, "n_origins": 3, "life_d": 154.3, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 288}
+{"set": "B_h8like_origin", "k": 1, "j": 0, "n_origins": 3, "life_d": 251.1, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 1, "j": 1, "n_origins": 3, "life_d": 251.1, "f60_n": 238, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 6}
+{"set": "B_h8like_origin", "k": 1, "j": 2, "n_origins": 3, "life_d": 251.1, "f60_n": 143, "expected": 240, "med_gap_s": 3603.0, "usable_at_t": false, "first_off_h": 1.0, "trades_n": 18}
+{"set": "B_h8like_origin", "k": 2, "j": 0, "n_origins": 3, "life_d": 34.9, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 4}
+{"set": "B_h8like_origin", "k": 2, "j": 1, "n_origins": 3, "life_d": 34.9, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 8}
+{"set": "B_h8like_origin", "k": 2, "j": 2, "n_origins": 3, "life_d": 34.9, "f60_n": 232, "expected": 240, "med_gap_s": 3599, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 17}
+{"set": "B_h8like_origin", "k": 3, "j": 0, "n_origins": 2, "life_d": 22.0, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 3, "j": 1, "n_origins": 2, "life_d": 22.0, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 4, "j": 0, "n_origins": 2, "life_d": 20.9, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 4, "j": 1, "n_origins": 2, "life_d": 20.9, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 5, "j": 0, "n_origins": 3, "life_d": 37.0, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 18}
+{"set": "B_h8like_origin", "k": 5, "j": 1, "n_origins": 3, "life_d": 37.0, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 24}
+{"set": "B_h8like_origin", "k": 5, "j": 2, "n_origins": 3, "life_d": 37.0, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 19}
+{"set": "B_h8like_origin", "k": 6, "j": 0, "n_origins": 2, "life_d": 20.3, "f60_n": 217, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 21.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 6, "j": 1, "n_origins": 2, "life_d": 20.3, "f60_n": 237, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 1}
+{"set": "B_h8like_origin", "k": 7, "j": 0, "n_origins": 3, "life_d": 72.3, "f60_n": 237, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 30}
+{"set": "B_h8like_origin", "k": 7, "j": 1, "n_origins": 3, "life_d": 72.3, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 7, "j": 2, "n_origins": 3, "life_d": 72.3, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 8, "j": 0, "n_origins": 3, "life_d": 69.0, "f60_n": 234, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 5.0, "trades_n": 46}
+{"set": "B_h8like_origin", "k": 8, "j": 1, "n_origins": 3, "life_d": 69.0, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 17}
+{"set": "B_h8like_origin", "k": 8, "j": 2, "n_origins": 3, "life_d": 69.0, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 4}
+{"set": "B_h8like_origin", "k": 9, "j": 0, "n_origins": 2, "life_d": 26.7, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 9, "j": 1, "n_origins": 2, "life_d": 26.7, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 10, "j": 0, "n_origins": 2, "life_d": 21.2, "f60_n": 98, "expected": 240, "med_gap_s": 3632, "usable_at_t": false, "first_off_h": 1.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 10, "j": 1, "n_origins": 2, "life_d": 21.2, "f60_n": 123, "expected": 240, "med_gap_s": 3613.0, "usable_at_t": true, "first_off_h": 1.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 11, "j": 0, "n_origins": 3, "life_d": 58.1, "f60_n": 42, "expected": 240, "med_gap_s": 3600, "usable_at_t": false, "first_off_h": 0.0, "trades_n": 43}
+{"set": "B_h8like_origin", "k": 11, "j": 1, "n_origins": 3, "life_d": 58.1, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 11, "j": 2, "n_origins": 3, "life_d": 58.1, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 12, "j": 0, "n_origins": 3, "life_d": 34.4, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 12, "j": 1, "n_origins": 3, "life_d": 34.4, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 1}
+{"set": "B_h8like_origin", "k": 12, "j": 2, "n_origins": 3, "life_d": 34.4, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 17}
+{"set": "B_h8like_origin", "k": 13, "j": 0, "n_origins": 3, "life_d": 124.3, "f60_n": 194, "expected": 240, "med_gap_s": 3601, "usable_at_t": true, "first_off_h": 5.0, "trades_n": 7}
+{"set": "B_h8like_origin", "k": 13, "j": 1, "n_origins": 3, "life_d": 124.3, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 2}
+{"set": "B_h8like_origin", "k": 13, "j": 2, "n_origins": 3, "life_d": 124.3, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 14, "j": 0, "n_origins": 3, "life_d": 26.8, "f60_n": 240, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 14, "j": 1, "n_origins": 3, "life_d": 26.8, "f60_n": 239, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 14, "j": 2, "n_origins": 3, "life_d": 26.8, "f60_n": 235, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 136}
+{"set": "B_h8like_origin", "k": 15, "j": 0, "n_origins": 3, "life_d": 27.1, "f60_n": 232, "expected": 240, "med_gap_s": 3600, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 15, "j": 1, "n_origins": 3, "life_d": 27.1, "f60_n": 241, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 15, "j": 2, "n_origins": 3, "life_d": 27.1, "f60_n": 207, "expected": 240, "med_gap_s": 3600.5, "usable_at_t": false, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 16, "j": 0, "n_origins": 2, "life_d": 20.1, "f60_n": 103, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": false, "first_off_h": 0.0, "trades_n": 1}
+{"set": "B_h8like_origin", "k": 16, "j": 1, "n_origins": 2, "life_d": 20.1, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 17, "j": 0, "n_origins": 1, "life_d": 16.1, "f60_n": 0, "expected": 240, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 18, "j": 0, "n_origins": 3, "life_d": 179.2, "f60_n": 241, "expected": 240, "med_gap_s": 3600.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 4}
+{"set": "B_h8like_origin", "k": 18, "j": 1, "n_origins": 3, "life_d": 179.2, "f60_n": 215, "expected": 240, "med_gap_s": 3601.0, "usable_at_t": true, "first_off_h": 1.0, "trades_n": 49}
+{"set": "B_h8like_origin", "k": 18, "j": 2, "n_origins": 3, "life_d": 179.2, "f60_n": 151, "expected": 240, "med_gap_s": 3605.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"set": "B_h8like_origin", "k": 19, "j": 0, "n_origins": 1, "life_d": 16.1, "f60_n": 199, "expected": 240, "med_gap_s": 3603.0, "usable_at_t": true, "first_off_h": 0.0, "trades_n": 0}
+{"requests": 140, "retries": 0, "throttled": 0}

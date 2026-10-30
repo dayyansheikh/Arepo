@@ -1,0 +1,35 @@
+{
+ "id": "q0744_lt14_catalogue_refresh",
+ "title": "LT14 data catalogue refresh (DRAFT): regenerate the data catalogue from the published arepo-data releases (through the latest published release) into a scratch directory, so that the sidecar restore q0743 selects against a current catalogue; read-only on GitHub, writes nothing outside --out",
+ "family": "live_tests_14",
+ "priority": 47,
+ "expected_value": "a current catalogue for q0743 (re-check F1: the repo catalogue stops at data-20261020-dsheikh and a stale catalogue makes the restore a silent no-op)",
+ "data": [
+  "arepo-data GitHub releases (read-only; MANIFEST.sha256, files.sha256, ARCHIVE_INFO.json, VERIFY.json, files.bytes.json via gh)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "github releases metadata (private data repo, read-only; gh authenticated on the host)",
+  "disk_mb": 200,
+  "as_cap_mb": 2000
+ },
+ "depends_on": [
+  "q0740b_lt14_schema_precheck"
+ ],
+ "not_before": "2026-11-17T05:01:00Z",
+ "argv": [
+  "scripts/archive_catalogue.py",
+  "--out",
+  "../data-dumps/research_lab/live_tests14_census/catalogue"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests14_census/catalogue/<tag>.jsonl",
+  "data-dumps/research_lab/live_tests14_census/catalogue/releases.json"
+ ],
+ "next_action": "q0743 (sidecar restore) reads this catalogue through --catalogue; optionally check releases.json for a data-20261117* release row, but q0743's pre- and post-restore coverage checks are the real guard (a missing 11-17 release shows up as a gap, exit 3). gh is installed and authenticated on the host; the repo catalogue in docs/research_lab/data_catalogue is NOT touched by this job",
+ "notes": "DRAFT, not in queue/jobs. Re-check F1 (reviews/LT14_CODE_RECHECK_2026-10-30.md). The command is archive_catalogue.py unchanged (docs/research_lab/data_catalogue/README.md; idempotent, writes only under --out; draft releases are skipped). A scratch --out keeps the host checkout's tracked catalogue unmodified. gh is installed and authenticated on the Oracle host. Counts 0 (descriptive; no trials line). Runs ONCE; max_retries 1 covers a transient network failure. PROMOTED 2026-10-30 ~10:05Z after the F re-check fixes A-D (reviews/LT14_CODE_F_RECHECK_2026-10-30.md promotion conditions met; live_tests14.py eec6f9ba… re-announced in the ledger). 2026-10-30 ops-only: depends on q0740b (q0740 re-issued after an import MemoryError at the 400 MB cap); as_cap_mb 2000 added."
+}

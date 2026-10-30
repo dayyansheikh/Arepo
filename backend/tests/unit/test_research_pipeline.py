@@ -124,7 +124,7 @@ async def test_distinct_cadences_are_independent(session):
     assert counts == {CADENCE_6H: 1, CADENCE_DAILY: 1, CADENCE_WEEKLY: 1}
 
 
-async def test_forward_collection_is_causal_and_idempotent(session):
+async def test_forward_collection_is_causal_and_idempotent(session, monkeypatch):
     screens = [_screen("d0", 0.5, "up", 2, rp=90)]
     inputs = build_entry_inputs(screens, now=CUTOFF)
     await freeze_from_inputs(session, cadence=CADENCE_6H, cutoff_at=CUTOFF,
@@ -150,6 +150,11 @@ async def test_forward_collection_is_causal_and_idempotent(session):
         session, now=CUTOFF + timedelta(hours=24, minutes=6), price_of=price_of
     )
     assert r2["written"] == 0 and r2["already_present"] >= 3
+    # Monitoring reads its own wall clock; keep it at the same synthetic collection time.
+    monkeypatch.setattr(
+        "astrolabe.evaluation.research_tracking.utcnow",
+        lambda: CUTOFF + timedelta(hours=24, minutes=6),
+    )
     backlog = await pending_forward_backlog(session)
     assert backlog["backlog"] == 0  # 7d not due yet, so not counted as backlog
 

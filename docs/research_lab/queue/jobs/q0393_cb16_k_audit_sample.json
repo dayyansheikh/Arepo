@@ -1,0 +1,36 @@
+{
+ "id": "q0393_cb16_k_audit_sample",
+ "title": "CB16-K topic-audit sample, no outcome, no price, no network: 100 PRESENT-TOPIC (Polymarket, Kalshi) pairs drawn with seed 16141 (weakest topic twin shown); auditor file = titles and the two 3-day-rule dates only; separate key file; manifest with sha256 of both files and the input pins",
+ "family": "creative_batch_16",
+ "priority": 9,
+ "expected_value": "the blind topic audit required by the CH143 re-entry rule",
+ "data": [
+  "research_lab/cross_venue/{poly_markets.json,kalshi_markets*.jsonl,matches_all.json,audit_flags.json} (sha256 pinned; field-restricted)",
+  "creative_batch16/census_K.json (q0383 output; counts_pass, pins and seed verified)"
+ ],
+ "resources": {
+  "mem_mb": 1500,
+  "cpu": 1,
+  "lane": "cpu",
+  "exclusive": true
+ },
+ "depends_on": [
+  "q0383_cb16_k_census"
+ ],
+ "argv": [
+  "scripts/run_cb16.py",
+  "k-audit-sample",
+  "--rules",
+  "../docs/research_lab/seals/cb16_rules.json"
+ ],
+ "timeout_s": 4200,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch16/audit_K_sample.json (for the auditor)",
+  "research_lab/creative_batch16/audit_K_keys.json (NOT for the auditor)",
+  "research_lab/creative_batch16/audit_K_manifest.json",
+  "trials.jsonl (cb16_descriptive)"
+ ],
+ "next_action": "science-reviewer audits audit_K_sample.json only (titles and dates; never the key file); record the genuine-twin share against the 90% bar in the ledger",
+ "notes": "DRAFT, not promoted. Same inputs, readers, labeller and text rule as q0383 (cb16_k.py is unchanged, so the K rules hash is unchanged); new logic is in cb16_k_audit.py. Re-derives the PRESENT-TOPIC set and refuses unless its count equals census_K.json label_counts. Re-reads the Kalshi (326k) and Polymarket (148k) files like the census, so about the census's wall time (budget 30-60 min) and 1.2-1.5 GB; run alone. Sampling: sort (market_id, ticker) keys, numpy default_rng(16141).choice(N, min(100, N), replace=False), pair index = draw order; several twins -> the weakest (lowest Jaccard) is shown. Write-once outputs under creative_batch16. No network. | 2026-10-22 ~17:20Z autopilot: PROMOTED (code cherry-picked onto chore, tests pass)."
+}

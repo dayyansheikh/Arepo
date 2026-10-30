@@ -1,0 +1,1551 @@
+{
+ "version": "maker-rewards-dev-v1",
+ "kind": "development (exploratory_historical; not a test, not counted)",
+ "runs": [
+  "h2_main",
+  "h3_power"
+ ],
+ "per_run": {
+  "h2_main": {
+   "sample_rows": 3200,
+   "markets_used": 2220,
+   "truncated_listed": 41
+  },
+  "h3_power": {
+   "sample_rows": 10000,
+   "markets_used": 6741,
+   "truncated_listed": 60
+  }
+ },
+ "exclusions": {
+  "not_closed_at_fetch": 840,
+  "fills_dropped_after_close_or_invalid": 3684,
+  "trades_truncated": 89,
+  "no_fills_before_close": 3101,
+  "not_resolved_0_1 (50/50 or other)": 209
+ },
+ "crypto_short_slug_check": {
+  "updown_slug": 1605,
+  "other_slug": 301
+ },
+ "units": "event (event_id; market id when absent)",
+ "n_boot": 2000,
+ "seed": 20261020,
+ "min_units": 30,
+ "dev_end_utc": 1792627200,
+ "cells": {
+  "all_incl_sports": {
+   "units": 7676,
+   "fills": 2333836,
+   "shares": 216047564.965378,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.081407723441914,
+   "maker_gross_c_pooled_ci": [
+    -0.16762922713793532,
+    2.300780198442594
+   ],
+   "maker_gross_c_pooled_fill": -0.3453988622189906,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.6137107439472341,
+    -0.08107412998843622
+   ],
+   "maker_net_c_pooled": 1.1424548931874845,
+   "maker_net_c_pooled_ci": [
+    -0.10402218485360967,
+    2.3657546243554766
+   ],
+   "taker_net_c_pooled": -1.4351090012235292,
+   "taker_net_c_pooled_ci": [
+    -2.666643309452141,
+    -0.1863088681163999
+   ],
+   "maker_return_pct_pooled": 2.16433750835216,
+   "maker_return_pct_pooled_ci": [
+    -0.3362864883142979,
+    4.661204218538969
+   ],
+   "taker_return_pct_pooled": -2.8682009519013474,
+   "taker_return_pct_pooled_ci": [
+    -5.3284212780252735,
+    -0.37273511713834545
+   ],
+   "fee_c_pooled": 0.35370127778161525,
+   "rebate_c_pooled": 0.06104716974557035,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.05365376052569767,
+   "unit_ratio_sd_c": 13.016561636699434,
+   "top5_unit_share_of_shares": 0.0811702292329482,
+   "maker_gross_c_pooled_drop_top5": 0.897579364224137
+  },
+  "all_ex_sports": {
+   "units": 5154,
+   "fills": 2058786,
+   "shares": 158165449.165924,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.7377807342118942,
+   "maker_gross_c_pooled_ci": [
+    -0.5628230030667115,
+    2.1688317900432446
+   ],
+   "maker_gross_c_pooled_fill": -0.36640002420287493,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.6365964307101882,
+    -0.09603480243640726
+   ],
+   "maker_net_c_pooled": 0.7769831680423563,
+   "maker_net_c_pooled_ci": [
+    -0.5205543897512722,
+    2.2107678238802877
+   ],
+   "taker_net_c_pooled": -0.926352181630001,
+   "taker_net_c_pooled_ci": [
+    -2.359877547813535,
+    0.365381771142252
+   ],
+   "maker_return_pct_pooled": 1.507575156240645,
+   "maker_return_pct_pooled_ci": [
+    -1.1417823501051476,
+    4.524234165541093
+   ],
+   "taker_return_pct_pooled": -1.8141798576224966,
+   "taker_return_pct_pooled_ci": [
+    -4.561339197108663,
+    0.7168524773964456
+   ],
+   "fee_c_pooled": 0.18857144741810697,
+   "rebate_c_pooled": 0.039202433830462104,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.1483572198232952,
+   "unit_ratio_sd_c": 9.602191178660268,
+   "top5_unit_share_of_shares": 0.1098645651785671,
+   "maker_gross_c_pooled_drop_top5": 0.8025759681594011
+  },
+  "class=sports": {
+   "units": 2524,
+   "fills": 275050,
+   "shares": 57882115.799453996,
+   "status": "estimated",
+   "maker_gross_c_pooled": 2.020383715359834,
+   "maker_gross_c_pooled_ci": [
+    -0.3649388890579663,
+    4.528393089516019
+   ],
+   "maker_gross_c_pooled_fill": -0.18820235876087993,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.0327358999018843,
+    0.6593847889874208
+   ],
+   "maker_net_c_pooled": 2.141122595061119,
+   "maker_net_c_pooled_ci": [
+    -0.24466255590151925,
+    4.656239363219585
+   ],
+   "taker_net_c_pooled": -2.825309580035066,
+   "taker_net_c_pooled_ci": [
+    -5.322959960744458,
+    -0.4365008800754409
+   ],
+   "maker_return_pct_pooled": 3.8286550406989033,
+   "maker_return_pct_pooled_ci": [
+    -0.6932033178126453,
+    8.555494387669922
+   ],
+   "taker_return_pct_pooled": -5.982031354231552,
+   "taker_return_pct_pooled_ci": [
+    -11.267001019435249,
+    -0.9213325590319071
+   ],
+   "fee_c_pooled": 0.8049258646752322,
+   "rebate_c_pooled": 0.12073887970128483,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.13822944469244067,
+   "unit_ratio_sd_c": 18.084827458404323,
+   "top5_unit_share_of_shares": 0.1416764951100035,
+   "maker_gross_c_pooled_drop_top5": 1.7600000356159986
+  },
+  "class=sports|maker_bought>=0.50": {
+   "units": 1638,
+   "fills": 125819,
+   "shares": 30822073.424539,
+   "status": "estimated",
+   "maker_gross_c_pooled": 4.394286082573343,
+   "maker_gross_c_pooled_ci": [
+    -0.5032665045622176,
+    9.709274619505978
+   ],
+   "maker_gross_c_pooled_fill": 1.8479617918786508,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.1726922059221465,
+    4.673687822912065
+   ],
+   "maker_net_c_pooled": 4.508261630312312,
+   "maker_net_c_pooled_ci": [
+    -0.3878857846455912,
+    9.83060440219932
+   ],
+   "taker_net_c_pooled": -5.154123067499804,
+   "taker_net_c_pooled_ci": [
+    -10.517214608283396,
+    -0.2659382948819659
+   ],
+   "maker_return_pct_pooled": 5.85949664594121,
+   "maker_return_pct_pooled_ci": [
+    -0.6722127366074683,
+    13.389713002095846
+   ],
+   "taker_return_pct_pooled": -20.611758870592404,
+   "taker_return_pct_pooled_ci": [
+    -39.40389810016779,
+    -1.0578796056407551
+   ],
+   "fee_c_pooled": 0.7598369849264606,
+   "rebate_c_pooled": 0.11397554773896905,
+   "maker_gross_c_unit_mean_BIASED_reference": 2.1443924055593206,
+   "unit_ratio_sd_c": 27.87540509372743,
+   "top5_unit_share_of_shares": 0.16019018324163398,
+   "maker_gross_c_pooled_drop_top5": 2.9712133943179944
+  },
+  "class=sports|maker_bought<0.50": {
+   "units": 2429,
+   "fills": 149231,
+   "shares": 27060042.374914996,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.6835511880374294,
+   "maker_gross_c_pooled_ci": [
+    -7.203148981096039,
+    6.292535956087267
+   ],
+   "maker_gross_c_pooled_fill": -1.9049243352223064,
+   "maker_gross_c_pooled_fill_ci": [
+    -4.689786355668554,
+    1.014287236434901
+   ],
+   "maker_net_c_pooled": -0.5551087019836922,
+   "maker_net_c_pooled_ci": [
+    -7.077810054135899,
+    6.42279214347751
+   ],
+   "taker_net_c_pooled": -0.17273205232081887,
+   "taker_net_c_pooled_ci": [
+    -7.1795229991800795,
+    6.389010604085029
+   ],
+   "maker_return_pct_pooled": -2.489611084707307,
+   "maker_return_pct_pooled_ci": [
+    -26.259791658990178,
+    22.2680127391673
+   ],
+   "taker_return_pct_pooled": -0.23810707105289186,
+   "taker_return_pct_pooled_ci": [
+    -9.894576640913005,
+    8.845483975958107
+   ],
+   "fee_c_pooled": 0.8562832403582483,
+   "rebate_c_pooled": 0.12844248605373723,
+   "maker_gross_c_unit_mean_BIASED_reference": -1.3126694096815248,
+   "unit_ratio_sd_c": 22.771201989571647,
+   "top5_unit_share_of_shares": 0.14210700332164872,
+   "maker_gross_c_pooled_drop_top5": -1.7519853758536796
+  },
+  "class=sports|h>30d": {
+   "units": 27,
+   "fills": 2849,
+   "shares": 833747.173816,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=crypto_short": {
+   "units": 2516,
+   "fills": 1217239,
+   "shares": 31159792.657563,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.06389631396824592,
+   "maker_gross_c_pooled_ci": [
+    -0.36753697218287823,
+    0.22475626046469546
+   ],
+   "maker_gross_c_pooled_fill": -0.5769225176806363,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.9424249967874875,
+    -0.22339690391164568
+   ],
+   "maker_net_c_pooled": 0.07936231734919394,
+   "maker_net_c_pooled_ci": [
+    -0.22560350112918956,
+    0.3694539100787682
+   ],
+   "taker_net_c_pooled": -0.6523968426189534,
+   "taker_net_c_pooled_ci": [
+    -0.9495631704725906,
+    -0.33276283068296886
+   ],
+   "maker_return_pct_pooled": -0.13605521601463347,
+   "maker_return_pct_pooled_ci": [
+    -0.7905297765707017,
+    0.4769687797913308
+   ],
+   "taker_return_pct_pooled": -1.230090686423217,
+   "taker_return_pct_pooled_ci": [
+    -1.7987176338206619,
+    -0.6233105797223095
+   ],
+   "fee_c_pooled": 0.7162931565871993,
+   "rebate_c_pooled": 0.14325863131743985,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.40460970436745186,
+   "unit_ratio_sd_c": 7.327157415580532,
+   "top5_unit_share_of_shares": 0.033519163489475104,
+   "maker_gross_c_pooled_drop_top5": -0.1100109544342769
+  },
+  "class=crypto_short|maker_bought>=0.50": {
+   "units": 2188,
+   "fills": 493626,
+   "shares": 14353427.889472,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.6866022067542359,
+   "maker_gross_c_pooled_ci": [
+    -0.215962568954189,
+    3.3521885364857256
+   ],
+   "maker_gross_c_pooled_fill": 1.3748186820477857,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.5657746098665132,
+    3.1021790942234455
+   ],
+   "maker_net_c_pooled": 1.8354545521213068,
+   "maker_net_c_pooled_ci": [
+    -0.0621462950899797,
+    3.5028947797429772
+   ],
+   "taker_net_c_pooled": -2.4308639335895887,
+   "taker_net_c_pooled_ci": [
+    -4.114874480777366,
+    -0.5438487754771701
+   ],
+   "maker_return_pct_pooled": 2.169059324634677,
+   "maker_return_pct_pooled_ci": [
+    -0.27541223967320655,
+    4.322972434613825
+   ],
+   "taker_return_pct_pooled": -10.928822244834747,
+   "taker_return_pct_pooled_ci": [
+    -18.337100051413092,
+    -2.372869831856153
+   ],
+   "fee_c_pooled": 0.7442617268353531,
+   "rebate_c_pooled": 0.14885234536707065,
+   "maker_gross_c_unit_mean_BIASED_reference": 2.504963511132082,
+   "unit_ratio_sd_c": 22.584624383731533,
+   "top5_unit_share_of_shares": 0.03899692639934183,
+   "maker_gross_c_pooled_drop_top5": 1.8394047258466737
+  },
+  "class=crypto_short|maker_bought<0.50": {
+   "units": 2509,
+   "fills": 723613,
+   "shares": 16806364.768091,
+   "status": "estimated",
+   "maker_gross_c_pooled": -1.558904582235859,
+   "maker_gross_c_pooled_ci": [
+    -3.014588812157213,
+    0.14226852347152025
+   ],
+   "maker_gross_c_pooled_fill": -1.908338898338725,
+   "maker_gross_c_pooled_fill_ci": [
+    -3.4390700079074144,
+    -0.18007690176932173
+   ],
+   "maker_net_c_pooled": -1.4204232464462503,
+   "maker_net_c_pooled_ci": [
+    -2.8808196489140685,
+    0.2891446023539667
+   ],
+   "taker_net_c_pooled": 0.8664979032878158,
+   "taker_net_c_pooled_ci": [
+    -0.8438601078754433,
+    2.3130478725928447
+   ],
+   "maker_return_pct_pooled": -7.544000143410824,
+   "maker_return_pct_pooled_ci": [
+    -14.653549909891009,
+    0.6785779876110019
+   ],
+   "taker_return_pct_pooled": 1.0921897971141459,
+   "taker_return_pct_pooled_ci": [
+    -1.0721485662760943,
+    2.9272632281989126
+   ],
+   "fee_c_pooled": 0.6924066789480431,
+   "rebate_c_pooled": 0.1384813357896086,
+   "maker_gross_c_unit_mean_BIASED_reference": -1.1822124049606604,
+   "unit_ratio_sd_c": 13.68947591286522,
+   "top5_unit_share_of_shares": 0.03800631647283674,
+   "maker_gross_c_pooled_drop_top5": -1.4303164407463942
+  },
+  "class=crypto_short|h>30d": {
+   "units": 0,
+   "fills": 0,
+   "shares": 0.0,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=crypto_other": {
+   "units": 243,
+   "fills": 72028,
+   "shares": 5387267.451307001,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.2932789927277871,
+   "maker_gross_c_pooled_ci": [
+    -0.23856768478887305,
+    0.8789194791943968
+   ],
+   "maker_gross_c_pooled_fill": -0.2358586925043036,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.2083467419699419,
+    0.7569000603228071
+   ],
+   "maker_net_c_pooled": 0.39717140512138743,
+   "maker_net_c_pooled_ci": [
+    -0.13447366877641628,
+    0.9968003974471786
+   ],
+   "taker_net_c_pooled": -0.8127410546957883,
+   "taker_net_c_pooled_ci": [
+    -1.4824441362548086,
+    -0.28286213747072
+   ],
+   "maker_return_pct_pooled": 0.6113053439005385,
+   "maker_return_pct_pooled_ci": [
+    -0.48932941959793896,
+    1.8084645534408066
+   ],
+   "taker_return_pct_pooled": -1.5622383117335348,
+   "taker_return_pct_pooled_ci": [
+    -2.8375719403848025,
+    -0.5381653881139302
+   ],
+   "fee_c_pooled": 0.5194620619680012,
+   "rebate_c_pooled": 0.10389241239360024,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.9918172189204946,
+   "unit_ratio_sd_c": 9.712027650533932,
+   "top5_unit_share_of_shares": 0.38207725163257394,
+   "maker_gross_c_pooled_drop_top5": 0.34113262584475446
+  },
+  "class=crypto_other|maker_bought>=0.50": {
+   "units": 206,
+   "fills": 28235,
+   "shares": 2556430.3311310005,
+   "status": "estimated",
+   "maker_gross_c_pooled": 2.408434413333369,
+   "maker_gross_c_pooled_ci": [
+    -1.4805167397195937,
+    6.084985101960139
+   ],
+   "maker_gross_c_pooled_fill": 1.933984466945635,
+   "maker_gross_c_pooled_fill_ci": [
+    -4.52848581328853,
+    7.563803443120185
+   ],
+   "maker_net_c_pooled": 2.5128600629773308,
+   "maker_net_c_pooled_ci": [
+    -1.3583003463223593,
+    6.186930985125539
+   ],
+   "taker_net_c_pooled": -2.9305626615531772,
+   "taker_net_c_pooled_ci": [
+    -6.622086598562762,
+    0.8815550417042535
+   ],
+   "maker_return_pct_pooled": 2.7597038262579674,
+   "maker_return_pct_pooled_ci": [
+    -1.7070967849293455,
+    7.184827056292433
+   ],
+   "taker_return_pct_pooled": -23.023595828746576,
+   "taker_return_pct_pooled_ci": [
+    -49.04801234659559,
+    6.7315217901010715
+   ],
+   "fee_c_pooled": 0.5221282482198083,
+   "rebate_c_pooled": 0.10442564964396168,
+   "maker_gross_c_unit_mean_BIASED_reference": 2.898304108804679,
+   "unit_ratio_sd_c": 21.126461525628528,
+   "top5_unit_share_of_shares": 0.37081990784884894,
+   "maker_gross_c_pooled_drop_top5": -0.19228212578943701
+  },
+  "class=crypto_other|maker_bought<0.50": {
+   "units": 243,
+   "fills": 43793,
+   "shares": 2830837.1201760005,
+   "status": "estimated",
+   "maker_gross_c_pooled": -1.6168441414340518,
+   "maker_gross_c_pooled_ci": [
+    -5.289833761096475,
+    2.3927328500084157
+   ],
+   "maker_gross_c_pooled_fill": -1.634838474822688,
+   "maker_gross_c_pooled_fill_ci": [
+    -6.01029277704363,
+    3.1795743166883095
+   ],
+   "maker_net_c_pooled": -1.5134332770146521,
+   "maker_net_c_pooled_ci": [
+    -5.198189114276031,
+    2.495704940992478
+   ],
+   "taker_net_c_pooled": 1.099789819337054,
+   "taker_net_c_pooled_ci": [
+    -3.0502242432751965,
+    4.776342220004976
+   ],
+   "maker_return_pct_pooled": -12.945779892454555,
+   "maker_return_pct_pooled_ci": [
+    -40.35489603274921,
+    19.171648875336007
+   ],
+   "taker_return_pct_pooled": 1.2567497284833087,
+   "taker_return_pct_pooled_ci": [
+    -3.4915958127394955,
+    5.6064928076004765
+   ],
+   "fee_c_pooled": 0.5170543220969975,
+   "rebate_c_pooled": 0.10341086441939952,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.12408933476849916,
+   "unit_ratio_sd_c": 13.696541075625996,
+   "top5_unit_share_of_shares": 0.40329225176544964,
+   "maker_gross_c_pooled_drop_top5": 0.6688258604207118
+  },
+  "class=crypto_other|h>30d": {
+   "units": 1,
+   "fills": 1434,
+   "shares": 263050.584417,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=negrisk_multi": {
+   "units": 881,
+   "fills": 343598,
+   "shares": 39818418.397518,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.9016930265104439,
+   "maker_gross_c_pooled_ci": [
+    -2.4200732388733286,
+    0.5705719567663824
+   ],
+   "maker_gross_c_pooled_fill": -0.08531401810118229,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.7186817097641094,
+    0.5898763418779943
+   ],
+   "maker_net_c_pooled": -0.8798915014243609,
+   "maker_net_c_pooled_ci": [
+    -2.3947440353594995,
+    0.5898040928739051
+   ],
+   "taker_net_c_pooled": 0.8144869261661121,
+   "taker_net_c_pooled_ci": [
+    -0.6527341306395433,
+    2.314013319256325
+   ],
+   "maker_return_pct_pooled": -1.8213457684592063,
+   "maker_return_pct_pooled_ci": [
+    -5.0874616042106355,
+    1.1339774701645837
+   ],
+   "taker_return_pct_pooled": 1.61306789918824,
+   "taker_return_pct_pooled_ci": [
+    -1.2674622184012454,
+    4.541789871359525
+   ],
+   "fee_c_pooled": 0.08720610034433196,
+   "rebate_c_pooled": 0.02180152508608299,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.139784156827956,
+   "unit_ratio_sd_c": 7.978309793896235,
+   "top5_unit_share_of_shares": 0.24737376662501948,
+   "maker_gross_c_pooled_drop_top5": -0.65331393265382
+  },
+  "class=negrisk_multi|maker_bought>=0.50": {
+   "units": 765,
+   "fills": 112936,
+   "shares": 19541642.931484,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.5421937466194005,
+   "maker_gross_c_pooled_ci": [
+    -3.027486638446428,
+    1.8189464606743346
+   ],
+   "maker_gross_c_pooled_fill": -0.1831338581262834,
+   "maker_gross_c_pooled_fill_ci": [
+    -2.859684709200411,
+    2.5889527087646313
+   ],
+   "maker_net_c_pooled": -0.5210794797774131,
+   "maker_net_c_pooled_ci": [
+    -3.0028084821345495,
+    1.844806264062135
+   ],
+   "taker_net_c_pooled": 0.457736679251451,
+   "taker_net_c_pooled_ci": [
+    -1.9131934326424036,
+    2.9334336243808883
+   ],
+   "maker_return_pct_pooled": -0.6029097262311403,
+   "maker_return_pct_pooled_ci": [
+    -3.454919910267373,
+    2.0199941327845963
+   ],
+   "taker_return_pct_pooled": 4.545325592014035,
+   "taker_return_pct_pooled_ci": [
+    -18.92866024812163,
+    27.34278500016642
+   ],
+   "fee_c_pooled": 0.08445706736794945,
+   "rebate_c_pooled": 0.02111426684198736,
+   "maker_gross_c_unit_mean_BIASED_reference": 1.288623705832456,
+   "unit_ratio_sd_c": 16.13797649185353,
+   "top5_unit_share_of_shares": 0.30501270925332385,
+   "maker_gross_c_pooled_drop_top5": -1.0938835500013153
+  },
+  "class=negrisk_multi|maker_bought<0.50": {
+   "units": 881,
+   "fills": 230662,
+   "shares": 20276775.466034,
+   "status": "estimated",
+   "maker_gross_c_pooled": -1.2481586947585561,
+   "maker_gross_c_pooled_ci": [
+    -4.927892078982701,
+    3.00931162633201
+   ],
+   "maker_gross_c_pooled_fill": -0.03741977694713455,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.7849869587113658,
+    1.7776856439340587
+   ],
+   "maker_net_c_pooled": -1.225694827909586,
+   "maker_net_c_pooled_ci": [
+    -4.909317210268472,
+    3.032241956747049
+   ],
+   "taker_net_c_pooled": 1.1583032273626765,
+   "taker_net_c_pooled_ci": [
+    -3.0841611616364935,
+    4.857307658068481
+   ],
+   "maker_return_pct_pooled": -11.830955882191686,
+   "maker_return_pct_pooled_ci": [
+    -41.30665277360618,
+    31.73988855251232
+   ],
+   "taker_return_pct_pooled": 1.2949160924487066,
+   "taker_return_pct_pooled_ci": [
+    -3.4468553264462702,
+    5.539605032997354
+   ],
+   "fee_c_pooled": 0.08985546739587971,
+   "rebate_c_pooled": 0.022463866848969928,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.6968842592878792,
+   "unit_ratio_sd_c": 13.113471959503567,
+   "top5_unit_share_of_shares": 0.19396733499797808,
+   "maker_gross_c_pooled_drop_top5": -0.27140864772686907
+  },
+  "class=negrisk_multi|h>30d": {
+   "units": 115,
+   "fills": 39471,
+   "shares": 4367042.649684,
+   "status": "estimated",
+   "maker_gross_c_pooled": 4.412097476454138,
+   "maker_gross_c_pooled_ci": [
+    -0.05664340640079961,
+    13.778703180446042
+   ],
+   "maker_gross_c_pooled_fill": 1.2596138058610116,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.42632261300617835,
+    4.134965886941468
+   ],
+   "maker_net_c_pooled": 4.425699245065564,
+   "maker_net_c_pooled_ci": [
+    -0.03703738147854575,
+    13.803462338253846
+   ],
+   "taker_net_c_pooled": -4.4665045508998436,
+   "taker_net_c_pooled_ci": [
+    -13.877256577582207,
+    -0.004999944812619955
+   ],
+   "maker_return_pct_pooled": 11.068779779916836,
+   "maker_return_pct_pooled_ci": [
+    -0.15904425465223584,
+    37.334195051166546
+   ],
+   "taker_return_pct_pooled": -7.426936273372919,
+   "taker_return_pct_pooled_ci": [
+    -22.659392522766996,
+    -0.008174294053454361
+   ],
+   "fee_c_pooled": 0.05440707444570585,
+   "rebate_c_pooled": 0.013601768611426462,
+   "maker_gross_c_unit_mean_BIASED_reference": 2.236777724932752,
+   "unit_ratio_sd_c": 14.48802871842386,
+   "top5_unit_share_of_shares": 0.6253527414852731,
+   "maker_gross_c_pooled_drop_top5": 1.0321383094766803
+  },
+  "class=politics_binary": {
+   "units": 18,
+   "fills": 11552,
+   "shares": 2144439.2580210003,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=politics_binary|maker_bought>=0.50": {
+   "units": 18,
+   "fills": 3959,
+   "shares": 1106653.037708,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=politics_binary|maker_bought<0.50": {
+   "units": 18,
+   "fills": 7593,
+   "shares": 1037786.2203129999,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=politics_binary|h>30d": {
+   "units": 9,
+   "fills": 2327,
+   "shares": 193465.30700799997,
+   "status": "not estimated (< 30 units)"
+  },
+  "class=single_binary": {
+   "units": 1496,
+   "fills": 414369,
+   "shares": 79655531.401515,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.8961133483252548,
+   "maker_gross_c_pooled_ci": [
+    -0.8244841296984505,
+    4.534217373445932
+   ],
+   "maker_gross_c_pooled_fill": -0.030228830979440773,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.5361396824671093,
+    0.5196266236717451
+   ],
+   "maker_net_c_pooled": 1.8984548758266304,
+   "maker_net_c_pooled_ci": [
+    -0.8222542763053362,
+    4.536624403863654
+   ],
+   "taker_net_c_pooled": -1.9054794583307575,
+   "taker_net_c_pooled_ci": [
+    -4.543845495116824,
+    0.8155647161259925
+   ],
+   "maker_return_pct_pooled": 3.834917213779899,
+   "maker_return_pct_pooled_ci": [
+    -1.62364322008854,
+    9.376294744410561
+   ],
+   "taker_return_pct_pooled": -3.769002169563482,
+   "taker_return_pct_pooled_ci": [
+    -8.923487954929666,
+    1.632339637497751
+   ],
+   "fee_c_pooled": 0.009366110005502824,
+   "rebate_c_pooled": 0.002341527501375706,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.11842440150724019,
+   "unit_ratio_sd_c": 13.160036324866505,
+   "top5_unit_share_of_shares": 0.19012182200440336,
+   "maker_gross_c_pooled_drop_top5": 2.382478147112896
+  },
+  "class=single_binary|maker_bought>=0.50": {
+   "units": 1160,
+   "fills": 183690,
+   "shares": 40897780.105376005,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.3323417854599424,
+   "maker_gross_c_pooled_ci": [
+    -4.774141198912952,
+    6.813404011369448
+   ],
+   "maker_gross_c_pooled_fill": 0.7169372272284826,
+   "maker_gross_c_pooled_fill_ci": [
+    -2.2027414162112513,
+    3.549734354765877
+   ],
+   "maker_net_c_pooled": 1.334520409184211,
+   "maker_net_c_pooled_ci": [
+    -4.770269472033078,
+    6.816001608696055
+   ],
+   "taker_net_c_pooled": -1.3410562803570165,
+   "taker_net_c_pooled_ci": [
+    -6.823794400675879,
+    4.758654291393458
+   ],
+   "maker_return_pct_pooled": 1.843995870766955,
+   "maker_return_pct_pooled_ci": [
+    -6.537203811272334,
+    9.598138412650238
+   ],
+   "taker_return_pct_pooled": -4.83315254281727,
+   "taker_return_pct_pooled_ci": [
+    -24.217204147442548,
+    17.556120099333054
+   ],
+   "fee_c_pooled": 0.008714494897074303,
+   "rebate_c_pooled": 0.002178623724268576,
+   "maker_gross_c_unit_mean_BIASED_reference": 2.1886069018161995,
+   "unit_ratio_sd_c": 24.93829934387745,
+   "top5_unit_share_of_shares": 0.18657470843663157,
+   "maker_gross_c_pooled_drop_top5": 3.8024200077283137
+  },
+  "class=single_binary|maker_bought<0.50": {
+   "units": 1492,
+   "fills": 230679,
+   "shares": 38757751.296139,
+   "status": "estimated",
+   "maker_gross_c_pooled": 2.4910138427207227,
+   "maker_gross_c_pooled_ci": [
+    -4.878698096368513,
+    9.99037706806917
+   ],
+   "maker_gross_c_pooled_fill": -0.6251981746657471,
+   "maker_gross_c_pooled_fill_ci": [
+    -3.305150357488901,
+    2.0923167210747526
+   ],
+   "maker_net_c_pooled": 2.4935272688135197,
+   "maker_net_c_pooled_ci": [
+    -4.876595654693638,
+    9.992937761631605
+   ],
+   "taker_net_c_pooled": -2.501067547091911,
+   "taker_net_c_pooled_ci": [
+    -10.00061984231891,
+    4.870288329669013
+   ],
+   "maker_return_pct_pooled": 9.81704237691432,
+   "maker_return_pct_pooled_ci": [
+    -19.35840727820982,
+    39.383017681608656
+   ],
+   "taker_return_pct_pooled": -3.351486550008243,
+   "taker_return_pct_pooled_ci": [
+    -13.420664718738605,
+    6.541072215873097
+   ],
+   "fee_c_pooled": 0.01005370437118795,
+   "rebate_c_pooled": 0.0025134260927969876,
+   "maker_gross_c_unit_mean_BIASED_reference": -1.265430446263733,
+   "unit_ratio_sd_c": 19.183147366926576,
+   "top5_unit_share_of_shares": 0.20850805898942978,
+   "maker_gross_c_pooled_drop_top5": -0.39562993574921396
+  },
+  "class=single_binary|h>30d": {
+   "units": 49,
+   "fills": 11246,
+   "shares": 1672370.5789120002,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.469055342599078,
+   "maker_gross_c_pooled_ci": [
+    -2.7183277135701305,
+    2.0209986565111686
+   ],
+   "maker_gross_c_pooled_fill": 1.660676591102614,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.21577463865067056,
+    3.1479754820899926
+   ],
+   "maker_net_c_pooled": 0.47235818331897467,
+   "maker_net_c_pooled_ci": [
+    -2.7083349806376082,
+    2.0276444225557815
+   ],
+   "taker_net_c_pooled": -0.4822667054786646,
+   "taker_net_c_pooled_ci": [
+    -2.0466823685398174,
+    2.678356781840036
+   ],
+   "maker_return_pct_pooled": 0.9453946666254558,
+   "maker_return_pct_pooled_ci": [
+    -5.921515812292949,
+    4.301907465852239
+   ],
+   "taker_return_pct_pooled": -0.9571587904955576,
+   "taker_return_pct_pooled_ci": [
+    -3.85329112297313,
+    4.97445428117043
+   ],
+   "fee_c_pooled": 0.013211362879586599,
+   "rebate_c_pooled": 0.0033028407198966497,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.6726953196754651,
+   "unit_ratio_sd_c": 21.947365387663908,
+   "top5_unit_share_of_shares": 0.7513059229787579,
+   "maker_gross_c_pooled_drop_top5": 0.2530020735690959
+  },
+  "ex_sports|h<1d": {
+   "units": 5031,
+   "fills": 1766768,
+   "shares": 119614852.564632,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.596321360490903,
+   "maker_gross_c_pooled_ci": [
+    -1.0872629623679273,
+    2.459092585908709
+   ],
+   "maker_gross_c_pooled_fill": -0.5043625469059151,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.7846458204562701,
+    -0.21949581778331723
+   ],
+   "maker_net_c_pooled": 0.6406838386701611,
+   "maker_net_c_pooled_ci": [
+    -1.0469251759558953,
+    2.500707473891628
+   ],
+   "taker_net_c_pooled": -0.8154010726306151,
+   "taker_net_c_pooled_ci": [
+    -2.6551155050806177,
+    0.8803597846377964
+   ],
+   "maker_return_pct_pooled": 1.218681402460394,
+   "maker_return_pct_pooled_ci": [
+    -2.183517951853106,
+    5.025103129610018
+   ],
+   "taker_return_pct_pooled": -1.5966868946414472,
+   "taker_return_pct_pooled_ci": [
+    -5.19546869093118,
+    1.7593795997616244
+   ],
+   "fee_c_pooled": 0.21907971213971214,
+   "rebate_c_pooled": 0.044362478179258064,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.28968293995570193,
+   "unit_ratio_sd_c": 9.20921011259,
+   "top5_unit_share_of_shares": 0.11422888705792751,
+   "maker_gross_c_pooled_drop_top5": 0.6150064556027648
+  },
+  "ex_sports|h1-7d": {
+   "units": 1559,
+   "fills": 170312,
+   "shares": 20672545.848136,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.1627081488332458,
+   "maker_gross_c_pooled_ci": [
+    -1.2547928489630256,
+    3.80993569176361
+   ],
+   "maker_gross_c_pooled_fill": 0.18236002644070867,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.5487737347321957,
+    0.9513894325541812
+   ],
+   "maker_net_c_pooled": 1.186794841711804,
+   "maker_net_c_pooled_ci": [
+    -1.2273222072879233,
+    3.8337854006090546
+   ],
+   "taker_net_c_pooled": -1.2611623989966811,
+   "taker_net_c_pooled_ci": [
+    -3.910539011904498,
+    1.1520643907770323
+   ],
+   "maker_return_pct_pooled": 2.5167657496757982,
+   "maker_return_pct_pooled_ci": [
+    -2.6936562715375256,
+    8.089053179943656
+   ],
+   "taker_return_pct_pooled": -2.344102886464195,
+   "taker_return_pct_pooled_ci": [
+    -7.410907582025219,
+    2.139638405502741
+   ],
+   "fee_c_pooled": 0.09845425016343554,
+   "rebate_c_pooled": 0.024086692878558413,
+   "maker_gross_c_unit_mean_BIASED_reference": 1.7003603621368795,
+   "unit_ratio_sd_c": 22.03639421994102,
+   "top5_unit_share_of_shares": 0.19371834291343903,
+   "maker_gross_c_pooled_drop_top5": 0.296173898252053
+  },
+  "ex_sports|h7-30d": {
+   "units": 468,
+   "fills": 67228,
+   "shares": 11382121.633135,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.08885242821558856,
+   "maker_gross_c_pooled_ci": [
+    -1.0964209649431016,
+    1.1844878592133234
+   ],
+   "maker_gross_c_pooled_fill": 0.4467989871336346,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.5071654885991668,
+    1.5616120807716807
+   ],
+   "maker_net_c_pooled": 0.11629036271507484,
+   "maker_net_c_pooled_ci": [
+    -1.0581387228537498,
+    1.2235950124721293
+   ],
+   "taker_net_c_pooled": -0.1986213465389191,
+   "taker_net_c_pooled_ci": [
+    -1.3367600877556056,
+    0.9306618973422736
+   ],
+   "maker_return_pct_pooled": 0.1547396544152449,
+   "maker_return_pct_pooled_ci": [
+    -2.311557243238697,
+    2.528451103729193
+   ],
+   "taker_return_pct_pooled": -0.46647279443497425,
+   "taker_return_pct_pooled_ci": [
+    -2.6767145854929106,
+    1.8428132540933015
+   ],
+   "fee_c_pooled": 0.10976891832333055,
+   "rebate_c_pooled": 0.027437934499486276,
+   "maker_gross_c_unit_mean_BIASED_reference": 1.3477553592365779,
+   "unit_ratio_sd_c": 20.870976845560516,
+   "top5_unit_share_of_shares": 0.523439025955833,
+   "maker_gross_c_pooled_drop_top5": 0.2603213783972207
+  },
+  "ex_sports|h>30d": {
+   "units": 174,
+   "fills": 54478,
+   "shares": 6495929.1200210005,
+   "status": "estimated",
+   "maker_gross_c_pooled": 3.127352925328377,
+   "maker_gross_c_pooled_ci": [
+    0.014272042369204626,
+    9.615302630186495
+   ],
+   "maker_gross_c_pooled_fill": 1.3887599565538378,
+   "maker_gross_c_pooled_fill_ci": [
+    0.03535727555739824,
+    3.426089258136167
+   ],
+   "maker_net_c_pooled": 3.140257022053098,
+   "maker_net_c_pooled_ci": [
+    0.03096775384539888,
+    9.633266766887552
+   ],
+   "taker_net_c_pooled": -3.17901559385781,
+   "taker_net_c_pooled_ci": [
+    -9.687270103408071,
+    -0.08830160178962114
+   ],
+   "maker_return_pct_pooled": 7.287307573657192,
+   "maker_return_pct_pooled_ci": [
+    0.033464611051031996,
+    24.3489162814532
+   ],
+   "taker_return_pct_pooled": -5.568922349478267,
+   "taker_return_pct_pooled_ci": [
+    -16.46274561111885,
+    -0.15202307557824124
+   ],
+   "fee_c_pooled": 0.05166266852943353,
+   "rebate_c_pooled": 0.012904096724721023,
+   "maker_gross_c_unit_mean_BIASED_reference": 1.7208552189516502,
+   "unit_ratio_sd_c": 16.618484930594818,
+   "top5_unit_share_of_shares": 0.5320131048024471,
+   "maker_gross_c_pooled_drop_top5": 0.535175354962149
+  },
+  "ex_sports|maker_bought p<0.10": {
+   "units": 5108,
+   "fills": 426927,
+   "shares": 35833925.719779,
+   "status": "estimated",
+   "maker_gross_c_pooled": 1.4335336610388134,
+   "maker_gross_c_pooled_ci": [
+    -0.2877671008882348,
+    3.7264195860395293
+   ],
+   "maker_gross_c_pooled_fill": 0.37421358186027076,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.38318221353994625,
+    1.1811258275718344
+   ],
+   "maker_net_c_pooled": 1.4431679247846454,
+   "maker_net_c_pooled_ci": [
+    -0.27792555552646103,
+    3.735699789659931
+   ],
+   "taker_net_c_pooled": -1.4782353586456873,
+   "taker_net_c_pooled_ci": [
+    -3.7694634608213486,
+    0.2440276309845801
+   ],
+   "maker_return_pct_pooled": 65.53722957452653,
+   "maker_return_pct_pooled_ci": [
+    -13.94488307600856,
+    164.63447891040715
+   ],
+   "taker_return_pct_pooled": -1.5112927372470122,
+   "taker_return_pct_pooled_ci": [
+    -3.8552617903431625,
+    0.2487113796014891
+   ],
+   "fee_c_pooled": 0.04470169760687384,
+   "rebate_c_pooled": 0.009634263745832093,
+   "maker_gross_c_unit_mean_BIASED_reference": -0.025556689784076964,
+   "unit_ratio_sd_c": 10.042025355367285,
+   "top5_unit_share_of_shares": 0.1537286915082095,
+   "maker_gross_c_pooled_drop_top5": 2.015863714572862
+  },
+  "sports|maker_bought p<0.10": {
+   "units": 2176,
+   "fills": 38366,
+   "shares": 6268212.693188,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.01873867784657128,
+   "maker_gross_c_pooled_ci": [
+    -2.087219253882065,
+    3.3307183389575554
+   ],
+   "maker_gross_c_pooled_fill": 1.7660055942091952,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.0189019109487032,
+    6.531872491615455
+   ],
+   "maker_net_c_pooled": 0.003696838222679709,
+   "maker_net_c_pooled_ci": [
+    -2.0643203918458077,
+    3.3510933102652554
+   ],
+   "taker_net_c_pooled": -0.13083142928176866,
+   "taker_net_c_pooled_ci": [
+    -3.466001779527737,
+    1.9323673418287783
+   ],
+   "maker_return_pct_pooled": -0.5875023058493014,
+   "maker_return_pct_pooled_ci": [
+    -64.04309740586936,
+    96.59938863906373
+   ],
+   "taker_return_pct_pooled": -0.13514184556863038,
+   "taker_return_pct_pooled_ci": [
+    -3.568965346591893,
+    1.9996158752778599
+   ],
+   "fee_c_pooled": 0.14957010712833996,
+   "rebate_c_pooled": 0.02243551606925099,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.10836260122301086,
+   "unit_ratio_sd_c": 11.680826699046433,
+   "top5_unit_share_of_shares": 0.29312668369402634,
+   "maker_gross_c_pooled_drop_top5": 0.609641432411504
+  },
+  "ex_sports|maker_bought p0.10-0.30": {
+   "units": 3586,
+   "fills": 342508,
+   "shares": 14306823.885651,
+   "status": "estimated",
+   "maker_gross_c_pooled": -1.1069102073310824,
+   "maker_gross_c_pooled_ci": [
+    -5.264570450342697,
+    3.234710026830566
+   ],
+   "maker_gross_c_pooled_fill": -1.8339638703168974,
+   "maker_gross_c_pooled_fill_ci": [
+    -3.8157909181545597,
+    0.25680433693991905
+   ],
+   "maker_net_c_pooled": -1.0396261060577379,
+   "maker_net_c_pooled_ci": [
+    -5.202636344783315,
+    3.308953076588201
+   ],
+   "taker_net_c_pooled": 0.7894515452005513,
+   "taker_net_c_pooled_ci": [
+    -3.5771885593447035,
+    4.958960473063669
+   ],
+   "maker_return_pct_pooled": -5.59805335896529,
+   "maker_return_pct_pooled_ci": [
+    -26.27821473682864,
+    16.465539606206853
+   ],
+   "taker_return_pct_pooled": 0.9840238275954722,
+   "taker_return_pct_pooled_ci": [
+    -4.443695627827871,
+    6.179578742898728
+   ],
+   "fee_c_pooled": 0.31745866213053103,
+   "rebate_c_pooled": 0.06728410127334457,
+   "maker_gross_c_unit_mean_BIASED_reference": -4.429015708254475,
+   "unit_ratio_sd_c": 27.85548141046911,
+   "top5_unit_share_of_shares": 0.13214386454285862,
+   "maker_gross_c_pooled_drop_top5": 0.6964342155934675
+  },
+  "sports|maker_bought p0.10-0.30": {
+   "units": 991,
+   "fills": 44338,
+   "shares": 6167607.535743,
+   "status": "estimated",
+   "maker_gross_c_pooled": -3.121574139556485,
+   "maker_gross_c_pooled_ci": [
+    -8.456892301344675,
+    2.460856790291224
+   ],
+   "maker_gross_c_pooled_fill": -1.9522723826640798,
+   "maker_gross_c_pooled_fill_ci": [
+    -6.143603380046275,
+    2.5897051713294763
+   ],
+   "maker_net_c_pooled": -3.004021965986123,
+   "maker_net_c_pooled_ci": [
+    -8.341934474118725,
+    2.577144121598058
+   ],
+   "taker_net_c_pooled": 2.337892982420739,
+   "taker_net_c_pooled_ci": [
+    -3.236105665670117,
+    7.679797996199705
+   ],
+   "maker_return_pct_pooled": -15.60702805982111,
+   "maker_return_pct_pooled_ci": [
+    -42.05182062396402,
+    12.346204761945572
+   ],
+   "taker_return_pct_pooled": 2.9224056738760518,
+   "taker_return_pct_pooled_ci": [
+    -4.039471223247915,
+    9.53986230760037
+   ],
+   "fee_c_pooled": 0.7836811571357455,
+   "rebate_c_pooled": 0.11755217357036185,
+   "maker_gross_c_unit_mean_BIASED_reference": -2.010030744420277,
+   "unit_ratio_sd_c": 33.87706783382725,
+   "top5_unit_share_of_shares": 0.17098994378246452,
+   "maker_gross_c_pooled_drop_top5": -1.431073517796639
+  },
+  "ex_sports|maker_bought p0.30-0.50": {
+   "units": 3466,
+   "fills": 466905,
+   "shares": 29568765.265323,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.014622555865606962,
+   "maker_gross_c_pooled_ci": [
+    -8.668315843682143,
+    9.141870489323713
+   ],
+   "maker_gross_c_pooled_fill": -2.4836091729102923,
+   "maker_gross_c_pooled_fill_ci": [
+    -4.116371630776253,
+    -0.8927358981500475
+   ],
+   "maker_net_c_pooled": 0.05029360360810876,
+   "maker_net_c_pooled_ci": [
+    -8.589903117490424,
+    9.208999810730335
+   ],
+   "taker_net_c_pooled": -0.3028011996016991,
+   "taker_net_c_pooled_ci": [
+    -9.469050552156942,
+    8.286139931140072
+   ],
+   "maker_return_pct_pooled": -0.03518243104274594,
+   "maker_return_pct_pooled_ci": [
+    -20.596704436249674,
+    22.197341757169337
+   ],
+   "taker_return_pct_pooled": -0.5181589009107004,
+   "taker_return_pct_pooled_ci": [
+    -16.0902679018727,
+    14.248276536646776
+   ],
+   "fee_c_pooled": 0.317423755467306,
+   "rebate_c_pooled": 0.06491615947371572,
+   "maker_gross_c_unit_mean_BIASED_reference": -5.249248418464927,
+   "unit_ratio_sd_c": 31.17330758240757,
+   "top5_unit_share_of_shares": 0.1781619613608324,
+   "maker_gross_c_pooled_drop_top5": -4.080755447406314
+  },
+  "sports|maker_bought p0.30-0.50": {
+   "units": 1004,
+   "fills": 66527,
+   "shares": 14624222.145983998,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.059707660510608065,
+   "maker_gross_c_pooled_ci": [
+    -11.450982184851165,
+    11.762688416082245
+   ],
+   "maker_gross_c_pooled_fill": -3.9903870788466342,
+   "maker_gross_c_pooled_fill_ci": [
+    -8.18495255720889,
+    0.3612626257361067
+   ],
+   "maker_net_c_pooled": 0.23817957041053167,
+   "maker_net_c_pooled_ci": [
+    -11.2716708131393,
+    11.939026967322024
+   ],
+   "taker_net_c_pooled": -1.249520393176765,
+   "taker_net_c_pooled_ci": [
+    -12.938278757680783,
+    10.255573040105402
+   ],
+   "maker_return_pct_pooled": 0.1456236537887376,
+   "maker_return_pct_pooled_ci": [
+    -27.252940681323786,
+    29.353736397110787
+   ],
+   "taker_return_pct_pooled": -2.1178795494908105,
+   "taker_return_pct_pooled_ci": [
+    -21.600369650210077,
+    17.479323718259607
+   ],
+   "fee_c_pooled": 1.1898127326661572,
+   "rebate_c_pooled": 0.1784719098999236,
+   "maker_gross_c_unit_mean_BIASED_reference": -3.743027127813017,
+   "unit_ratio_sd_c": 40.854445897320225,
+   "top5_unit_share_of_shares": 0.23819945967167966,
+   "maker_gross_c_pooled_drop_top5": -2.066167048468857
+  },
+  "ex_sports|maker_bought p0.50-0.70": {
+   "units": 3361,
+   "fills": 403414,
+   "shares": 31273074.070879005,
+   "status": "estimated",
+   "maker_gross_c_pooled": 3.5250260910683755,
+   "maker_gross_c_pooled_ci": [
+    -3.2167589613319962,
+    9.872657198039034
+   ],
+   "maker_gross_c_pooled_fill": 1.0374936450080314,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.6848388289329236,
+    2.7907017835917793
+   ],
+   "maker_net_c_pooled": 3.5803209320719795,
+   "maker_net_c_pooled_ci": [
+    -3.151079118722049,
+    9.92210651175568
+   ],
+   "taker_net_c_pooled": -3.794898647481981,
+   "taker_net_c_pooled_ci": [
+    -10.137280427607378,
+    2.9209864414802524
+   ],
+   "maker_return_pct_pooled": 6.283984542032338,
+   "maker_return_pct_pooled_ci": [
+    -5.787686784850283,
+    17.626847769759365
+   ],
+   "taker_return_pct_pooled": -8.643509811111574,
+   "taker_return_pct_pooled_ci": [
+    -22.95386168124317,
+    6.6101670161956525
+   ],
+   "fee_c_pooled": 0.26987255641360536,
+   "rebate_c_pooled": 0.05529484100360411,
+   "maker_gross_c_unit_mean_BIASED_reference": 5.897864255473166,
+   "unit_ratio_sd_c": 32.59964435739547,
+   "top5_unit_share_of_shares": 0.1771271183026141,
+   "maker_gross_c_pooled_drop_top5": 4.736156270643034
+  },
+  "sports|maker_bought p0.50-0.70": {
+   "units": 971,
+   "fills": 60832,
+   "shares": 14358391.018438002,
+   "status": "estimated",
+   "maker_gross_c_pooled": 7.208300287175633,
+   "maker_gross_c_pooled_ci": [
+    -2.6150993558594084,
+    16.243215462963416
+   ],
+   "maker_gross_c_pooled_fill": 1.7647267265889668,
+   "maker_gross_c_pooled_fill_ci": [
+    -2.4546856200914706,
+    6.063742792380694
+   ],
+   "maker_net_c_pooled": 7.389517166170609,
+   "maker_net_c_pooled_ci": [
+    -2.4339963427828706,
+    16.425502980267
+   ],
+   "taker_net_c_pooled": -8.416412813808812,
+   "taker_net_c_pooled_ci": [
+    -17.458465578320645,
+    1.4075412083695058
+   ],
+   "maker_return_pct_pooled": 12.655435509576357,
+   "maker_return_pct_pooled_ci": [
+    -4.577556088611074,
+    28.960932997803585
+   ],
+   "taker_return_pct_pooled": -19.55401605399943,
+   "taker_return_pct_pooled_ci": [
+    -40.24769104128066,
+    3.2779959697267365
+   ],
+   "fee_c_pooled": 1.2081125266331778,
+   "rebate_c_pooled": 0.18121687899497663,
+   "maker_gross_c_unit_mean_BIASED_reference": 3.280635646762472,
+   "unit_ratio_sd_c": 41.10704528922391,
+   "top5_unit_share_of_shares": 0.23815191626436097,
+   "maker_gross_c_pooled_drop_top5": 2.153214453606947
+  },
+  "ex_sports|maker_bought p0.70-0.90": {
+   "units": 3364,
+   "fills": 244364,
+   "shares": 12654112.000946999,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.106942196434753,
+   "maker_gross_c_pooled_ci": [
+    -3.8683331744967644,
+    3.866470302703454
+   ],
+   "maker_gross_c_pooled_fill": 1.7342470734449018,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.5762326830192832,
+    4.029643699792806
+   ],
+   "maker_net_c_pooled": 0.18161457465899014,
+   "maker_net_c_pooled_ci": [
+    -3.7891194266038033,
+    3.9363318899580255
+   ],
+   "taker_net_c_pooled": -0.45972454004919305,
+   "taker_net_c_pooled_ci": [
+    -4.235818606823864,
+    3.4926762591897367
+   ],
+   "maker_return_pct_pooled": 0.13405354732987745,
+   "maker_return_pct_pooled_ci": [
+    -4.8579201733585595,
+    4.836783638314683
+   ],
+   "taker_return_pct_pooled": -2.2731329628902173,
+   "taker_return_pct_pooled_ci": [
+    -21.057507629579703,
+    17.145687791409216
+   ],
+   "fee_c_pooled": 0.3527823436144401,
+   "rebate_c_pooled": 0.07467237822423713,
+   "maker_gross_c_unit_mean_BIASED_reference": 4.211304276293318,
+   "unit_ratio_sd_c": 30.22738736210494,
+   "top5_unit_share_of_shares": 0.10179190408671925,
+   "maker_gross_c_pooled_drop_top5": -0.5956946139691728
+  },
+  "sports|maker_bought p0.70-0.90": {
+   "units": 935,
+   "fills": 38866,
+   "shares": 6415477.402182,
+   "status": "estimated",
+   "maker_gross_c_pooled": 4.468238531007207,
+   "maker_gross_c_pooled_ci": [
+    -1.558663122083235,
+    9.621697018646982
+   ],
+   "maker_gross_c_pooled_fill": 2.7112176763464215,
+   "maker_gross_c_pooled_fill_ci": [
+    -1.8092579702059515,
+    6.903150295363143
+   ],
+   "maker_net_c_pooled": 4.589735947182577,
+   "maker_net_c_pooled_ci": [
+    -1.4384512694780789,
+    9.741274697874264
+   ],
+   "taker_net_c_pooled": -5.278221305509672,
+   "taker_net_c_pooled_ci": [
+    -10.421183533722212,
+    0.7572507713821908
+   ],
+   "maker_return_pct_pooled": 5.648746036722001,
+   "maker_return_pct_pooled_ci": [
+    -1.9618288680646392,
+    12.155124754528204
+   ],
+   "taker_return_pct_pooled": -25.25636773684577,
+   "taker_return_pct_pooled_ci": [
+    -50.1173821375441,
+    3.601681045844174
+   ],
+   "fee_c_pooled": 0.8099827745024656,
+   "rebate_c_pooled": 0.12149741617536987,
+   "maker_gross_c_unit_mean_BIASED_reference": 3.308666415820506,
+   "unit_ratio_sd_c": 33.79821934665253,
+   "top5_unit_share_of_shares": 0.17480559681039082,
+   "maker_gross_c_pooled_drop_top5": 3.3421723815473
+  },
+  "ex_sports|maker_bought p>=0.90": {
+   "units": 3815,
+   "fills": 174668,
+   "shares": 34528748.223345,
+   "status": "estimated",
+   "maker_gross_c_pooled": -0.8688596986897221,
+   "maker_gross_c_pooled_ci": [
+    -3.4987546218939496,
+    0.6322349622796091
+   ],
+   "maker_gross_c_pooled_fill": 0.17936143379565841,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.7472806971563446,
+    1.0361198162241554
+   ],
+   "maker_net_c_pooled": -0.8602010500376106,
+   "maker_net_c_pooled_ci": [
+    -3.4882096834732375,
+    0.6411209546511251
+   ],
+   "taker_net_c_pooled": 0.8285424262373267,
+   "taker_net_c_pooled_ci": [
+    -0.6740720976845407,
+    3.448666820594081
+   ],
+   "maker_return_pct_pooled": -0.8859258529695619,
+   "maker_return_pct_pooled_ci": [
+    -3.5760866486938765,
+    0.6453746944288827
+   ],
+   "taker_return_pct_pooled": 43.01069494917616,
+   "taker_return_pct_pooled_ci": [
+    -33.90208889019243,
+    159.55595238190114
+   ],
+   "fee_c_pooled": 0.04031727245239551,
+   "rebate_c_pooled": 0.008658648652111542,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.46553310796152436,
+   "unit_ratio_sd_c": 13.116430641273965,
+   "top5_unit_share_of_shares": 0.19714613048449942,
+   "maker_gross_c_pooled_drop_top5": -1.3573130772308344
+  },
+  "sports|maker_bought p>=0.90": {
+   "units": 1282,
+   "fills": 26121,
+   "shares": 10048205.003919,
+   "status": "estimated",
+   "maker_gross_c_pooled": 0.32598169119813253,
+   "maker_gross_c_pooled_ci": [
+    -1.190413310047688,
+    1.454085963672968
+   ],
+   "maker_gross_c_pooled_fill": 0.7573470484146858,
+   "maker_gross_c_pooled_fill_ci": [
+    -0.6979734515011146,
+    1.9314761513593945
+   ],
+   "maker_net_c_pooled": 0.3390701945988728,
+   "maker_net_c_pooled_ci": [
+    -1.1759633850796047,
+    1.4711904852884201
+   ],
+   "taker_net_c_pooled": -0.4132383805364005,
+   "taker_net_c_pooled_ci": [
+    -1.565382687278998,
+    1.0952802443904155
+   ],
+   "maker_return_pct_pooled": 0.33214399511709763,
+   "maker_return_pct_pooled_ci": [
+    -1.2153832486662624,
+    1.4900114976088736
+   ],
+   "taker_return_pct_pooled": -22.273267993917514,
+   "taker_return_pct_pooled_ci": [
+    -77.8128345499904,
+    64.95125012528291
+   ],
+   "fee_c_pooled": 0.08725668933826798,
+   "rebate_c_pooled": 0.013088503400740196,
+   "maker_gross_c_unit_mean_BIASED_reference": 0.4850669782140423,
+   "unit_ratio_sd_c": 11.423457708329485,
+   "top5_unit_share_of_shares": 0.21647415267121223,
+   "maker_gross_c_pooled_drop_top5": -0.14232303773215338
+  }
+ },
+ "runtime_s": 65.6
+}

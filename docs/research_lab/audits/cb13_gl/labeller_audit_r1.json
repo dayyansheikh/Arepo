@@ -1,0 +1,22 @@
+{
+ "by_group": {
+  "LOW": {
+   "agree_of_labeller": 0.9824561403508771,
+   "agree_of_reviewer": 0.9032258064516129,
+   "labeller_n": 57,
+   "reviewer_n": 62
+  },
+  "NEWS": {
+   "agree_of_labeller": 0.75,
+   "agree_of_reviewer": 0.9375,
+   "labeller_n": 60,
+   "reviewer_n": 48
+  }
+ },
+ "labeller_sha256": "1e515bb410598ed7ebc5f6f722b77554acd22d6d9a7548365ba74780c843c780",
+ "n": 200,
+ "overall": 0.91,
+ "pass": false,
+ "round": 1,
+ "seed": 13121
+}

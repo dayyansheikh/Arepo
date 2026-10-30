@@ -1,0 +1,162 @@
+{
+ "declared": {
+  "disk": {
+   "output_cap_gb": 0.15
+  },
+  "exclusion": {
+   "ids_and_keys": "creative_batch8/exclusion_keys.csv.gz + exclusion_report.json",
+   "max_unverified_key_share": 0.02,
+   "refused_roots": [
+    "cb1_extract",
+    "cb2_extract",
+    "cb3_extract",
+    "cb4_extract",
+    "cb5_extract",
+    "cb6_extract",
+    "cb7_extract",
+    "cb3_followup",
+    "cb6_followup",
+    "cross_venue",
+    "cross_venue_live",
+    "surprise_live",
+    "live_trades",
+    "trade_samples"
+   ],
+   "refused_run_ids": [
+    "h1_first",
+    "h2_main",
+    "h3_power",
+    "h4_seal",
+    "h5_cb1",
+    "h5_cb1_ladders",
+    "h6_weather",
+    "h7_cb4_era",
+    "h7_cb4_series",
+    "h8_tail",
+    "h8_text",
+    "h8_geo"
+   ]
+  },
+  "frame": {
+   "ex_post_selection": "closed and lifetime volume are known only after the window (disclosed)",
+   "keeps": "binary with token ids, scheduled life >= 10 d, not weather (fee_category or CB2-W text), not crypto Up/Down (CB1_UPDOWN_RE)",
+   "outcome_fields_stored": false,
+   "query": "closed=true, volume_num_min=50000, end_date in [2026-05-08T00:00:00Z, 2026-10-01T00:00:00Z), order id, halved while capped (one day minimum: excluded, counted)",
+   "stored_fields": [
+    "market_id",
+    "condition_id",
+    "token0",
+    "token1",
+    "event_id",
+    "event_ids",
+    "neg_risk_market_id",
+    "series_ids",
+    "fee_category",
+    "topic",
+    "created_at",
+    "start_at",
+    "end_at",
+    "start_epoch",
+    "end_epoch",
+    "volume",
+    "question",
+    "event_title"
+   ]
+  },
+  "prints": {
+   "capped_day": "unavailable (counted)",
+   "limit": 1000,
+   "outcome_fetched": false,
+   "pages": 10,
+   "per_utc_day_segment": true,
+   "stored": [
+    "ts",
+    "token_idx",
+    "side",
+    "price",
+    "size",
+    "yes_price",
+    "yes_side",
+    "wallet_hash"
+   ],
+   "taker_only": true,
+   "url": "https://data-api.polymarket.com/trades",
+   "wallet_hash_hex": 32
+  },
+  "sample": {
+   "cap_order": "sha256(seed|cap|market_id)",
+   "max_per_event": 2,
+   "n_main": 1500,
+   "n_sports": 300,
+   "seed": "arepo-h9-sample",
+   "sports": "topic == 'sports'",
+   "strata": "group x fee_category, proportional (hb.allocate_weighted); order sha256(seed|market_id)"
+  },
+  "seal": {
+   "drops": "seal-time drops by id and key against every committed seal copy (excluding own); sealed files never edited",
+   "holdout_listing_sha256": true,
+   "max_unverified_key_share": 0.02
+  },
+  "split": {
+   "rule": "int(sha256(seed|event) , 16) % 2: 0 SCREEN, 1 HOLDOUT",
+   "seed": "arepo-h9-split",
+   "unit": "Gamma event id (first event id; market id if none)",
+   "written_before_first_print_request": true
+  },
+  "window": {
+   "fetch_hours": 74.5,
+   "floor": "2026-05-01T00:00:00Z",
+   "hist_end": "2026-10-01T00:00:00Z",
+   "hours": 72,
+   "last_end": "2026-09-27T00:00:00Z",
+   "seed": "arepo-h9-window",
+   "w0": "uniform in [max(created_at + 1 d, floor), min(end_at - 4 d, last_end) - 72 h] by sha256(seed|market_id); empty range: dropped, counted"
+  }
+ },
+ "disk": {
+  "data_dumps_fetch_cap_gb": 12.5,
+  "disk_budget_exit": 4,
+  "headroom_exit": 75
+ },
+ "func_sources_sha256": {
+  "_exclusion": "2bc3353488aa391b176586fb4c1782429b1f85d9b45976a230ddda9afbee6981",
+  "_fetch_prints": "5440912fdb5d2e46e7de5e095513bfba802cb4be7d0ec49af2e6791c72c97bbe",
+  "_finish": "419c756a9e8ffa894f5efc54b64e47ed78ab6a39abd97093f1eb614d9511c783",
+  "_parse_print": "a1df96ca5f44670591f0188534b55157ff030d89ff70ee442240606fd3260a74",
+  "_rank": "b003f6a3f3ab5751ac4f774522f7dce34511583bda3cd70b817750b957d9dc3f",
+  "_walk_window": "29fc7a2df440e05005e95924402591f4fb4885effbcefd40d032267152eb26fd",
+  "allocate_weighted": "459fe070ca62da621f70aaf6f44f0a2e7d3171244c726d16d4d098edab871cb9",
+  "assemble_sample": "8a5d5f2730188d04889f8a99b0af64f40535e4274d04ddf45bd180ce1eee60dc",
+  "day_segments": "4cf0246f17edefc5d5fd62a6ce6b0c4b3d06e4dd1f3c048d0b5c7d09743b5b72",
+  "declared": "077159a75d7cb07620db5042481b4a75517ce6ca3e2d590ff935e43ae70d8b21",
+  "draw_window": "24edf716b17dc48158f2b5876afb206bfbff7135f121379a7a203049de306dab",
+  "event_key": "a48040b86c3d4f8e7152673c8fda591498cca71b8befb6f93ce9b48ec6b3adc6",
+  "event_split": "0ecb84c8c20e98825b7260d49bbc3a4c1835c3cd6f3fd8a73c1e905fc532b114",
+  "flow_fetch": "3abbd826e5b39b7c8c4d90b181604f8c666c74ab4ac33f9e42c85cc3282a730f",
+  "flow_row": "8e0eda1095d6a496aacb6b1ee4094c1c4e3b7aca327408709eca554862285163",
+  "flow_sample": "463786b9a9afe5bc0c9b03eab3467372cd8c7c6598233568a5f105d99108e4b1",
+  "flow_seal": "07ed6de7d105ca21b342cc1430b41297aac3c1e0821fad00d8131bb746261718",
+  "frame_days": "0aaebda08aededb140bc2332714cc4a235e78a08b9e9ee87f20d3844c065c346",
+  "frame_reason": "731f30a002c122fcf5731d152e85396982a86cce3e97bfbabe6d4907db90da35",
+  "hash_wallet": "de1003c768c24a7fe41bd93b2ada2ae245ab60d4c217df365cb14e1efc156338",
+  "is_weather": "98950df75071c0f1885b7b6dfc90fffc08860e135c70f59cffbc8afc2ff891d2",
+  "key_fingerprint": "2dc81a0d992c306cbea5156b49df455044b4efe3b6f921c29bf696d9ee64e568",
+  "key_types_matched": "28fbd54f1bdaed2d468aef956c964b1f6daece450c95baad647f3944f66511dd",
+  "load_wallet_key_strict": "8c3e91817c91c8d6699889a1e24f9e05225c80357d6ac6fa0c36ec5f1f5a2af0",
+  "per_event_cap": "219a82bd3e1328e09ed1efb6a1b05180be70fd2b7687414d9d81360dcd012b3b",
+  "seal_copy_ids": "d3dcab555304c5b8608fb5437f014f74c3fcf2ba76b48110e9a2e611bb3d9f3b",
+  "smoke_ok": "9765ffdd24d0c4c87f6afe7b8507c915160419a61d3806fe98db9dfa8494c696",
+  "walk_frame": "a2675630622749e519545d079550ba8bed174dc239a417ebd23da9bde78f66ea",
+  "windowed_prints": "1df52768b1a5bd0d177f124a4d16a02e67fec4b183150d80d10f0e902633f757"
+ },
+ "funcs_sha256": "4d9ad68f5536b41eeb60eec3ed3edd9d97c2fd230ad178fdf42a6b92e0863cfc",
+ "rules_sha256": "9dc74a91bec18387380f9990bd7231c8d6d0cbb995c076beb634dd201abcddae",
+ "rules_version": "cb8-flow-rules-v1",
+ "wallet": {
+  "fingerprint": "first 16 hex of HMAC-SHA256(key, 'arepo-cb8-wallet-key-fingerprint-v1')",
+  "hash": "HMAC-SHA256(key, lower-cased proxyWallet), first 32 hex characters",
+  "key_file": "~/.arepo/wallet_hash_key (or AREPO_WALLET_HASH_KEY_PATH), mode 600, never created by CB8",
+  "raw_addresses_stored": false
+ },
+ "wallet_key_fingerprint": "80ce5e81a539a570"
+}

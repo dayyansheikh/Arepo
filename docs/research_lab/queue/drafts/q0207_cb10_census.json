@@ -1,0 +1,33 @@
+{
+ "id": "q0207_cb10_census",
+ "title": "CB10: pre-freeze census, counts only (D eligibility and labels, D coverage audit >= 90%, GD, power gate GDP (feature-only simulated outcomes from p, MDE <= 1.0), GB, GB2, frozen B1 weights, B coverage audit >= 90%, feature-only gap and q/q_RV correlation, series-key comparison, MDEs)",
+ "family": "creative_batch_10",
+ "priority": 31,
+ "expected_value": "gates and MDEs before the freeze",
+ "data": [
+  "history/h10_dlad (no guarded file)",
+  "history/h10_brk/screen (HOLDOUT file and event counts only)"
+ ],
+ "resources": {
+  "mem_mb": 800,
+  "cpu": 1,
+  "lane": "cpu"
+ },
+ "depends_on": [
+  "q0202_cb10_dlad_frame",
+  "q0203_cb10_deribit_trades",
+  "q0206_cb10_brk_seal"
+ ],
+ "argv": [
+  "scripts/run_cb10.py",
+  "census"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "research_lab/creative_batch10/census.json",
+  "trials.jsonl (cb10_descriptive)"
+ ],
+ "next_action": "science-reviewer freeze check, then model_specs/cb10_v1.json",
+ "notes": "CB10 DRAFT, not committed to queue/jobs: needs the code-against-design freeze check (science-reviewer) first. Rules file seals/cb10_rules_v2.json (freeze-check v2, supersedes cb10_rules.json) (rules_sha256 d422cc70... (file sha256 5ee0ea23...)). --data-dumps-cap-gb 40 (ops convention; design text says 14). Outcome guard; no slope, net, reversal or contrast computed."
+}

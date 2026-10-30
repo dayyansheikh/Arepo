@@ -1,0 +1,12 @@
+{
+ "frozen": [
+  {
+   "engine_version": "detector-eval-v1",
+   "frozen_commit": "993804532a48a669e605be399899dc91133b74d9",
+   "frozen_utc": "2026-10-13T09:48:29Z",
+   "rule_id": "sm_learned_v2",
+   "sha256": "ee227e7e0b850c6ace940d380aad48f54435a1bc4f487f9250125d2d77c14ef1",
+   "version": "2"
+  }
+ ]
+}

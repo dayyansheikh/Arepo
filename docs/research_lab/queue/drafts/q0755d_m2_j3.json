@@ -1,0 +1,37 @@
+{
+ "id": "q0755d_m2_j3",
+ "title": "M2 (CH264) J3 read-out resolution fetch (MEASUREMENT_M2_CH264.md 9.4): Gamma /markets?id= in batches of 50 with closed=true, a second pass without the filter, a single-id re-query with and without closed=true before any not_found, up to 3 attempts at least 1 h apart, parse_outcome at the pinned calibration.py; on or after READOUT_UTC",
+ "family": "creative_hypotheses",
+ "priority": 70,
+ "expected_value": "the resolution classes of 8.1 for every unit and for every no_favourite market (resolved, split, pending, not_found, unavailable) for the analysis; about 60-200 requests",
+ "data": [
+  "data-dumps/research_lab/m2_ch264/ (units/, nofav/, manifest.json; read-only); writes readout/ (write-once)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api.polymarket.com (public, read-only)"
+ },
+ "depends_on": [
+  "q0755b_m2_j2"
+ ],
+ "not_before": "2027-01-29T00:00:00Z",
+ "argv": [
+  "scripts/run_m2.py",
+  "j3",
+  "--store",
+  "../data-dumps/research_lab/m2_ch264",
+  "--pins",
+  "../docs/research_lab/seals/M2_pins.json"
+ ],
+ "timeout_s": 28800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m2_ch264/readout/readout.jsonl.gz",
+  "data-dumps/research_lab/m2_ch264/readout/readout_manifest.json"
+ ],
+ "next_action": "q0755e_m2_analysis on or after 2027-01-29T12:00Z",
+ "notes": "DRAFT (not in jobs/). Refuses before READOUT_UTC (2027-01-29T00:00Z, or the slid date in the registration commit), without the J2 unit manifest, on a pin mismatch, and over an existing read-out. not_found needs three answers: no record in the closed=true batch, none in the batch without the filter, and then two HTTP 200 answers without the record from the single-id queries (with and without closed=true); a failed single query leaves the unit unavailable_fetch. A record that is not closed is pending for every final state (y null when downgraded); other_price_vector and bad_prices are named unavailable sub-classes. The 1 h gap between attempts is slept inside the job (timeout 8 h covers the passes). If the slide rule moved the dates, edit not_before in the registration commit only. Code: backend/scripts/run_m2.py with astrolabe/research_lab/m2_spec.py, m2_j1.py, m2_j2.py, m2_readout.py, m2_analysis.py; pins checked at start (exit 3 / exit 2 as for J1)."
+}

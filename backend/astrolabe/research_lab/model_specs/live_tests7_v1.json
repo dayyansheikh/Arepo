@@ -1,0 +1,526 @@
+{
+ "spec_id": "live_tests7_v1",
+ "status": "DRAFT (not registered; SPEC_SHA256 None; k_tests null; census-filled fields null until the censuses)",
+ "design": "docs/research_lab/LIVE_TESTS_7.md (text-frozen at cedfd6be, sha256 840f4500cde37158f57f6cf6bf54a3535ee5b24f3e5dedfd9240b315eeb52899; amended by 13.6 reward-null ruling 2026-10-22 (sha256 31baf5e5b5c1bec2518228618fc21ab7f111c0e673d6cb064583ce1363d20dd4) and 13.7 reward-switch ruling 2026-10-22, sha256 8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803; sections 0-13, 13 governs)",
+ "design_text_sha256": "8fc83a739ef48ddf23c568847e0eec98ff56bd3bead4c4974eac463d023c1803",
+ "reward_null_rule": "listed_carry24h_v2",
+ "reward_carry_slots": 12,
+ "reward_null_rule_history": "null_as_unrewarded_v1 (13.6, superseded by 13.7 for the primaries of CH197 and CH192; kept as a descriptive sensitivity)",
+ "experiments": {
+  "CH195": "resistance",
+  "CH191": "grind at the capture clock",
+  "CH197": "patient money",
+  "CH193": "absorbed flow",
+  "CH192": "implied against realised"
+ },
+ "withdrawn": {
+  "CH194": "the hour-held move, withdrawn in the R1 response before registration (never registered, not counted; seeds 20261173 / 20261273 retired)"
+ },
+ "registered_utc": "2026-12-08T00:00:00Z",
+ "end_utc": "2026-12-29T00:00:00Z",
+ "analysis_not_before": "2026-12-30T12:00:00Z",
+ "dates_comment": "proposed values of LIVE_TESTS_7.md 1.1; the window slides later with LT6's END_UTC (a move is recorded in the ledger); the module constants must equal these (L6)",
+ "k_tests": null,
+ "k_tests_rule": "the tests whose census gate passes (section 7), a subset of [CH195, CH191, CH197, CH193, CH192]; fixed at registration, never changed; a size-scenario failure sets only its own tests to p = 1 (1.8); provisional k <= 5",
+ "code_sha256": null,
+ "code_sha_rule": "normalised sha256 (SPEC_SHA256 line excluded) of live_tests7.py, live_tests7_analysis.py (phase 2), live_tests7_base.py, bounce_decomp.py and the hashed dependencies maker_rewards.py, panel.py, trade_sample.py, cb17_census.py, cb13_label.py, economics.py, forecast.py (8.1)",
+ "grid": {
+  "grid0_utc": "2026-10-01T00:31:00Z",
+  "grid_s": 7200,
+  "slot_tol_s": 1800
+ },
+ "eligibility": {
+  "spread_max": 0.1,
+  "rule": "section 1.4: binary, not closed, active, two-sided (0 < bid < ask <= 1) and spread <= 0.10 (Gamma spread, else ask - bid) at k-1 and k; one row per market_id and per condition_id (first in page order)"
+ },
+ "sports_rule": "cb17_census.is_sports_sidecar(fee_type, fee_category, series_slugs) on the sidecar of the capture; sidecar missing -> sports = -1 (unknown; excluded wherever the category is needed)",
+ "crypto_rule": {
+  "fee_type_prefix": "crypto",
+  "slug_regex": "(?i)(bitcoin|ethereum|solana|xrp|dogecoin|crypto|^btc|^eth-|^sol-|^bnb|^hype)",
+  "rule": "crypto = fee_type starts with 'crypto' or the first series slug matches slug_regex (section 13, finding 2)",
+  "note": "vendored-only: read by the copied category_cols; LT7 classifies crypto with crypto_classifier (the `crypto7` class), never with this rule"
+ },
+ "series_key_rule": "first series slug if present, else 'event:' + event_id; crypto rows without a slug -> 'crypto:noslug' (one family: one spot driver)",
+ "move": {
+  "mid_lo": 0.02,
+  "mid_hi": 0.98,
+  "end_margin_h": 3,
+  "min_abs_x": 0.01,
+  "ltp_tol": 1e-09,
+  "vol_tol": 0.01,
+  "parallel_min": 0.005,
+  "parallel_max_diff": 0.005,
+  "one_sided_max": 0.0005,
+  "class_rule": "never_traded (ltp absent at k-1 and k) > traded (L or V+) > ambiguous (V-, ltp present at k-1 and absent at k, or volume24hr unknown) > quote_only (not L, V0); geometry for every unit: parallel (sign db = sign da = sign x, both >= 0.005, |db - da| <= 0.005), one_sided (min(|db|,|da|) <= 0.0005), spread_change (opposite signs, both > 0.0005), same_side_unequal (rest)"
+ },
+ "crypto_classifier": {
+  "field": "fee_category",
+  "normalise": "strip() then casefold()",
+  "crypto_substring": "crypto",
+  "null_like": [
+   "",
+   "nan",
+   "none",
+   "null"
+  ],
+  "unknown_counts_as_crypto_in_gate": true,
+  "rule": "1.0 (LT6 R1 re-check R2): every primary excludes crypto by this classifier; unknown (sidecar missing, field absent / empty / null-like) is counted separately and treated as crypto; the crypto arm is reported, uncounted",
+  "failsafe": "if no distinct fee_category value of the whole sealed sidecar set contains 'crypto' the classifier is not shown to work and every census is refused as NaN (fails)"
+ },
+ "tests": {
+  "CH195": {
+   "mid_lo": 0.07,
+   "mid_hi": 0.93,
+   "min_abs_x": 0.01,
+   "end_margin_h": 7,
+   "sweep_spread_max": 0.1,
+   "classes": [
+    "traded",
+    "quote_only"
+   ],
+   "state_band": "5c",
+   "target_first_slot": 1,
+   "target_skip": [
+    1,
+    3
+   ],
+   "first_origin_rule": "first pass whose k - 1 capture and k - 1 sweep start at or after REGISTERED_UTC (12-08T02:31Z as proposed; the 12-08T00:31Z pass is lt6_boundary)",
+   "seed": 20261171,
+   "gate_seed": 20261271
+  },
+  "CH191": {
+   "mid_lo": 0.05,
+   "mid_hi": 0.95,
+   "min_abs_x6": 0.02,
+   "min_ticks_x6": 3,
+   "steps": 3,
+   "grind_step_min_ticks": 1,
+   "grind_pc_max": 0.5,
+   "jump_pc_min": 0.8,
+   "min_abs_x_last_step": 0.01,
+   "rv_window": 12,
+   "rv_min_obs": 10,
+   "end_margin_h": 7,
+   "target_first_slot": 1,
+   "target_skip": [
+    1,
+    3
+   ],
+   "far_future_slots": [
+    4,
+    7
+   ],
+   "seed": 20261172,
+   "gate_seed": 20261272
+  },
+  "CH197": {
+   "slot_in_day_utc": "12:31",
+   "slot_index_in_day": 6,
+   "mid_lo": 0.07,
+   "mid_hi": 0.93,
+   "sweep_spread_max": 0.05,
+   "end_margin_h": 27,
+   "target_first_slot": 1,
+   "target_last_slot": 12,
+   "lag_slot": 13,
+   "pair_lag_slots": 13,
+   "reward_band": [
+    0.1,
+    0.9
+   ],
+   "rewards_max_spread_unit": "cents",
+   "seed": 20261174,
+   "gate_seed": 20261274
+  },
+  "CH193": {
+   "mid_lo": 0.02,
+   "mid_hi": 0.98,
+   "end_margin_h": 7,
+   "dv_abs": 10.0,
+   "dv_rel": 0.0001,
+   "abs_x_max": 0.005,
+   "target": [
+    1,
+    2
+   ],
+   "lag": [
+    2,
+    3
+   ],
+   "seed": 20261175,
+   "gate_seed": 20261275
+  },
+  "CH192": {
+   "slot_index_in_day": [
+    0,
+    3,
+    6,
+    9
+   ],
+   "slots_utc": [
+    "00:31",
+    "06:31",
+    "12:31",
+    "18:31"
+   ],
+   "mid_lo": 0.02,
+   "mid_hi": 0.98,
+   "end_margin_h": 7,
+   "rv24_window": 12,
+   "rv24_min_obs": 10,
+   "rv7d_window": 84,
+   "rv7d_min_obs": 60,
+   "rv_floor_ticks": 0.5,
+   "target": [
+    1,
+    2
+   ],
+   "lag_slot": 3,
+   "seed": 20261176,
+   "gate_seed": 20261276
+  }
+ },
+ "seeds": {
+  "estimators": {
+   "CH195": 20261171,
+   "CH191": 20261172,
+   "CH197": 20261174,
+   "CH193": 20261175,
+   "CH192": 20261176
+  },
+  "gates": {
+   "CH195": 20261271,
+   "CH191": 20261272,
+   "CH197": 20261274,
+   "CH193": 20261275,
+   "CH192": 20261276
+  },
+  "size_check": 20261177,
+  "power_runs": {
+   "CH195": 2026117721,
+   "CH191": 2026117722,
+   "CH197": 2026117724,
+   "CH193": 2026117725,
+   "CH192": 2026117726
+  },
+  "retired": [
+   20261173,
+   20261273,
+   2026117723
+  ]
+ },
+ "gates": {
+  "draws": 200,
+  "alpha": 0.05,
+  "perm_min_stratum": 4,
+  "block_min_n": 16,
+  "perm_method": "block circular-shift Freedman-Lane (CH195, CH191, CH193, CH192); plain Freedman-Lane within market (CH197) (LIVE_TESTS_7.md 1.8)"
+ },
+ "inference": {
+  "boot_draws": 2000,
+  "p_rule": "p = max(p_event on t with G_event - 1 df, p_two-way normal, p_day on t with G_day - 1 df); CH191's event df uses min(G_event, G_minor) - 1",
+  "alpha_familywise": 0.05,
+  "one_sided": true
+ },
+ "verdict": {
+  "floors": {
+   "units": 20000,
+   "events": 300,
+   "days": 10
+  },
+  "f_rule": {
+   "delta_p_max": 0.05,
+   "delta_over_primary_min": 0.5,
+   "arm_min_share": 0.5
+  },
+  "material_c": 0.5,
+  "late_loss_max": 0.02,
+  "sweep_missing_max": 0.02,
+  "series_concentrated": 0.5,
+  "attrition_pp": 2.0
+ },
+ "size_check": {
+  "worlds": 2000,
+  "draws": 200,
+  "seed": 20261177,
+  "nominal": 0.05,
+  "limit": 0.058,
+  "limit_rule": "0.05 + 1.645 sqrt(0.0475 / worlds)",
+  "power_worlds": 500,
+  "scenarios": {
+   "s01": [
+    "CH191"
+   ],
+   "s02": [
+    "CH191"
+   ],
+   "s03": [
+    "CH191"
+   ],
+   "s04": [
+    "CH191"
+   ],
+   "s05": [
+    "CH191"
+   ],
+   "s06": [
+    "CH193"
+   ],
+   "s07": [
+    "CH197"
+   ],
+   "s08": [
+    "CH197"
+   ],
+   "s09": [
+    "CH195"
+   ],
+   "s10": [
+    "CH195",
+    "CH192"
+   ],
+   "s11": [
+    "CH195",
+    "CH192"
+   ],
+   "s12": [
+    "CH192"
+   ],
+   "s13_verdict": [
+    "CH195"
+   ],
+   "s14_verdict": [
+    "CH197"
+   ],
+   "s15_verdict": [
+    "CH193"
+   ],
+   "s16_verdict": [
+    "CH192"
+   ],
+   "s17": [
+    "CH191"
+   ],
+   "s18": [
+    "CH197"
+   ],
+   "s19_verdict": [
+    "CH193"
+   ],
+   "s20": [
+    "CH193"
+   ]
+  },
+  "rule": "a failing scenario sets only the tests it is binding for to 'SE check failed'; p = 1, k unchanged; no rerun, reseed or variant; max_retries 1 covers a deterministic crash only (phase 2 code)"
+ },
+ "census_inputs": {
+  "capture_seal": "docs/research_lab/seals/lt7_census_inputs.json (written by run_live_tests7.py seal; committed before any LT7 census)",
+  "source_seals": {
+   "captures": "docs/research_lab/seals/lt5_census_inputs_captures.json",
+   "flow_samples": "docs/research_lab/seals/lt3_census_inputs_C2.json",
+   "flow_captures": "docs/research_lab/seals/lt4_census_inputs_captures.json",
+   "lt5_capture_seal_sha256": "fcd88926147051cba07d2094393d350faa7244828131e52bc9ee9b15bd108752"
+  },
+  "cc7_span": {
+   "first_slot_utc": "2026-10-12T00:31:00Z",
+   "last_slot_utc": "2026-10-21T22:31:00Z"
+  },
+  "cc7_origin_days_utc": [
+   "2026-10-15",
+   "2026-10-16",
+   "2026-10-17",
+   "2026-10-18",
+   "2026-10-19",
+   "2026-10-20",
+   "2026-10-21"
+  ],
+  "ch192_days_utc": [
+   "2026-10-19",
+   "2026-10-20",
+   "2026-10-21"
+  ],
+  "cs7_days_utc": [
+   "2026-10-20",
+   "2026-10-21"
+  ],
+  "cv7_sample_days_utc": [
+   "2026-10-16",
+   "2026-10-17"
+  ],
+  "known_missing_slots": [
+   "2026-10-14T00:31:00Z..2026-10-14T10:31:00Z",
+   "2026-10-21T00:31:00Z",
+   "2026-10-21T02:31:00Z"
+  ],
+  "min_covered_days": {
+   "CC7": 5,
+   "CC7_CH192": 2,
+   "CS7_CH195": 1.5,
+   "CS7_CH197": 2,
+   "CV7": 1.5
+  },
+  "covered_days_rule": "covered complete slots / 12 (CH192: covered declared slots / 4; CH197: covered 12:31Z passes; CV7: samples used / 12); below the minimum every gate of that census is NaN and fails",
+  "block_gate_share_proxy": "ceil(16 x covered_days / 21) units of the test's population in the census days (R1 re-check must-fix 1)",
+  "refuse_at_or_after_utc": "2026-10-22T00:00:00Z",
+  "projection": "counts x 21 / covered days (an estimate); distinct events E_2d + (E_2d - E_day1) x 19 for two-day censuses, else covered-days scaling; effective = units in markets with >= 2 units of the test's population (CH197: markets present on both days)",
+  "fallback": "fewer sealed slots: use exactly those (the rest genuinely missing, counted); no LT5 seal: q0600 hashes the same spans from the data releases' files.sha256; slots outside the named spans are never read; no other day is substituted",
+  "lag_loader": {
+   "capture_columns": {
+    "CH192": [
+     "spread"
+    ],
+    "CH193": [
+     "volume24hr"
+    ]
+   },
+   "sweep_columns": [
+    "bid_size_1",
+    "ask_size_1",
+    "depth_bid_5c",
+    "depth_ask_5c"
+   ],
+   "keys": [
+    "market_id",
+    "token_id",
+    "clob_token_id_0"
+   ]
+  }
+ },
+ "census_gates": {
+  "mde_common": {
+   "t_sum": 3.47,
+   "t_sum_exact": 3.4725,
+   "day_factor": 1.5,
+   "sd_c_skip": 0.05,
+   "sd_y22": 0.06,
+   "sd_a": 0.03,
+   "sd_a_s": 0.03,
+   "de_rho": 0.02,
+   "planning_de": 6.196,
+   "family_cap": 0.4,
+   "mde_max": 0.005,
+   "f_mde_max": 0.005,
+   "rule": "slope and class MDE gates: max(declared, design); F-MDE = max(declared form MDE x sqrt(2 / (1 - max(0, r_w))), design-based MDE of the contrast in the arm model); NaN fails; DE_gate = max(floor, 1 + (m_21 - 1) x 0.02); the census takes t_sum = max(3.47, exact computed t_{20,1-0.05/6} + t_{20,0.8}) (census-code check should-fix)"
+  },
+  "CS7_CH195": {
+   "coverage_min": 0.7,
+   "sign_agree_min": 0.7,
+   "units_projected_min": 42000,
+   "resid_iqr_min": 0.25,
+   "resid_iqr_share_min": 0.5,
+   "resid_iqr_min_units": 6,
+   "resid_iqr_markets_min": 30,
+   "corr_zR_zRaway_max": 0.8,
+   "corr_max": 0.5,
+   "corr_liq_max": 0.5,
+   "block_share_min": 0.5,
+   "de_floor": 3.0,
+   "sd": "sd_c_skip"
+  },
+  "CC7_CH191": {
+   "units_projected_min": 201600,
+   "class_share_min": 0.15,
+   "corr_max": 0.5,
+   "corr_liq_max": 0.5,
+   "block_share_min": 0.5,
+   "de_floor": 3.0,
+   "sd": "sd_c_skip"
+  },
+  "CS7_CH197": {
+   "covered_share_min": 0.6,
+   "units_projected_min": 210000,
+   "corr_imbT_imbB_max": 0.5,
+   "day_diff_min": 0.1,
+   "day_diff_share_min": 0.5,
+   "market_strata_share_min": 0.5,
+   "corr_max": 0.5,
+   "corr_liq_max": 0.5,
+   "r_gate_max": 0.8,
+   "r_min_pairs": 3,
+   "de_floor": 5.0,
+   "sd": "sd_y22"
+  },
+  "CC7_CH193": {
+   "volume_present_share_min": 0.15,
+   "units_projected_min": 100800,
+   "resid_iqr_min": 0.5,
+   "resid_iqr_share_min": 0.5,
+   "resid_iqr_min_units": 6,
+   "resid_iqr_markets_min": 30,
+   "corr_max": 0.5,
+   "corr_liq_max": 0.5,
+   "block_share_min": 0.5,
+   "lag_corr_max": 0.8,
+   "de_floor": 3.0,
+   "sd": "sd_a"
+  },
+  "CV7_CH193": {
+   "dv_abs": 10.0,
+   "dv_rel": 0.0001,
+   "min_sample_notional": 10.0,
+   "traded_share_min": 0.7,
+   "untraded_share_max": 0.3,
+   "spearman_min": 0.5,
+   "latency_window_s": 1800,
+   "latency_share_min": 0.7,
+   "latency_min_intervals": 30,
+   "min_covered_days_key": "CV7"
+  },
+  "CC7_CH192": {
+   "units_projected_min": 210000,
+   "rv_floor_share_max": 0.5,
+   "resid_iqr_min": 0.15,
+   "resid_iqr_share_min": 0.5,
+   "resid_iqr_min_units": 8,
+   "resid_iqr_markets_min": 30,
+   "corr_zivr_logrv_max": 0.7,
+   "corr_liq_max": 0.5,
+   "block_share_min": 0.5,
+   "lag_corr_max": 0.8,
+   "de_floor": 5.0,
+   "sd": "sd_a_s"
+  }
+ },
+ "census_fixed": {
+  "CH195": {
+   "R_centre": null,
+   "R_scale": null,
+   "zR_cuts": null,
+   "zR_gap": null,
+   "exclude_family": null
+  },
+  "CH191": {
+   "exclude_family": null
+  },
+  "CH197": {
+   "zimbB_centre": null,
+   "zimbB_scale": null,
+   "zimbT_centre": null,
+   "zimbT_scale": null,
+   "zimbB_cuts": null,
+   "zimbB_gap": null,
+   "exclude_family": null
+  },
+  "CH193": {
+   "zdV_centre": null,
+   "zdV_scale": null,
+   "zdV_cuts": null,
+   "zdV_gap": null,
+   "exclude_family": null
+  },
+  "CH192": {
+   "zivr_centre": null,
+   "zivr_scale": null,
+   "zivr_cuts": null,
+   "zivr_gap": null,
+   "exclude_family": null
+  }
+ },
+ "dropped_or_deferred": {
+  "CH194": "withdrawn before registration (R1 must-fix 4-5)",
+  "CH196": "a map first; not taken",
+  "CH198-CH201": "engine-first; not taken"
+ },
+ "vendored_source_drift_accepted": {"live_tests4.py": {"sha256": "4e043b6589a81ec2a9b176603e796630cb328aa2dd87f135918aadf702be98b0", "reason": "LT4 (E022) registration pin 2026-10-22: only the SPEC_SHA256 line changed (normalised hash c92ffe93... unchanged); every vendored function still equals its source (checked by test_vendored_provenance)", "date": "2026-10-22"}},
+ "vendored_source_drift_rule": "a vendored source file whose sha256 differs from live_tests7_base.VENDORED fails the provenance test unless an entry {file: {sha256, reason, date}} is recorded here (an explicit re-vendor decision; LT5 census code check finding 10); empty at the pin"
+}

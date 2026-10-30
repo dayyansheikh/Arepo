@@ -1,0 +1,156 @@
+{
+  "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+  "benchmark_context": "isolated collection after full regression; process time includes original-code capacity verification and final integrity verification",
+  "complete_pages": 73,
+  "conflicting_condition_ids": [],
+  "conflicting_market_ids": [],
+  "conflicting_token_ids": [],
+  "duplicate_market_rows": 0,
+  "eligible_row_count": 7256,
+  "enumeration_terminal_observed": false,
+  "errors": [
+    "TimeoutError"
+  ],
+  "exclusion_counts": {
+    "identity_unresolved": 44
+  },
+  "failed_attempts": 1,
+  "frame_available_at": {
+    "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+    "monotonic_ns": "1040651131725666",
+    "utc": "2026-09-21T17:23:33.047574Z"
+  },
+  "frame_report_hash": "b434c14b37b2c5413dd746f323dfa91f1d8bc952aa88c69aff20f594ecad60d9",
+  "implementation_commit": "5cdb2d218fa68c303925883f46b68c9de2996766",
+  "interval_end": {
+    "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+    "monotonic_ns": "1040647307669000",
+    "utc": "2026-09-21T17:23:29.223457Z"
+  },
+  "interval_start": {
+    "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+    "monotonic_ns": "1040490557473416",
+    "utc": "2026-09-21T17:20:52.473250Z"
+  },
+  "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_ff7f05b057b647109b4239ca781e10fb",
+  "last_attempt": {
+    "available_at": {
+      "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+      "monotonic_ns": "1040647364424708",
+      "utc": "2026-09-21T17:23:29.280280Z"
+    },
+    "capture_id": "f692558a-7b4f-45b8-9c5a-e50eef6a8ea6",
+    "error": "TimeoutError",
+    "first_received": {
+      "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+      "monotonic_ns": "1040647307669000",
+      "utc": "2026-09-21T17:23:29.223457Z"
+    },
+    "http_status": 200,
+    "ordinal": 74,
+    "page_hash": "6c52f451f79dded92a50ff0a618142d19180a04904cfed1cfde13574cefc2add",
+    "raw_bytes": 604209,
+    "raw_hash": "3e2f7529930983ccb38567635e4f542ae980783063158f6a5ac454aa2b95e007",
+    "receipt_hash": "85b9c6097cae90d942f16b7cfc60584aec776ac089122dfa0628d310322c55f8",
+    "request_started": {
+      "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+      "monotonic_ns": "1040632304560083",
+      "utc": "2026-09-21T17:23:14.220411Z"
+    },
+    "result": null,
+    "state": "verified_attempt"
+  },
+  "measurement": "third finite attempt; incomplete after a 15-second page-response timeout; no hidden retry",
+  "page_manifest_hash": "9f9f597112a69baa6430089739f511fbfd03fb0b4fc1669d0b79d3502668a4d6",
+  "policy_hash": "35cc34b894ce6d8c41c06be16cad3ecb7ac53e3023012674fdde502a1cea36d6",
+  "population_inference_eligible": false,
+  "post_run_free_bytes": 14580797440,
+  "process_elapsed_ns": "215284255666",
+  "process_peak_resident_bytes": 118849536,
+  "provenance_class": "prospective",
+  "raw_bytes": 46929025,
+  "request_capacity_basis": {
+    "implementation_commit": "726cec27ff6eeb4c10b01dd0ebde84b9804d3fb0",
+    "original_budget": {
+      "bytes_per_response": 4194304,
+      "minimum_free_bytes": 2147483648,
+      "requests": 1000,
+      "retained_bytes": 3221225472,
+      "seconds_per_request": 15,
+      "total_bytes": 1073741824,
+      "total_seconds": 900
+    },
+    "original_build": {
+      "files": {
+        "__init__.py": "24644ec3204c3093bb24fa952b5e61d9ecb25815fc6aebf19b38720bbb3c43c3",
+        "build_identity.py": "343bea6321220183d52101b10e504b7cef2ccf0bf12eca93df0a59ad7efd245d",
+        "frame.py": "21ee84e4c03e7703d0c9289806753baa203dde7bf2d0cd8a3c4898ed0ce243d3",
+        "frame_cli.py": "dfde8cb60ba39bfc73a947891115a427e67ae0b8bcf8d545cb155d6c154751dd",
+        "sampling.py": "eac21d4bd70aaf8e0a16f40da9e7d174b4ae58c6fc3336902070ad9fdfa19c70",
+        "targets.py": "c711cb11f013dec3d5fed53063ee0637c328b818fbb1936195f82b38bff3a730"
+      },
+      "schema_version": "fs2-panel-build-v1",
+      "source_build": {
+        "files": {
+          "__init__.py": "f884b7f83b0e4f74029cacea82278a7be2bac7da559423e15bbd666525a668bb",
+          "admission.py": "564778f025b64e63ab2de30c313083a0f5dde13c45a988a50c681db997e34409",
+          "book_replay.py": "a6f16bc341069d2ae54654ba9cf6040f167ddae0940b2e03e79fcdd88dd7cb20",
+          "build_identity.py": "ac5606a32714f64a2ef2c0194df90de96eb823290151aab4fe72abc4364d2431",
+          "capture.py": "fbd46fab640b0cfe3a1ec171772ac0f000f82083bd7e74954c944ee7dfe4417b",
+          "cli.py": "4c29680c3a6cb0374bbcfee39ffa224622f6144fa488d7ebefb0991290cffdc2",
+          "identity_bridge.py": "a326e18ab63a93502d0007bfb6cbd97fc5bc73abd42fd5356a8551ba4b3ffb1e",
+          "identity_views.py": "a06f920802c6ce59b22acffbfcd5d1206f349d75ddf857809d1a668cfd43c18e",
+          "migrations.py": "87ff4e739625a50a470057f72312ff0a2157f3330d7d6dcb3f405eb8ea48fe2c",
+          "models.py": "14c1b6c3bded0dc83e828e3af4f8c59dcb45d2cb78bd95ef943e77d23c7dbdd7",
+          "preservation.py": "b605941c732f360c13d628f8a2441fcbaf0a8e8f4e678d37162a2ef5dd4b366e",
+          "repository.py": "cb8f8bdeb2c6e5f5cc4e0469a9182729f23059ba9b25ec6ca91247ecfe6a3e5a",
+          "schema.py": "16ea19ea7934a8669e356a5024a52e71f1f01998c997113c82a8a0bdf7296434",
+          "source_bridge.py": "f072dc6dd83e933695742973abc3118e7c0495e979a37effdc04a8b83943d83f",
+          "source_parsers.py": "589be4ada5b8405bd6523e4c0e8ddc1a7a1c611481b7c1229060630d974b0622",
+          "source_run.py": "3ee8f29d2480ecca1372554653361f7ad469b4ab84e278ab9158937f0f2e0f90",
+          "sources.py": "49e9a7610d1a2fc7bf25a0430f0b68b3e25eb11817ccf370f9526b91794db5ac",
+          "stream_probe.py": "d07ff8fa05cef02ca2807bb0bbe0127d80738077823b129efb02263ec5a79c6d",
+          "types.py": "4472ccd5f7bbbe56ad9d7fe9e9693e990f6aeb4974b6408a00b78fde11806b4b"
+        },
+        "libraries": {
+          "SQLAlchemy": "2.0.51",
+          "aiosqlite": "0.22.1",
+          "asyncpg": "0.31.0",
+          "httpx": "0.28.1"
+        },
+        "python": "3.11.2 (v3.11.2:878ead1ac1, Feb  7 2023, 10:02:41) [Clang 13.0.0 (clang-1300.0.29.30)]",
+        "schema_version": "fs2-build-v1"
+      }
+    },
+    "original_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_3a4f80db7fa94d248fc16e1397af4c71",
+    "policy_hash": "f55f9dd2fe413e24f9c726e714a5a2258e094721dbc1d918c3d01861ff4d1968",
+    "raw_bytes": 644897535,
+    "read_available_at": {
+      "clock_session_id": "db0f97d9-f6bf-4c85-9f0c-4a46f0047864",
+      "monotonic_ns": "1040490081684708",
+      "utc": "2026-09-21T17:20:51.997460Z"
+    },
+    "read_receipt_hash": "f7221dcf29837f793f9e716dba46ffa55a4a6bdde38c1864f34bbf494f17ab2b",
+    "read_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_frame_read_03d3f4b356ee460d86451ce79e24d0a8",
+    "report_hash": "5414f0489bd15828774ae413f4a1e4de524ed5c18b3f8ce9d24fe9ecbff98f68",
+    "retained_file_bytes": 1577956669,
+    "usage": "request-ceiling cost evidence only; original frame remains incomplete"
+  },
+  "retained_file_bytes": 112224334,
+  "retained_files": 523,
+  "schema_version": "fs2-gamma-frame-v2",
+  "scientific_stage": "measurement_development_only",
+  "source_rows": 7300,
+  "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+  "state": "incomplete",
+  "stop_reason": "page_error",
+  "storage_preflight": {
+    "free_bytes": 14703390720,
+    "required_bytes": 10737418240
+  },
+  "successful_parse_store_median_ns": "93139500",
+  "successful_response_median_ns": "1290106042",
+  "unique_market_ids": 7300,
+  "unverified_attempts": 0,
+  "verified_attempts": 74
+}

@@ -1,0 +1,40 @@
+{
+ "id": "q0248_cb12_seal",
+ "title": "CB12-M: HOLDOUT listing sha256 (history/h12_say/holdout, including holdout/outcomes_guarded_holdout.csv.gz and its own sha256); seal-time drops vs every committed seal copy (CB12's own excluded); seal copy seals/cb12_say_holdout_SEAL.json",
+ "family": "creative_batch_12",
+ "priority": 22,
+ "expected_value": "sealed M holdout",
+ "data": [
+  "history/h12_say/holdout/"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api (seal-copy key lookups only)"
+ },
+ "depends_on": [
+  "q0243_cb12_say_prices"
+ ],
+ "argv": [
+  "scripts/run_cb12.py",
+  "seal",
+  "--family",
+  "M",
+  "--rps",
+  "2"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "history/h12_say/holdout_SEAL.json",
+  "history/h12_say/drops.csv.gz",
+  "docs/research_lab/seals/cb12_say_holdout_SEAL.json"
+ ],
+ "next_action": "commit the seal copy; q0249",
+ "notes": "DRAFT. Re-reads the id-source frames recorded 'absent at q0241' (DROPPED_ABSENT_AT_Q0241 rows, file sha256 in the seal). Exits 75 (pending) while q0243 is unfinished and re-runs. The F seal (CB12-F) is added with the F code; a sealed file is never edited; drops are recorded as DROPPED_* rows. ACCESS_LOG.jsonl lives in the run directory, outside the sealed listing. Rules part sha256 (seals/cb12_rules.json, 2026-10-18 code): M a2e420b031421642b97398ff284e2e2a9364b92004969b4421d5daa7c0910455. CB12 DRAFT, not in queue/jobs: needs the code-against-design freeze check (science-reviewer) and the committed rules file first; the coordinator regenerates the rules and these shas if any common / family code changes.",
+ "repeat": {
+  "max_runs": 6,
+  "until_log_regex": "\"status\": \"seal_all_complete\""
+ }
+}

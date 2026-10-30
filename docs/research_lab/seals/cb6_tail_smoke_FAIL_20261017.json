@@ -1,0 +1,21 @@
+{
+ "counts_only": true,
+ "fraction_of_expected_points_histogram": {
+  "0.5_to_0.8": 0,
+  "0.8_to_1.1": 4,
+  "ge_1.1": 0,
+  "lt_0.5": 16
+ },
+ "git_commit": "06ce95df9fbfe1047993840d73e15a7deb549563",
+ "n_candidates_available": 573,
+ "n_failed_requests": 0,
+ "n_ge_80pct_points": 4,
+ "n_pass": 4,
+ "n_requested": 20,
+ "n_spacing_ok": 7,
+ "pass": false,
+ "pass_threshold": 18,
+ "rules_sha256": "57a265d0620c45ea2c82e606e1194846aed6012e2848753a81cfdbb90aa2f3df",
+ "run_utc": "2026-10-17T05:04:13Z",
+ "smoke_version": "h8-tail-smoke-v1"
+}

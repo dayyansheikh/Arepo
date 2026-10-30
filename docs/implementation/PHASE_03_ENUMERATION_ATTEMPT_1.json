@@ -1,0 +1,53 @@
+{
+  "availability_basis": "page acknowledgements; full frame needs report acknowledgement",
+  "collection_process_elapsed_ns": "109404831458",
+  "collection_process_peak_resident_bytes": 202407936,
+  "conflicting_condition_ids": [],
+  "conflicting_market_ids": [],
+  "conflicting_token_ids": [],
+  "duplicate_market_rows": 0,
+  "eligible_row_count": 40856,
+  "enumeration_terminal_observed": false,
+  "errors": [
+    "byte_budget_exceeded"
+  ],
+  "exclusion_counts": {
+    "identity_unresolved": 44
+  },
+  "frame_available_at": {
+    "clock_session_id": "23b8e5ea-30db-4ae5-9549-34da75c5647b",
+    "monotonic_ns": "1007877901589625",
+    "utc": "2026-09-21T03:49:36.712228Z"
+  },
+  "frame_report_hash": "a8d1261b4974453796a04f06d1cf6745344818014ebaa3512e75328db0948432",
+  "implementation_commit": "f66dea1f5a47dd89e1dfeb982d0667be26b3b134",
+  "interval_end": {
+    "clock_session_id": "23b8e5ea-30db-4ae5-9549-34da75c5647b",
+    "monotonic_ns": "1007868281060083",
+    "utc": "2026-09-21T03:49:27.091625Z"
+  },
+  "interval_start": {
+    "clock_session_id": "23b8e5ea-30db-4ae5-9549-34da75c5647b",
+    "monotonic_ns": "1007787516699583",
+    "utc": "2026-09-21T03:48:06.326594Z"
+  },
+  "journal_root": "/Users/DayyanSheikh/Projects/astrolabe/data-dumps/fs2_capture_95cbb8cdd4334bc1836249e7d7864473",
+  "latency_ns": "80764360500",
+  "measurement": "finite enumeration attempt; incomplete at frozen 256MiB raw limit",
+  "page_manifest_hash": "49b6c73e1557c9ef6a745bd3794020658352c50a40c5914e17f5de28aecb3e03",
+  "policy_hash": "d49b18d19dd268a34716a2634f163b084206054f17b4231ef08e2aefc457bfe2",
+  "population_inference_eligible": false,
+  "provenance_class": "prospective",
+  "raw_bytes": 268435456,
+  "retained_file_bytes": 654055783,
+  "retained_files": 2875,
+  "schema_version": "fs2-gamma-frame-v2",
+  "scientific_stage": "measurement_development_only",
+  "source_rows": 40900,
+  "source_semantics": "interval enumeration, not atomic snapshot or independent events",
+  "state": "incomplete",
+  "stop_reason": "page_error",
+  "unique_market_ids": 40900,
+  "unverified_attempts": 0,
+  "verified_attempts": 410
+}

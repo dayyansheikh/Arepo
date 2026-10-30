@@ -1,0 +1,453 @@
+entity,field,type,nullable,units,meaning,reference,storage
+archive_manifest,artifact_manifest_id,HASH,false,not applicable,Archive file inventory and roots,artifact_manifest.id,stored
+archive_manifest,byte_count,INT64,false,not applicable,Stored bytes,,stored
+archive_manifest,file_hashes,JSON,false,not applicable,"Object-relative paths, SHA-256 and counts",,stored
+archive_manifest,format_version,TEXT,false,not applicable,Codec and typed schema,,stored
+archive_manifest,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+archive_manifest,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+archive_manifest,partition_bounds,JSON,false,not applicable,"Dataset, token/event/time partitions",,stored
+archive_manifest,preservation_report_id,HASH,true,not applicable,Full equivalence verification report,artifact_manifest.id,stored
+archive_manifest,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+archive_manifest,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+archive_manifest,restore_report_id,HASH,true,not applicable,Independent reader/restore test,artifact_manifest.id,stored
+archive_manifest,row_count,INT64,false,not applicable,Exact row count,,stored
+archive_manifest,schema_hash,HASH,false,not applicable,Exact schema version,,stored
+archive_manifest,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+archive_manifest,source_manifest_id,HASH,false,not applicable,Original logical table/key set,artifact_manifest.id,stored
+archive_manifest,supersedes_id,HASH,true,not applicable,New verification record/version,archive_manifest.id,stored
+archive_manifest,verification_state,ENUM,false,not applicable,unverified/verified/failed,,stored
+artifact_manifest,available_at,UTC,false,UTC microseconds; original precision in source envelope,When complete manifest available,,stored
+artifact_manifest,content_hash,HASH,false,not applicable,Canonical payload digest,,stored
+artifact_manifest,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+artifact_manifest,manifest_kind,ENUM,false,not applicable,sampling/group/feature/training/split/model/protocol/result/archive/restore/legacy,,stored
+artifact_manifest,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+artifact_manifest,object_hash,HASH,true,not applicable,Required with URI,,stored
+artifact_manifest,object_uri,TEXT,true,not applicable,Optional immutable local/cold artifact,,stored
+artifact_manifest,payload,JSON,false,not applicable,Schema-tagged typed object; exact numbers as strings,,stored
+artifact_manifest,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+artifact_manifest,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+artifact_manifest,schema_version,TEXT,false,not applicable,Manifest schema,,stored
+book_level,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+book_level,level,INT64,false,not applicable,ordered price level,,stored
+book_level,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+book_level,price_decimal,DECIMAL_TEXT,true,explicit unit field/source contract,lossless parsed price per share,,stored
+book_level,price_raw,TEXT,false,not applicable,exact source decimal string,,stored
+book_level,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+book_level,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+book_level,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+book_level,side,ENUM,false,not applicable,bid/ask with source convention,,stored
+book_level,size_decimal,DECIMAL_TEXT,true,explicit unit field/source contract,quantity with source units,,stored
+book_level,size_raw,TEXT,false,not applicable,exact source decimal string,,stored
+book_level,snapshot_id,TEXT,false,not applicable,snapshot/delta reconstruction key,book_snapshot.id,stored
+book_level,source_observation_id,HASH,false,not applicable,Exact numerical raw evidence,source_observation.id,stored
+book_level,unit,TEXT,false,not applicable,shares/contracts/native amount,,stored
+book_snapshot,ask_level_count,INT64,false,not applicable,Actual retained ask levels,,stored
+book_snapshot,ask_state,ENUM,false,not applicable,observed/empty/unknown/invalid,,stored
+book_snapshot,available_to_model_at,UTC,false,UTC microseconds; original precision in source envelope,No earlier than all reconstruction dependencies,,stored
+book_snapshot,bid_level_count,INT64,false,not applicable,Actual retained bid levels,,stored
+book_snapshot,bid_state,ENUM,false,not applicable,observed/empty/unknown/invalid,,stored
+book_snapshot,book_hash,TEXT,true,not applicable,source hash where supplied,,stored
+book_snapshot,delta_observation_ids,ID_LIST,false,not applicable,Ordered raw delta evidence; empty for full snapshot,,stored
+book_snapshot,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+book_snapshot,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+book_snapshot,previous_snapshot_id,HASH,true,not applicable,Reconstruction ancestry,book_snapshot.id,stored
+book_snapshot,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+book_snapshot,quote_age_ms,DECIMAL_TEXT,true,explicit unit field/source contract,age with defined source/receipt semantics,,stored
+book_snapshot,quote_age_semantics,ENUM,false,not applicable,venue_update/receipt/unknown,,stored
+book_snapshot,reconstruction_status,ENUM,false,not applicable,complete/gap/stale/invalid,,stored
+book_snapshot,reconstruction_version,TEXT,false,not applicable,Algorithm version and source semantics,,stored
+book_snapshot,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+book_snapshot,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+book_snapshot,sequence_end,TEXT,true,not applicable,Source sequence if supplied,,stored
+book_snapshot,sequence_start,TEXT,true,not applicable,Source sequence if supplied,,stored
+book_snapshot,snapshot_kind,ENUM,false,not applicable,snapshot/reconstructed_delta,,stored
+book_snapshot,source_observation_id,HASH,false,not applicable,Raw book or delta envelope,source_observation.id,stored
+book_snapshot,token_outcome_id,HASH,false,not applicable,Outcome mapping known at receipt,token_outcome_version.id,stored
+condition_identity,chain_id,INT64,true,not applicable,EVM chain namespace,,stored
+condition_identity,collateral_address,ADDRESS,true,not applicable,source settlement currency,,stored
+condition_identity,collateral_decimals,INT64,true,not applicable,scale for native token units,,stored
+condition_identity,condition_id,HEX32,true,not applicable,chain condition identity,,stored
+condition_identity,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+condition_identity,identity_status,ENUM,false,not applicable,verified/unresolved/conflicting,,stored
+condition_identity,mapping_evidence_ids,ID_LIST,false,not applicable,Source observations establishing identity,,stored
+condition_identity,mapping_version,HASH,false,not applicable,Mapping definition/evidence hash,,stored
+condition_identity,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+condition_identity,observed_from_at,UTC,false,UTC microseconds; original precision in source envelope,Actual knowledge time,,stored
+condition_identity,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+condition_identity,question_id,HEX32,true,not applicable,oracle question identity,,stored
+condition_identity,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+condition_identity,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+condition_identity,supersedes_id,HASH,true,not applicable,Earlier condition version,condition_identity.id,stored
+condition_identity,venue,TEXT,false,not applicable,Source namespace,,stored
+event_group_membership,event_group_id,TEXT,true,not applicable,versioned economic event group,,stored
+event_group_membership,group_version,HASH,false,not applicable,Whole group graph manifest hash,,stored
+event_group_membership,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+event_group_membership,mapping_confidence,DECIMAL_TEXT,true,explicit unit field/source contract,"Bounded [0,1], not a calibrated probability",,stored
+event_group_membership,mapping_evidence_ids,ID_LIST,false,not applicable,Evidence observation list,,stored
+event_group_membership,mapping_method,TEXT,false,not applicable,Rule/manual algorithm version,,stored
+event_group_membership,mapping_view,ENUM,false,not applicable,as_known/conservative_evaluation,,stored
+event_group_membership,member_identity_id,HASH,false,not applicable,Versioned market member,market_identity_version.id,stored
+event_group_membership,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+event_group_membership,observed_from_at,UTC,false,UTC microseconds; original precision in source envelope,Mapping first known,,stored
+event_group_membership,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+event_group_membership,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+event_group_membership,relationship_type,ENUM,false,not applicable,common_cause/mutually_exclusive/nested_threshold/recurring_release/related_contract,,stored
+event_group_membership,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+event_group_membership,supersedes_id,HASH,true,not applicable,Prior membership,event_group_membership.id,stored
+event_group_membership,valid_from_at,UTC,true,UTC microseconds; original precision in source envelope,Effective start,,stored
+event_group_membership,valid_to_at,UTC,true,UTC microseconds; original precision in source envelope,Effective end,,stored
+experiment_run,candidate_manifest_id,HASH,false,not applicable,Model/config/seed/code/dependencies,artifact_manifest.id,stored
+experiment_run,experiment_id,TEXT,false,not applicable,H01-H60 or baseline/measurement protocol,,stored
+experiment_run,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+experiment_run,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+experiment_run,protocol_manifest_id,HASH,false,not applicable,"Design, thresholds, power, metrics, stopping rules",artifact_manifest.id,stored
+experiment_run,protocol_version,HASH,false,not applicable,Frozen protocol hash,,stored
+experiment_run,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+experiment_run,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+experiment_run,registered_at,UTC,false,UTC microseconds; original precision in source envelope,Before first confirmation origin,,stored
+experiment_run,result_manifest_id,HASH,true,not applicable,All trials/metrics/uncertainty including negative results,artifact_manifest.id,stored
+experiment_run,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+experiment_run,split_manifest_id,HASH,false,not applicable,Chronological/grouped folds and label availability,artifact_manifest.id,stored
+experiment_run,stage,ENUM,false,not applicable,design/development/locked_confirmation/result,,stored
+experiment_run,supersedes_id,HASH,true,not applicable,Append state/result version; never erase trials,experiment_run.id,stored
+experiment_run,verdict,ENUM,false,not applicable,not_run/positive/negative/inconclusive/invalid,,stored
+feature_definition,feature_id,TEXT,false,not applicable,Stable F01-F60 or baseline primitive namespace,,stored
+feature_definition,feature_version,HASH,false,not applicable,Hash of formula and complete semantics,,stored
+feature_definition,formula,TEXT,false,not applicable,Pinned executable formula specification,,stored
+feature_definition,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+feature_definition,minimum_coverage,DECIMAL_TEXT,true,explicit unit field/source contract,"Predeclared fraction, not an optimised hindsight filter",,stored
+feature_definition,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+feature_definition,missingness_policy,JSON,false,not applicable,Allowed missing reasons and denominator-zero handling,,stored
+feature_definition,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+feature_definition,raw_dependencies,JSON,false,not applicable,Required fields and order/availability constraints,,stored
+feature_definition,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+feature_definition,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+feature_definition,status,ENUM,false,not applicable,candidate/locked/retired; new row for change,,stored
+feature_definition,transformation_specification,JSON,false,not applicable,"Transform, clipping, normalisation fit manifest or none",,stored
+feature_definition,units,TEXT,false,not applicable,Output and numerator/denominator units,,stored
+feature_definition,window_specification,JSON,false,not applicable,"Duration, closure and alignment conventions",,stored
+feature_value,available_to_model_at,UTC,false,UTC microseconds; original precision in source envelope,Maximum dependency and computation completion,,stored
+feature_value,computed_at,UTC,false,UTC microseconds; original precision in source envelope,Actual calculation time,,stored
+feature_value,coverage_definition,TEXT,true,not applicable,Coverage meaning,,stored
+feature_value,coverage_fraction,DECIMAL_TEXT,true,explicit unit field/source contract,Measured window coverage,,stored
+feature_value,denominator,DECIMAL_TEXT,true,explicit unit field/source contract,ratio decomposition; zero retained,,stored
+feature_value,feature_definition_id,HASH,false,not applicable,Exact definition version,feature_definition.id,stored
+feature_value,feature_id,TEXT,false,not applicable,stable definition identity,,stored
+feature_value,feature_version,TEXT,false,not applicable,formula hash,,stored
+feature_value,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+feature_value,input_observation_ids,ID_LIST,false,not applicable,complete dependency manifest,,stored
+feature_value,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+feature_value,missingness_reason,ENUM,false,not applicable,observed vs unavailable/stale/censored/etc,,stored
+feature_value,numerator,DECIMAL_TEXT,true,explicit unit field/source contract,ratio decomposition,,stored
+feature_value,origin_id,HASH,false,not applicable,Frozen origin,research_origin.id,stored
+feature_value,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+feature_value,quality_flags,JSON,false,not applicable,Typed flags; absence is not a quality certificate,,stored
+feature_value,raw_value_decimal,DECIMAL_TEXT,true,explicit unit field/source contract,lossless numerical primitive/feature,,stored
+feature_value,raw_value_text,TEXT,true,not applicable,original numeric representation,,stored
+feature_value,raw_value_vector,TYPED_VECTOR,true,not applicable,levels/quantiles/embeddings with dimensions,,stored
+feature_value,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+feature_value,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+feature_value,transform_manifest_id,HASH,true,not applicable,Frozen training transform,artifact_manifest.id,stored
+feature_value,transform_version,TEXT,false,not applicable,training transform and clipping rules,,stored
+feature_value,transformed_value,TYPED_NUMBER,true,not applicable,versioned model input,,stored
+feature_value,units,TEXT,false,not applicable,explicit commensurate unit,,stored
+feature_value,window_end_at,UTC,false,UTC microseconds; original precision in source envelope,lookback bound before cutoff,,stored
+feature_value,window_start_at,UTC,false,UTC microseconds; original precision in source envelope,lookback bound,,stored
+information_event_version,available_to_model_at,UTC,false,UTC microseconds; original precision in source envelope,After extraction and every dependency,,stored
+information_event_version,claim_id,TEXT,false,not applicable,deduplicated proposition,,stored
+information_event_version,document_id,TEXT,false,not applicable,source/version identity,,stored
+information_event_version,embedding_version,TEXT,true,not applicable,"model,dimensions,normalisation",,stored
+information_event_version,entity_ids,ID_LIST,false,not applicable,versioned alias/entity mapping,,stored
+information_event_version,expectation_available_at,UTC,true,UTC microseconds; original precision in source envelope,must precede release for surprise,,stored
+information_event_version,extraction_model_version,TEXT,true,not applicable,LLM/parser version,,stored
+information_event_version,extraction_output,TYPED_OBJECT,false,not applicable,"Versioned structured claims, confidence, errors and extraction config",,stored
+information_event_version,first_available_at,UTC,true,UTC microseconds; original precision in source envelope,Independently evidenced availability,,stored
+information_event_version,first_received_at,UTC,false,UTC microseconds; original precision in source envelope,AREPO receipt,,stored
+information_event_version,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+information_event_version,independent_source_count,INT64,true,not applicable,not article count,,stored
+information_event_version,lineage_observation_ids,ID_LIST,false,not applicable,Original and syndicated source evidence,,stored
+information_event_version,market_match_ids,ID_LIST,false,not applicable,Versioned market identities; none permitted,,stored
+information_event_version,match_confidence,DECIMAL_TEXT,true,explicit unit field/source contract,validated linkage score,,stored
+information_event_version,matching_version,HASH,false,not applicable,Rule-aware matcher,,stored
+information_event_version,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+information_event_version,novelty_value,DECIMAL_TEXT,true,explicit unit field/source contract,definition/model/window versioned,,stored
+information_event_version,numeric_actual_raw,TEXT,true,not applicable,first-released number with unit,,stored
+information_event_version,numeric_expectation_raw,TEXT,true,not applicable,frozen prerelease expectation,,stored
+information_event_version,numeric_unit,TEXT,true,not applicable,Explicit actual/expectation units,,stored
+information_event_version,original_source_id,TEXT,true,not applicable,independent-origin lineage,,stored
+information_event_version,prompt_hash,TEXT,true,not applicable,frozen prompt identity,,stored
+information_event_version,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+information_event_version,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+information_event_version,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+information_event_version,source_observation_id,HASH,false,not applicable,Document observation,source_observation.id,stored
+information_event_version,source_published_at,UTC,true,UTC microseconds; original precision in source envelope,Publisher declaration,,stored
+information_event_version,stance_probabilities,DECIMAL_VECTOR,true,explicit unit field/source contract,supports/contradicts/irrelevant etc,,stored
+information_event_version,supersedes_id,HASH,true,not applicable,Previous document/extraction version,information_event_version.id,stored
+information_event_version,text_hash,HASH,false,not applicable,Exact source text hash or documented metadata-only hash,,stored
+information_event_version,text_hash_scope,ENUM,false,not applicable,content/metadata_only,,stored
+information_event_version,text_rights_state,ENUM,false,not applicable,retention/redistribution permission state,,stored
+label_version,actual_delay_seconds,DECIMAL_TEXT,true,explicit unit field/source contract,retain number not only exact/nearest tag,,stored
+label_version,censoring_reason,ENUM,true,not applicable,close/window/source/quality etc,,stored
+label_version,fee_config_version,TEXT,true,not applicable,market-time economic evaluation,,stored
+label_version,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+label_version,label_available_at,UTC,true,UTC microseconds; original precision in source envelope,when label may enter training,,stored
+label_version,label_computation_version,HASH,false,not applicable,Pinned computation rules,,stored
+label_version,label_id,HASH,false,not applicable,immutable label revision key; compatibility alias equal to canonical id,,stored
+label_version,label_observed_at,UTC,true,UTC microseconds; original precision in source envelope,actual quote/event observation,,stored
+label_version,label_value,TYPED_OBJECT,true,not applicable,Explicit class/delta/distribution/payout representation,,stored
+label_version,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+label_version,origin_id,HASH,false,not applicable,Origin shared by comparable predictions,research_origin.id,stored
+label_version,outcome_observation_ids,ID_LIST,false,not applicable,raw outcome lineage,,stored
+label_version,payout_vector,DECIMAL_VECTOR,true,explicit unit field/source contract,fractional/void outcomes represented,,stored
+label_version,prediction_id,HASH,true,not applicable,"Optional candidate link, labels otherwise shared",prediction.id,stored
+label_version,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+label_version,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+label_version,revision_reason,TEXT,true,not applicable,Required when supersedes_label_id set,,stored
+label_version,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+label_version,status,ENUM,false,not applicable,pending/unavailable/unchanged/closed/evaluated/invalid,,stored
+label_version,supersedes_label_id,TEXT,true,not applicable,revision chain,label_version.id,stored
+label_version,target_at,UTC,false,UTC microseconds; original precision in source envelope,intended outcome time,,stored
+label_version,target_definition_id,HASH,false,not applicable,Target semantics,target_definition.id,stored
+market_identity_version,category,TEXT,true,not applicable,As-known category,,stored
+market_identity_version,close_at,UTC,true,UTC microseconds; original precision in source envelope,"As-known close, not information-event time",,stored
+market_identity_version,condition_identity_id,HASH,true,not applicable,Verified condition link; unresolved stays null,condition_identity.id,stored
+market_identity_version,event_id,TEXT,true,not applicable,Gamma event ID; missing remains unknown,,stored
+market_identity_version,fee_configuration,JSON,true,not applicable,"Versioned rate/formula/currency/era, numbers as decimal strings",,stored
+market_identity_version,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+market_identity_version,information_event_at,UTC,true,UTC microseconds; original precision in source envelope,Announced underlying event time if evidenced,,stored
+market_identity_version,lifecycle_state,TEXT,false,not applicable,Source status with versioned semantics,,stored
+market_identity_version,mapping_confidence,DECIMAL_TEXT,true,explicit unit field/source contract,confidence with method version,,stored
+market_identity_version,mapping_evidence_ids,ID_LIST,false,not applicable,supporting observation identifiers,,stored
+market_identity_version,mapping_version,HASH,false,not applicable,identity/rule/group map hash,,stored
+market_identity_version,market_id,TEXT,false,not applicable,native ID,,stored
+market_identity_version,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+market_identity_version,observed_from_at,UTC,false,UTC microseconds; original precision in source envelope,first AREPO knowledge of mapping,,stored
+market_identity_version,observed_to_at,UTC,true,UTC microseconds; original precision in source envelope,supersession knowledge time,,derived_as_of_view
+market_identity_version,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+market_identity_version,question,TEXT,false,not applicable,"Question as observed, not current metadata",,stored
+market_identity_version,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+market_identity_version,resolution_source,TEXT,true,not applicable,Rule-designated authority,,stored
+market_identity_version,rules_hash,HASH,true,not applicable,Exact rule version hash,,stored
+market_identity_version,rules_text,TEXT,true,not applicable,Rights-permitted market resolution rules,,stored
+market_identity_version,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+market_identity_version,supersedes_id,HASH,true,not applicable,Prior market version,market_identity_version.id,stored
+market_identity_version,tick_size,DECIMAL_TEXT,true,explicit unit field/source contract,Collateral/share tick with source lineage,,stored
+market_identity_version,valid_from_at,UTC,true,UTC microseconds; original precision in source envelope,effective-world interval,,stored
+market_identity_version,valid_to_at,UTC,true,UTC microseconds; original precision in source envelope,effective-world interval end,,stored
+market_identity_version,venue,TEXT,false,not applicable,source namespace,,stored
+outcome_observation,ask,DECIMAL_TEXT,true,explicit unit field/source contract,purchase-side executable candidate,,stored
+outcome_observation,available_to_model_at,UTC,true,UTC microseconds; original precision in source envelope,When raw outcome becomes usable,,stored
+outcome_observation,bid,DECIMAL_TEXT,true,explicit unit field/source contract,sale-side executable candidate,,stored
+outcome_observation,close_state,TEXT,false,not applicable,As-observed closure status,,stored
+outcome_observation,executable_size,DECIMAL_TEXT,true,explicit unit field/source contract,Size whose depth was evaluated,,stored
+outcome_observation,first_received_at,UTC,true,UTC microseconds; original precision in source envelope,Receipt unknown for legacy,,stored
+outcome_observation,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+outcome_observation,label_observed_at,UTC,true,UTC microseconds; original precision in source envelope,Actual quote/event time under stated clock contract,,stored
+outcome_observation,midpoint,DECIMAL_TEXT,true,explicit unit field/source contract,freshness-qualified quote midpoint,,stored
+outcome_observation,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+outcome_observation,missingness_reason,ENUM,false,not applicable,Observed or canonical reason,,stored
+outcome_observation,near_mid_depth,DECIMAL_TEXT,true,explicit unit field/source contract,Explicit shares or collateral in unit map,,stored
+outcome_observation,observation_status,ENUM,false,not applicable,observed/pending/unavailable/closed/invalid,,stored
+outcome_observation,origin_id,HASH,false,not applicable,Origin for target linkage,research_origin.id,stored
+outcome_observation,payout_vector,DECIMAL_VECTOR,true,explicit unit field/source contract,Ordered exact payout fractions,,stored
+outcome_observation,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+outcome_observation,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+outcome_observation,resolution_state,TEXT,false,not applicable,unresolved/proposed/disputed/final/void/fractional/unknown,,stored
+outcome_observation,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+outcome_observation,source_observation_id,HASH,false,not applicable,Observed outcome fact,source_observation.id,stored
+outcome_observation,supersedes_id,HASH,true,not applicable,"Corrected fact/reorg, retain original",outcome_observation.id,stored
+outcome_observation,target_at,UTC,false,UTC microseconds; original precision in source envelope,Origin plus horizon or declared event target,,stored
+outcome_observation,target_definition_id,HASH,false,not applicable,Target and tolerance contract,target_definition.id,stored
+outcome_observation,units,JSON,false,not applicable,"Price, depth, payout and currency units",,stored
+prediction,abstention_reason,ENUM,true,not applicable,quality/applicability/insufficient-evidence/no-signal,,stored
+prediction,calibration_version,TEXT,false,not applicable,calibration artifact or none,,stored
+prediction,class_probabilities,DECIMAL_VECTOR,true,explicit unit field/source contract,all classes including flat,,stored
+prediction,direction,ENUM,true,not applicable,up/down/flat for legacy baselines; not invented probabilities,,stored
+prediction,distribution_parameters,TYPED_OBJECT,true,not applicable,continuous predictive distribution,,stored
+prediction,experiment_run_id,HASH,false,not applicable,Preregistered candidate run,experiment_run.id,stored
+prediction,feature_manifest_id,HASH,false,not applicable,Exact feature-value and lineage IDs,artifact_manifest.id,stored
+prediction,generated_at,UTC,false,UTC microseconds; original precision in source envelope,Model completion time,,stored
+prediction,horizon_seconds,INT64,false,not applicable,nominal horizon,,stored
+prediction,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+prediction,latency_ms,DECIMAL_TEXT,false,explicit unit field/source contract,Measured time after origin,,stored
+prediction,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+prediction,model_version,TEXT,false,not applicable,model parameters/artifact hash,,stored
+prediction,origin_id,HASH,false,not applicable,Actual forecast origin,research_origin.id,stored
+prediction,output_kind,ENUM,false,not applicable,class_probabilities/distribution/direction/abstention,,stored
+prediction,prediction_id,HASH,false,not applicable,immutable model-origin-target key; compatibility alias equal to canonical id,,stored
+prediction,prediction_persisted_at,UTC,false,UTC microseconds; original precision in source envelope,must be recorded before future labels,,stored
+prediction,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+prediction,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+prediction,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+prediction,target_definition_id,HASH,false,not applicable,Immutable target contract,target_definition.id,stored
+prediction,target_version,TEXT,false,not applicable,target definition hash,,stored
+prediction,training_manifest_id,TEXT,false,not applicable,exact observations/labels/splits,artifact_manifest.id,stored
+prediction,uncalibrated_prediction_id,HASH,true,not applicable,Original constituent before calibration,prediction.id,stored
+research_origin,eligibility_reason,TEXT,false,not applicable,admitted/excluded with reason,,stored
+research_origin,eligibility_snapshot,JSON,false,not applicable,"Population, admitted/excluded state and all frozen inputs",,stored
+research_origin,eligibility_version,TEXT,false,not applicable,rule version,,stored
+research_origin,event_group_version,TEXT,false,not applicable,frozen split/group mapping,,stored
+research_origin,feature_cutoff_at,UTC,false,UTC microseconds; original precision in source envelope,latest allowed feature availability,,stored
+research_origin,group_manifest_id,HASH,false,not applicable,"As-known group graph, including unresolved state",artifact_manifest.id,stored
+research_origin,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+research_origin,legacy_entry_reference,JSON,true,not applicable,v1 entry/cohort keys; no mutation,,stored
+research_origin,market_identity_id,HASH,false,not applicable,Frozen market metadata,market_identity_version.id,stored
+research_origin,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+research_origin,origin_id,HASH,false,not applicable,frozen observation/prediction origin; compatibility alias equal to canonical id,,stored
+research_origin,origin_kind,ENUM,false,not applicable,prospective/legacy_reference/synthetic,,stored
+research_origin,origin_recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Actual durable origin record time,,stored
+research_origin,prediction_origin_at,UTC,false,UTC microseconds; original precision in source envelope,actual forecast origin,,stored
+research_origin,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+research_origin,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+research_origin,sampling_arm,ENUM,false,not applicable,scheduled/triggered/control,,stored
+research_origin,sampling_manifest_id,HASH,false,not applicable,Population/seed/strata/probability design,artifact_manifest.id,stored
+research_origin,scheduled_origin_at,UTC,true,UTC microseconds; original precision in source envelope,intended schedule,,stored
+research_origin,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+research_origin,selection_probability,DECIMAL_TEXT,true,explicit unit field/source contract,known sampling probability; unknown flagged,,stored
+research_origin,token_outcome_id,HASH,false,not applicable,Frozen token/market mapping,token_outcome_version.id,stored
+research_origin,trigger_id,TEXT,true,not applicable,origin trigger lineage,,stored
+source_observation,availability_evidence_ids,ID_LIST,false,not applicable,Evidence for public availability; empty means unknown,,stored
+source_observation,available_to_model_at,UTC,false,UTC microseconds; original precision in source envelope,after receipt and required computation,,stored
+source_observation,clock_error_bound_ms,DECIMAL_TEXT,true,explicit unit field/source contract,"known timing uncertainty, not assumed zero",,stored
+source_observation,clock_session_id,TEXT,true,not applicable,Boot/process clock namespace,,stored
+source_observation,coverage_definition,TEXT,true,not applicable,Coverage numerator and denominator meaning,,stored
+source_observation,coverage_fraction,DECIMAL_TEXT,true,explicit unit field/source contract,measured coverage and denominator definition,,stored
+source_observation,first_available_at,UTC,true,UTC microseconds; original precision in source envelope,independently evidenced public availability,,stored
+source_observation,first_received_at,UTC,true,UTC microseconds; original precision in source envelope,"Actual first receipt; required for prospective, null/unknown_legacy for historical imports without receipt evidence",,stored
+source_observation,gap_duration_ms,DECIMAL_TEXT,true,explicit unit field/source contract,Measured transport gaps,,stored
+source_observation,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+source_observation,ingested_at,UTC,false,UTC microseconds; original precision in source envelope,durable ingestion time,,stored
+source_observation,legacy_reference,JSON,true,not applicable,Original table/key/hash and original provenance label,,stored
+source_observation,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+source_observation,missing_reason,ENUM,false,not applicable,observed or explicit missingness,,stored
+source_observation,native_clock_details,JSON,false,not applicable,Each clock raw value/unit/precision/timezone/semantic status,,stored
+source_observation,native_record_id,TEXT,true,not applicable,source trade/document/message ID,,stored
+source_observation,observation_id,HASH,false,not applicable,immutable unique key; compatibility alias equal to canonical id,,stored
+source_observation,parsed_at,UTC,true,UTC microseconds; original precision in source envelope,Parser completion,,stored
+source_observation,parser_version,TEXT,false,not applicable,parser identity,,stored
+source_observation,payload_encoding,ENUM,false,not applicable,utf8/base64/withheld/unavailable,,stored
+source_observation,payload_hash,HASH,false,not applicable,content integrity,,stored
+source_observation,protocol_version,TEXT,true,not applicable,v1/v2/contract era,,stored
+source_observation,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic,,stored
+source_observation,quality_assessment_state,ENUM,false,not applicable,checked/not_checked,,stored
+source_observation,quality_flags,ID_LIST,false,not applicable,empty array means checked/no flags only when documented,,stored
+source_observation,raw_payload_inline,TEXT,true,not applicable,Original bytes UTF-8 or base64 with declared encoding,,stored
+source_observation,raw_payload_uri,TEXT,true,not applicable,rights-permitted source object,,stored
+source_observation,raw_timestamp,TEXT,true,not applicable,original timestamp value,,stored
+source_observation,receipt_monotonic_ns,UINT_TEXT,true,not applicable,"Process monotonic clock, not comparable across sessions",,stored
+source_observation,receipt_ordinal,INT64,false,not applicable,Monotonic counter within request/connection,,stored
+source_observation,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+source_observation,request_cursor,TEXT,true,not applicable,page traversal lineage,,stored
+source_observation,request_id,TEXT,false,not applicable,Locally issued request or connection ID,,stored
+source_observation,request_metadata,JSON,false,not applicable,"Page, response status, gaps; redact auth/PII secrets",,stored
+source_observation,revision_of,TEXT,true,not applicable,append-only revision link,source_observation.id,stored
+source_observation,schema_version,TEXT,false,not applicable,schema hash,,stored
+source_observation,source_event_at,UTC,true,UTC microseconds; original precision in source envelope,"source event time, not ingestion",,stored
+source_observation,source_id,TEXT,false,not applicable,source registry foreign key,,stored
+source_observation,source_published_at,UTC,true,UTC microseconds; original precision in source envelope,publisher-declared time,,stored
+source_observation,source_registry_id,HASH,false,not applicable,Exact source registry version,source_registry.id,stored
+source_observation,source_sequence,TEXT,true,not applicable,only where actually supplied,,stored
+source_observation,timestamp_unit,TEXT,true,not applicable,seconds/milliseconds/ISO/etc,,stored
+source_registry,access_state,ENUM,false,not applicable,documented_only/runtime_verified/blocked/retired,,stored
+source_registry,clock_semantics,JSON,false,not applicable,"Native timestamp fields, units, precision and meaning",,stored
+source_registry,endpoint,TEXT,false,not applicable,Public read endpoint/topic; exclude credentials,,stored
+source_registry,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+source_registry,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+source_registry,parser_version,TEXT,false,not applicable,Version of parser contract,,stored
+source_registry,protocol_version,TEXT,true,not applicable,Documented protocol era,,stored
+source_registry,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+source_registry,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+source_registry,registry_version,HASH,false,not applicable,"Hash of contract, rights, parser and protocol semantics",,stored
+source_registry,rights_evidence,JSON,false,not applicable,"URL, checked time and permitted collection/storage/use scope",,stored
+source_registry,rights_state,ENUM,false,not applicable,unknown/permitted/restricted/prohibited for declared use,,stored
+source_registry,schema_hash,HASH,false,not applicable,Pinned expected source schema,,stored
+source_registry,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+source_registry,source_id,TEXT,false,not applicable,Stable source namespace including endpoint/topic,,stored
+source_registry,supersedes_id,HASH,true,not applicable,Prior registry revision,source_registry.id,stored
+source_registry,unit_conventions,JSON,false,not applicable,Named numerical units and side semantics,,stored
+source_registry,verified_observation_id,HASH,true,not applicable,Bounded runtime verification evidence; deferred FK to avoid cycle,source_observation.id,stored
+target_definition,horizon_seconds,INT64,true,not applicable,Null only for event-driven target,,stored
+target_definition,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+target_definition,label_rule,JSON,false,not applicable,"Thresholds, flat handling, censoring and revisions",,stored
+target_definition,metric_contract,JSON,false,not applicable,Primary/secondary scoring and coverage definitions,,stored
+target_definition,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+target_definition,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+target_definition,quote_rule,JSON,false,not applicable,"Selection, timestamp basis, age and tolerance",,stored
+target_definition,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+target_definition,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+target_definition,target_family,ENUM,false,not applicable,T1/T2/T3/T4/T5/T6/T7,,stored
+target_definition,target_version,HASH,false,not applicable,Full frozen target hash,,stored
+target_definition,units,TEXT,false,not applicable,Target units,,stored
+token_outcome_version,chain_id,INT64,true,not applicable,EVM chain namespace when verified,,stored
+token_outcome_version,condition_identity_id,HASH,true,not applicable,Condition mapping,condition_identity.id,stored
+token_outcome_version,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+token_outcome_version,mapping_evidence_ids,ID_LIST,false,not applicable,Evidence observations,,stored
+token_outcome_version,mapping_version,HASH,false,not applicable,Mapping hash,,stored
+token_outcome_version,market_identity_id,HASH,false,not applicable,Market version supplying the ordered outcomes,market_identity_version.id,stored
+token_outcome_version,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+token_outcome_version,observed_from_at,UTC,false,UTC microseconds; original precision in source envelope,First known mapping time,,stored
+token_outcome_version,outcome_index,INT64,true,not applicable,source outcome position,,stored
+token_outcome_version,outcome_label,TEXT,true,not applicable,versioned descriptive label,,stored
+token_outcome_version,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+token_outcome_version,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+token_outcome_version,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+token_outcome_version,supersedes_id,HASH,true,not applicable,Prior outcome version,token_outcome_version.id,stored
+token_outcome_version,token_contract,ADDRESS,true,not applicable,token contract identity,,stored
+token_outcome_version,token_id,UINT_TEXT,true,not applicable,never binary float,,stored
+token_outcome_version,valid_from_at,UTC,true,UTC microseconds; original precision in source envelope,Effective source start,,stored
+token_outcome_version,valid_to_at,UTC,true,UTC microseconds; original precision in source envelope,Effective source end,,stored
+trade_observation,aggressor_side,ENUM,true,not applicable,buy/sell/unknown; source semantics versioned,,stored
+trade_observation,block_hash,HEX32,true,not applicable,reorg detection,,stored
+trade_observation,block_number,UINT_TEXT,true,not applicable,historical state reference,,stored
+trade_observation,chain_id,INT64,true,not applicable,Chain namespace,,stored
+trade_observation,deduplication_status,ENUM,false,not applicable,verified/source_local/ambiguous,,stored
+trade_observation,deduplication_version,TEXT,false,not applicable,Native-key or documented compound-key recipe,,stored
+trade_observation,economic_fill_key,TEXT,true,not applicable,"Verified cross-record fill identity, not transaction alone",,stored
+trade_observation,fee_native,DECIMAL_TEXT,true,explicit unit field/source contract,actual fee and units,,stored
+trade_observation,fee_unit,TEXT,true,not applicable,Native fee unit and decimals,,stored
+trade_observation,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+trade_observation,log_index,INT64,true,not applicable,unique chain event position,,stored
+trade_observation,maker_wallet,TEXT,true,not applicable,public attribution only,,stored
+trade_observation,match_status,ENUM,false,not applicable,matched/unknown,,stored
+trade_observation,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+trade_observation,notional_currency,TEXT,false,not applicable,"Collateral namespace, not implicitly USD",,stored
+trade_observation,price_decimal,DECIMAL_TEXT,true,explicit unit field/source contract,Exact parsed collateral/share,,stored
+trade_observation,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+trade_observation,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+trade_observation,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+trade_observation,settlement_status,ENUM,false,not applicable,matched/settled/reverted/unknown,,stored
+trade_observation,side_semantics_version,TEXT,false,not applicable,Meaning of buy/sell and maker/taker,,stored
+trade_observation,size_decimal,DECIMAL_TEXT,true,explicit unit field/source contract,Exact parsed shares,,stored
+trade_observation,source_observation_id,HASH,false,not applicable,Raw fill source,source_observation.id,stored
+trade_observation,supersedes_id,HASH,true,not applicable,Settlement correction/reorg version,trade_observation.id,stored
+trade_observation,taker_wallet,TEXT,true,not applicable,public attribution only,,stored
+trade_observation,token_outcome_id,HASH,false,not applicable,As-known asset mapping,token_outcome_version.id,stored
+trade_observation,trade_id,TEXT,false,not applicable,deduplicated economic fill key,,stored
+trade_observation,trade_notional,DECIMAL_TEXT,true,explicit unit field/source contract,price times size with currency,,stored
+trade_observation,trade_price_raw,TEXT,false,not applicable,native exact price,,stored
+trade_observation,trade_size_raw,TEXT,false,not applicable,native exact size,,stored
+trade_observation,transaction_hash,HEX32,true,not applicable,settlement lineage,,stored
+wallet_state_version,as_of_cutoff_at,UTC,false,UTC microseconds; original precision in source envelope,Latest allowed dependency time,,stored
+wallet_state_version,attribution_confidence,DECIMAL_TEXT,true,explicit unit field/source contract,"Address attribution confidence, not person identity",,stored
+wallet_state_version,available_to_model_at,UTC,false,UTC microseconds; original precision in source envelope,After inputs and computation,,stored
+wallet_state_version,chain_id,INT64,false,not applicable,Wallet address namespace,,stored
+wallet_state_version,coverage_start_at,UTC,true,UTC microseconds; original precision in source envelope,first time history is known complete,,stored
+wallet_state_version,first_observed_at,UTC,false,UTC microseconds; original precision in source envelope,not necessarily wallet creation,,stored
+wallet_state_version,history_coverage_fraction,DECIMAL_TEXT,true,explicit unit field/source contract,Measured coverage,,stored
+wallet_state_version,history_manifest_id,TEXT,false,not applicable,as-of source/label dependencies,artifact_manifest.id,stored
+wallet_state_version,holding_shares,DECIMAL_TEXT,true,explicit unit field/source contract,reconciled as-of balance,,stored
+wallet_state_version,id,HASH,false,not applicable,Stable record key per entity natural key/version recipe,,stored
+wallet_state_version,missing_fields,JSON,false,not applicable,Field-name to canonical missingness reason; mandatory for every scientifically nullable unknown,,stored
+wallet_state_version,net_flow,DECIMAL_TEXT,true,explicit unit field/source contract,defined window and unit,,stored
+wallet_state_version,prior_mature_event_count,INT64,false,not applicable,labels available before origin only,,stored
+wallet_state_version,provenance_class,ENUM,false,not applicable,prospective/reconstructed/synthetic/legacy_unverified,,stored
+wallet_state_version,recorded_at,UTC,false,UTC microseconds; original precision in source envelope,Time this immutable version was durably recorded,,stored
+wallet_state_version,role_flags,ID_LIST,false,not applicable,market maker/arbitrage unknown/proxy etc; uncertain,,stored
+wallet_state_version,schema_version,TEXT,false,not applicable,Canonical contract version,,stored
+wallet_state_version,skill_posterior_mean,DECIMAL_TEXT,true,explicit unit field/source contract,price-adjusted mature-history effect,,stored
+wallet_state_version,skill_posterior_sd,DECIMAL_TEXT,true,explicit unit field/source contract,uncertainty and pooling version,,stored
+wallet_state_version,state_definition_version,HASH,false,not applicable,Holding/flow/skill definitions,,stored
+wallet_state_version,supersedes_id,HASH,true,not applicable,Prior version,wallet_state_version.id,stored
+wallet_state_version,token_outcome_id,HASH,true,not applicable,Specific asset state or portfolio manifest,token_outcome_version.id,stored
+wallet_state_version,uncertainty,JSON,false,not applicable,Typed posterior intervals/coverage and unassigned quantities,,stored
+wallet_state_version,wallet_id,TEXT,false,not applicable,public address namespace,,stored
