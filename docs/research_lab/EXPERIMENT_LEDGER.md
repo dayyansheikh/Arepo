@@ -5023,3 +5023,84 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   weights, decision time = latest receipt of row, sidecar and sweep 1; own resolution fetch at read-out (coverage floor 0.95 of
   units and events); window 2026-11-24..12-14, registration deadline 2026-11-22, read-out on or after 2027-01-15.
   Informed by the CH269 counts (821 proposals a day). Challenger R1 running.
+
+## LT14 (CH262) design draft; two CH269 map defects disclosed, 2026-10-30 ~04:34Z (experiments autopilot; nothing counted)
+- Draft `LIVE_TESTS_14.md` (60bca07f, merged; sha256 `9012d0d0…d47d`): the champion's top-decile 2 h gross by tier against the
+  cost-model rung, one Holm family k <= 2; planning MDE 0.081c (design effect 5) to 0.20c (31) against the 1.30c rung in
+  10k-100k; the >= 100k tier (mean 0.78 units a capture) is expected to drop at its census. Window proposed 2026-12-10..12-31
+  beside LT12 if the challenger accepts, else 2027-02-12..03-05. Designer's priors: P(census) 0.80 / 0.02; P(no test) ~0.20.
+- **CH269 map defects found by the designer (disclosed; map result file unchanged):** (1) the map ranked the top decile on the
+  champion's signed score, not |s| as CH262 specifies, so its tier and tenure prints describe up-calls only; (2) its fee-class
+  split sums to 1,059 of 126,477 units and is not usable for planning. The LT14 count line (175 >= 100) is read on the signed
+  decile; whether that reading stands is a challenger R1 question. Challenger R1 running.
+
+## M1 challenger R1 GO_WITH_CHANGES; round-19 registration count corrected, 2026-10-30 ~04:36Z (experiments autopilot; nothing counted)
+- `reviews/M1_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1 strictly chronological J1 (catch-up look-ahead; void
+  case); 2 look-back over every retained pre-window capture, status-form counts; 3 `T_U` stratified by units per event at
+  level 1 - 0.05/S; 4 no dedicated book fetch, capacity on the covered subset labelled; 5 population wording (two-sided at k,
+  seen at a capture) and `theta_low` / `theta_W` in the same line as `theta`; 6 below; 7 L2 called with
+  `fees_enabled=None`. SHOULD 1-6. Revisions delegated on `feat/m1-ch263`.
+- **Correction (rule-26 ruling condition 4; R1 MUST 6):** `CREATIVE_HYPOTHESES_2026-11-02.md` section 3's "about 1.8
+  registrations from this round" counts CH263 (0.7) and CH264 inside it. Measurements are counted apart from registered tests,
+  so the round's expected number of **registered tests** is **about 0.9** (that file's own figure without rule 26); M1 and M2,
+  if registered, are counted separately as measurements. The idea file is not edited.
+
+## LT14 challenger R1 GO_WITH_CHANGES; CH269 LT14 line recorded as a defective count, 2026-10-30 ~04:47Z (experiments autopilot; nothing counted)
+- `reviews/LT14_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1 "label-origin gross" wording (not an executable
+  entry); 2 input-clock audit of the pinned champion at the freeze; 3 rung described by its source, tier-spread rung printed
+  beside any result; 4 null worlds able to fail; 5-6 below; 7 exclusion order and tie-break. SHOULD 1-10 (k = 1 with the
+  >= 100k tier as a reported arm; freeze before 2026-11-07T00:00Z; `attrlimit_lt14` hold filed now). Revisions delegated.
+- **CH269 fee-split defect, cause found:** `census_map_ch269.py:951-952` builds the totals with a dict comprehension, so each
+  capture overwrote the last; only `20261030T023102Z` (`top_n` 1,059) survives in the printed totals. The map file is
+  unchanged; LT14's census code sums across captures (unit-tested).
+- **LT14 drafted on a defective count; |s| line unmeasured.** The declared CH269 line was on CH262's object (top decile by
+  |s|, pinned sidecar classifiers); the map counted the signed decile with the engine's own category. The map's recorded
+  outcome stands as recorded (no relabel). The binding |s| gate (>= 100 units a capture) is in LT14's own census. No outcome
+  data were involved and no threshold changes.
+
+## M1 second draft re-check: NOT_READY (planning figure and three wording defects), 2026-10-30 ~04:50Z (experiments autopilot; nothing counted)
+- `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md` on `6362f3a7…9dca`: R1 discharged, nothing loosened. Blocking: (1) the tail
+  bound's planning figure was about 17x too optimistic (about 24,800 final-state units needed with all four units-per-event
+  strata, not 1,460), so a "coarse" read is expected and is disclosed in advance (no rule changes); (2) S2 and the fee lines use
+  `costs.category_key` of the sidecar `fee_category`; (3) a deterministic missing-capture rule and an auditable state chain;
+  (4) S8 "1" = S3 standalone disclosed; (5) degenerate zero-reversal CIs printed as such. Order: J0 counts run before the
+  design-text freeze (as the text says), then final verification and freeze, before 2026-11-22.
+
+## LT14 second draft (R1 applied), 2026-10-30 ~04:53Z (experiments autopilot; nothing counted)
+- `LIVE_TESTS_14.md` 4e295556, sha256 `d14981fd…5489`: k = 1 (10k-100k, `H_A` 1.30c kept, rung's source printed), >= 100k tier a
+  reported arm; label-origin gross wording; input-clock audit of the pinned champion (se0 / se1 / se17 appear to pass, se18
+  appears to fail: if se18 became champion before the freeze, LT14 would withdraw); freeze deadline before 2026-11-07T00:00Z;
+  LT13's aliasing rule with M6's controls declared; P(census) lowered 0.80 -> 0.65. Re-check and pre-freeze verification next.
+
+## LT14 final verification and DESIGN-TEXT FREEZE, 2026-10-30 ~05:00Z (experiments autopilot; nothing counted)
+- Pre-freeze verification (`reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md`) of 4e295556: R1 discharged, nothing loosened;
+  **FREEZE_AFTER_FIXES** with two by-construction killers caught before the freeze: (1) `mid_k == ms_mid` would fail on
+  float32 storage (true on 33.8% of one-tick pairs), now `|mid_k - ms_mid| <= 1e-6`; (2) null world 9 was not a null for the
+  labelled-unit estimand, now shifted after attrition with the unshifted share printed (never a verdict change); fixes 3-7
+  wording (twin mean, receipt clock, `spread_k = ask_k - bid_k`, F-MDE planning r, per-world-type size). Applied in 5b86863e;
+  orchestrator checked the diff (fixes, mapping table and status block only).
+- **LT14 DESIGN TEXT FROZEN:** `LIVE_TESTS_14.md` at **485c63dd**, sha256 **`f047c00059ebffd0fe81dd76b6615969d0a127c593aacee0291971fd0e52f815`**, 802 lines. One Holm family, **k = 1: the
+  10k-100k tier** (label-origin 2 h gross of the pinned champion's top decile by |s| against `H_A` = 1.30c; F and the placebo
+  binding); the >= 100k tier a reported arm. Frozen before the 2026-11-07T00:00Z deadline.
+- **Pinned `P` = `se0_champion_lr_mm`, spec_sha256 `19549cb403b41de6974a8f3e7acf7378baf433779b16cae46d367fe6fb5ff919`**
+  (the engine's champion on the host dashboard at the freeze; no promotion has happened). **Input-clock audit (1.3):** `P`
+  reads the `market_state` and `momentum` families only, received at or before `t_row` (re-check verified against the
+  specs): **pass**. A later champion is never substituted (pinned `P` only).
+- `attrlimit_lt14` requested in `signal_engine/CANDIDATES.md` (applied by the signal-engine autopilot). Scope
+  `non_sports_ex_crypto`. Census on the engine files of [2026-11-07, 11-17) ("census span shared with LT12"); window
+  2026-12-10..12-31 beside LT12 (parallel lane accepted at R1), analysis after it. Priors (judgement): P(census) 0.65.
+- **Next:** LT14 census code (fee splits summed across captures, unit-tested; the CH269 dict-overwrite defect not repeated),
+  its code-freeze check on synthetic data, then the seal and the census after the span.
+
+## M1 third draft and J0 queued (q0731), 2026-10-30 ~05:00Z (experiments autopilot; counts only, nothing counted)
+- `MEASUREMENT_M1_CH263.md` third draft b71a3529, sha256 `78990b5e…72b5` (523 lines): re-check fixes 1-5 and both disclosures
+  applied in the reviewer's wording (tail-bound planning about 24,800 units with all four strata, so a "coarse" read is expected
+  and disclosed; S2 fixed by rule to 10 `costs.category_key` cells, J0 only records their distribution; deterministic
+  missing-capture rule and auditable state chain; S8 "1" = S3 standalone; degenerate zero-reversal CIs). No threshold, date
+  or estimand changed. Still a DRAFT: J0 runs before the design-text freeze; its only effects are rules (a) / (b) (21- or
+  42-day window) and the record of S2's distribution.
+- **q0731 (J0) promoted** (c7049d2f; `m1_j0.py`, `run_m1_j0.py`, 10 tests): counts only over the last 8 days of snapshots,
+  sweep-1 receipt / finiteness of `ask_size_1` and the engine's `res_candidates` ids; no resolution or outcome read; lane cpu,
+  mem 600 MB (estimate; peak RSS recorded), as_cap 6000. Designer's choices for the final verification: warm-up of the first 12
+  captures builds state only; rule (b) projection = median full-day count x 21.
+- **Next:** J0 output -> ledger + note; final verification and freeze before 2026-11-22; then J1-J3 / A code and its code-freeze check.

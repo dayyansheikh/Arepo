@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T04:23:00Z",
+ "updated": "2026-10-30T05:00:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1089,7 +1089,7 @@
   {
    "id": "CB9",
    "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
-   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. One part (hourly-anchored equity dailies, P) is not testable: every candidate market was already used by an earlier test, so the declared no-reuse rule removes them all (an independent review confirmed the rule was applied as written). It is counted as not testable, not as a null. The other parts continue; their second data step (q0185b) is queued after a reviewed fix to a disk-size limit. No outcome read.",
+   "plain": "Trade direction labels and a few maker ideas. Part P (equity dailies) is not testable: every candidate was already used by an earlier test, so the no-reuse rule removes them all (independently confirmed). Counted as not testable, not a null. The other parts continue; their second data step is queued after a reviewed fix to a disk-size limit. No outcome read.",
    "batch": "CB9",
    "family": "microstructure",
    "stage": "designed",
@@ -1738,7 +1738,7 @@
   {
    "id": "LT13",
    "title": "Live tests 13: the listing batch (planned)",
-   "plain": "One planned live test from ideas round 18: when the venue lists a batch of new markets at once, does a spread move in the batch's other markets predict the spread of each one? Design frozen (30 Oct) after a challenger review, a full re-check and a final check. The counting-check code is written and passed an independent check. That check found a flaw in the frozen text that would have made the test fail by construction (two controls that always add up to a third); a small reviewed amendment removed the redundant control, changing no threshold or result definition. A second idea was withdrawn before counting because the venue removed most fees on 20 Oct. It may still fail its counting check.",
+   "plain": "Planned live test from round 18: when a batch of markets is listed together, does a spread move in the batch's other markets predict each one's spread? Design frozen 30 Oct after three reviews. The code check found a flaw in the frozen text (three controls that always add up), fixed by a small reviewed amendment that changes no threshold. The fee idea was withdrawn before counting. It may still fail its counting check.",
    "batch": "LT13",
    "family": "mixed",
    "stage": "designed",
@@ -1784,6 +1784,56 @@
    "reached": [
     "designed",
     "live_test"
+   ]
+  },
+  {
+   "id": "M1",
+   "title": "Measurement M1: the carry after a proposed resolution (planned)",
+   "plain": "Planned pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount on the proposed side, against the chance the proposal is overturned and the cost of holding? A number with an error bar, frozen in advance; never called a finding. Two reviews done; a light counting step is queued before the freeze. A coarse result is expected and was said in advance.",
+   "batch": "M1",
+   "family": "carry",
+   "stage": "designed",
+   "status": "queued",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting step (q0731), final check and freeze before 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
+   "next_date": "2026-11-22",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/reviews/M1_RECHECK_PREFREEZE_2026-10-30.md",
+    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § M1 (CH263) measurement design draft (2026-10-30)",
+    "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
+   },
+   "stage_results": {
+    "designed": "pass"
+   },
+   "reached": [
+    "designed"
+   ]
+  },
+  {
+   "id": "LT14",
+   "title": "Live tests 14: the signal engine's top picks against trading costs (planned)",
+   "plain": "Planned live test from ideas round 19, the economic check beside the signal engine's accuracy: do the engine's strongest calls in mid-liquidity markets move by more than a round-trip trading cost? Design frozen 30 Oct after a challenger review and a final check, which caught two flaws that would have failed it by construction. The engine model is pinned. It may fail its counting check.",
+   "batch": "LT14",
+   "family": "engine",
+   "stage": "designed",
+   "status": "waiting",
+   "verdict": "pending",
+   "effect": null,
+   "next": "Counting-check code; counting check on the 7-17 Nov engine files; live window 10-31 Dec",
+   "next_date": "2026-11-17",
+   "candidate": false,
+   "sources": {
+    "verdict": "docs/research_lab/reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md",
+    "next": "docs/research_lab/LIVE_TESTS_14.md (FROZEN design text, 485c63dd); docs/research_lab/EXPERIMENT_LEDGER.md § LT14 final verification and DESIGN-TEXT FREEZE (2026-10-30)",
+    "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
+   },
+   "stage_results": {
+    "designed": "pass"
+   },
+   "reached": [
+    "designed"
    ]
   }
  ],
