@@ -5195,3 +5195,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **M2 note:** M2's pin list (MUST 2 of its re-check) has the same `cb13_label` gap; to fix before its freeze.
 - **Next:** M1 code (J1-J3, A) + code-freeze check (incl. the import-graph and pin refusal) + host dry run + registration
   commit by 2026-11-22T23:59Z.
+
+## M2 J1 extractor code merged; M2-J0 (q0733) promoted, 2026-10-30 ~08:30Z (experiments autopilot; counts only, k = 0, uncounted)
+- `feat/m2-j1-code` 573f76e8 (merged 02267b0c): `m2_j1.py` sha256 `fc7bf232…dc85c`, `run_m2_j0.py` `fcdaa6f3…7325`; 21 tests
+  (doc tests i-viii, pins incl. `cb13_label`, dry-mode write refusals, determinism); code note
+  `reviews/M2_J1_CODE_NOTE_2026-10-30.md` lists 15 spec ambiguities (E4/E5 order, unreachable guard classes, poll receipt
+  field, `t_d` fallback, window-edge folding, J0's 12-slot look-back on 8 retained days, etc.) to be ruled before the freeze.
+- **q0733 (M2-J0) promoted** per re-check MUST 1 (J0 = J1 in dry mode, its code_sha sealed): counts only, cpu lane, 600 MB;
+  only effects rules (a) / (e) and the cell distribution record. J0 uses a 12-slot look-back (host retention), disclosed.
