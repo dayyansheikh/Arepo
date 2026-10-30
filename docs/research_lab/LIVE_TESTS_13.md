@@ -1,8 +1,12 @@
 # Live tests 13 (LT13): the payer's return and the listing batch (CH252, CH253), DRAFT pre-registrations
 
-**Status: DRAFT (second draft, 2026-10-28: challenger R1 GO_WITH_CHANGES applied, section 12; 2026-10-29: q0717 done and its
-declared rule applied, 1.4.3), for the R1 re-check. Not frozen, not registered; E-numbers unassigned; nothing counted, no LT13
-census code, no seal, no census run.** **CH252 is `withdrawn_pre_census (fee reading unresolved)` under 1.4.3 rule (b)**
+**Status: FROZEN (design text) 2026-10-30, after challenger R1 (`reviews/LT13_CHALLENGER_R1_2026-10-28.md`):
+GO_WITH_CHANGES, the R1 response (section 12), the q0717 result and re-check (`reviews/LT13_Q0717_RESULT_2026-10-29.md`,
+`reviews/LT13_Q0717_RECHECK_2026-10-29.md`), the full R1 re-check (`reviews/LT13_R1_FULL_RECHECK_2026-10-30.md`):
+GO_WITH_CHANGES, its fixes (3fec80a3), and the final pre-freeze verification (2026-10-30): FREEZE_AFTER_FIXES (aliasing-rule
+wording, fixes 1-2, applied in this freeze commit). Not registered; E-numbers unassigned; nothing counted, no LT13 census
+code, no seal, no census run. This file's sha256 is recorded in `EXPERIMENT_LEDGER.md` (the file cannot hold its own hash).**
+**CH252 is `withdrawn_pre_census (fee reading unresolved)` under 1.4.3 rule (b)**
 (q0717, `reviews/LT13_Q0717_RESULT_2026-10-29.md`): the CH251 / CH261 fee shift is a one-capture change in the served
 `fee_schedule` / `fee_type` values on 2026-10-20, not a reading defect a declared reading rule fixes. CH252's sections (2, its
 rows of 1.8.1, 6, 7, 8) stay as written for the record and are never built; **CH253 alone goes to census (rule (c))**. Drafted on branch
@@ -740,11 +744,13 @@ names carries spread information across events, beyond the category's own moveme
   roughly coincides with having a topic `fee_category`, so the fee-class control and the `fee_category` dummies (1.7) may be
   collinear or aliased in the demeaned design. Deterministic rule: before each fit, compute the rank of the demeaned control
   matrix (column-pivoted QR, tolerance `max(n, p) x eps x the largest singular value`); if it is below the number of columns,
-  drop columns, never `zs_bt` and never the intercept-equivalent, in this fixed order until full rank: (1) the `fee_category`
-  dummies, last level first in lexicographic order of the verbatim string; (2) the fee-class dummy; (3) the slot-of-day dummies, latest
-  slot first. Pseudo-inverse or minimum-norm solutions are not used. The census prints the rank, the number of columns and the
+  then in this fixed order drop a column only if it lies in the span of the other retained columns (removing it leaves the rank
+  unchanged); otherwise keep it and test the next one, never `zs_bt`: (1) the `fee_category` dummies, last level first in
+  lexicographic order of the verbatim string; (2) the fee-class dummy; (3) the slot-of-day dummies, latest slot first. Rank is
+  computed on the demeaned controls without `zs_bt`; `zs_bt` is aliased if it lies in the span of the retained controls. If the
+  controls are still rank-deficient after groups (1)-(3), or `zs_bt` is aliased, the fit is `NaN`, counted as `unavailable`. Pseudo-inverse or minimum-norm solutions are not used. The census prints the rank, the number of columns and the
   dropped columns; the analysis reports them per fit and per gate draw. A dropped control is a disclosed loss of adjustment, not a
-  change of estimand, threshold or window. If `zs_bt` itself is aliased, the fit is `NaN`, counted as `unavailable`.
+  change of estimand, threshold or window.
 - **Primary:** expanding-past batch x UTC-day demeaned OLS of `ds_i` on `zs_bt` with the controls; **one-sided H1: b_bt > 0** (the
   coefficient of `zs_bt`, read at `thin_i = 0` and scaled to the census tercile gap for the *material* label); inference 1.7 (cluster
   batch); gate 1.8 (batch-phase state shift); **F binding**; the placebo point condition binding.
