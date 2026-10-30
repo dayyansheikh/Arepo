@@ -312,9 +312,14 @@ def _l_zero_family_result(frame_dir: Path) -> dict | None:
         man = json.loads(raw)
         n = (man.get("counts") or {}).get("n_families")
         fl_sha = man.get("family_list_sha256")
-    except (OSError, ValueError, AttributeError):
-        return None
-    if n != 0 or not fl_sha:
+        if type(n) is not int or n != 0 or not fl_sha:  # `False == 0` must not pass
+            return None
+        from astrolabe.research_lab.cb5_extract import family_list_sha256
+
+        cand = json.loads((frame_dir / f"families_v{man.get('version')}_candidate.json").read_bytes())
+        if cand.get("sha256") != fl_sha or family_list_sha256(cand) != fl_sha:  # the candidate file must be the one the manifest names
+            return None
+    except (OSError, ValueError, AttributeError, TypeError):
         return None
     return {"status": "g59_not_testable", "n_families": 0, "g59": cb5_cdf.g59_gate(0), "l1_counted_p": 1.0,
             "ch59": "closed: too rare in the live universe (0 families)", "frame_manifest": mans[-1].name,
@@ -336,7 +341,8 @@ def cmd_census(a) -> int:
     cman = _load_json(_cohort_dir(a, "census") / "manifest.json")  # freeze check 2026-10-29: census.json is permanent, never from a partial cohort
     if not cman or cman.get("complete") is not True:
         raise D.TooEarly("census refused: the census cohort manifest does not show complete: true")
-    doc: dict = {"label": D.LABEL, "version": D.VERSION, "run_utc": R.iso_now(), "outcome_guard": "census code sees no outcome, target, net or lead column"}
+    doc: dict = {"label": D.LABEL, "version": D.VERSION, "run_utc": R.iso_now(), "declaration_sha256": D.declaration_sha256(), "provenance": R.provenance.run_provenance(),
+                 "outcome_guard": "census code sees no outcome, target, net or lead column"}
     run_dir = p["hist"] / "h2_main"
     D.refuse_path(run_dir)
     if "G" in fams:
@@ -368,6 +374,13 @@ def cmd_census(a) -> int:
         pairs = cb5_hours.c1_pairs()
         doc["K"] = R.census_k(pairs, p["snap"])
     sha = write_new(out_path, doc)
+    if (doc.get("L") or {}).get("status") == "g59_not_testable":
+        # MUST 1 (2026-10-30): the untestable L1 still counts (p = 1); written once, with the write-once census.json
+        L = doc["L"]
+        R.log_trials("L", {"L1": {"p": 1.0, "testable": False, "advance": False, "n": 0, "family_status": "not testable: 0 families"}}, kind=D.KIND_TEST,
+                     role="exploratory_historical", dataset="cb5_census_g59", results_path=str(out_path), results_sha256=sha, decl_sha=doc["declaration_sha256"],
+                     cumulative=None, descriptive={"L_g59": {"g59": L["g59"], "frame_manifest_sha256": L["frame_manifest_sha256"], "family_list_sha256": L["family_list_sha256"]}},
+                     trials_path=R.provenance.TRIALS_PATH)
     R.log_descriptive({f"census_{k}": ({"keys": sorted(v)} if isinstance(v, dict) else {"v": str(v)}) for k, v in doc.items() if k in ("G", "L", "K")},
                       role="exploratory_historical", dataset="cb5_census", results_path=str(out_path), results_sha256=sha)
     _emit({"census": str(out_path), "sha256": sha, "stops": doc.get("G_stops", [])})

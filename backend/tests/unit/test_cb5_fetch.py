@@ -299,8 +299,9 @@ def test_listings_input_counts_capture_status(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def _no_real_trials_log(monkeypatch):
+def _no_real_trials_log(monkeypatch, tmp_path):
     monkeypatch.setattr(R, "log_descriptive", lambda *a, **k: [])  # census CLI tests must not append to the real trials.jsonl
+    monkeypatch.setattr(R.provenance, "TRIALS_PATH", tmp_path / "trials_tmp.jsonl")  # counted-trial writes go to tmp
 
 
 def _census_l_setup(tmp_path, manifest):
@@ -308,7 +309,12 @@ def _census_l_setup(tmp_path, manifest):
     (out / "census_cohort").mkdir(parents=True)
     (out / "census_cohort" / "manifest.json").write_text(json.dumps({"complete": True}))
     if manifest is not None:
+        from astrolabe.research_lab import cb5_cdf
         (out / "cdf_frame").mkdir(parents=True)
+        cand = cb5_cdf.families_doc([], [], version=1, listed_utc={}, extra={"counts": manifest.get("counts")})
+        (out / "cdf_frame" / "families_v1_candidate.json").write_text(json.dumps(cand))
+        if manifest.get("family_list_sha256") == "auto":
+            manifest = {**manifest, "family_list_sha256": cand["sha256"]}
         (out / "cdf_frame" / "manifest_v1.json").write_text(json.dumps(manifest))
     return out, ["census", "--family", "L", "--out-root", str(out), "--history-root", str(tmp_path / "hist"), "--extract-root", str(tmp_path / "ext")]
 
@@ -318,16 +324,21 @@ def test_census_l_zero_family_manifest_emits_g59_not_testable(tmp_path):
 
     import run_cb5 as cli
 
-    out, args = _census_l_setup(tmp_path, {"version": 1, "counts": {"n_families": 0}, "family_list_sha256": "ab" * 32})
+    out, args = _census_l_setup(tmp_path, {"version": 1, "counts": {"n_families": 0}, "family_list_sha256": "auto"})
     assert cli.main(args) == 0
     doc = json.loads((out / "census.json").read_text())
     L = doc["L"]
     assert L["status"] == "g59_not_testable" and L["g59"] == {"ok": False, "n_families": 0, "status": "not testable: 0 families"}
     assert L["l1_counted_p"] == 1.0 and "0 families" in L["ch59"]
-    assert L["family_list_sha256"] == "ab" * 32
+    assert len(L["family_list_sha256"]) == 64
+    assert len(doc["declaration_sha256"]) == 64 and isinstance(doc["provenance"], dict) and doc["provenance"]
     assert L["frame_manifest_sha256"] == hashlib.sha256((out / "cdf_frame" / "manifest_v1.json").read_bytes()).hexdigest()
     assert not (out / "cdf_frame" / "audit_state.json").exists()  # no audit failure recorded
     assert cli.main(args) == 2  # census stays write-once (FileExistsError refused)
+    rows = [json.loads(x) for x in (tmp_path / "trials_tmp.jsonl").read_text().splitlines()]
+    l1 = [r for r in rows if r.get("kind") == "cb5_test"]
+    assert len(l1) == 1 and l1[0]["preset"] == "L1" and l1[0]["summary"]["p"] == 1.0 and l1[0]["summary"]["testable"] is False
+    assert l1[0]["results_sha256"] and l1[0]["declaration_sha256"] == doc["declaration_sha256"]
 
 
 def test_census_l_nonempty_manifest_without_frozen_list_stays_inputs_missing(tmp_path):
@@ -346,5 +357,25 @@ def test_census_l_missing_or_unreadable_manifest_is_inputs_missing(tmp_path, man
     if manifest:
         (out / "cdf_frame").mkdir(parents=True)
         (out / "cdf_frame" / "manifest_v1.json").write_text("{not json")
+    assert cli.main(args) == 0
+    assert json.loads((out / "census.json").read_text())["L"]["status"] == "inputs_missing"
+
+
+@pytest.mark.parametrize("bad", [False, 0.0, "0", None])
+def test_census_l_nonint_zero_count_is_not_g59(tmp_path, bad):
+    import run_cb5 as cli
+
+    out, args = _census_l_setup(tmp_path, {"version": 1, "counts": {"n_families": 0}, "family_list_sha256": "auto"})
+    man = json.loads((out / "cdf_frame" / "manifest_v1.json").read_text())
+    man["counts"]["n_families"] = bad
+    (out / "cdf_frame" / "manifest_v1.json").write_text(json.dumps(man))
+    assert cli.main(args) == 0
+    assert json.loads((out / "census.json").read_text())["L"]["status"] == "inputs_missing"
+
+
+def test_census_l_candidate_hash_mismatch_is_not_g59(tmp_path):
+    import run_cb5 as cli
+
+    out, args = _census_l_setup(tmp_path, {"version": 1, "counts": {"n_families": 0}, "family_list_sha256": "ef" * 32})
     assert cli.main(args) == 0
     assert json.loads((out / "census.json").read_text())["L"]["status"] == "inputs_missing"
