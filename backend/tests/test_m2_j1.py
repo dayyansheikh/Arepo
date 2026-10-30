@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from astrolabe.research_lab import m2_j1 as m2
+from astrolabe.research_lab import m2_spec as sp
 
 _P = Path(__file__).resolve().parents[1] / "scripts" / "run_m2_j0.py"
 _spec = importlib.util.spec_from_file_location("run_m2_j0_under_test", _P)
@@ -75,10 +76,14 @@ def markets(k):
     return m
 
 
-def write_capture(root: Path, k: int, mkts=None, recv: bool = True) -> Path:
-    d = root / cid(k)
+def write_capture(root: Path, k: int, mkts=None, recv: bool = True, fin_after_s: float | None = 300.0, name: str | None = None, start_shift_s: float = 0.0) -> Path:
+    """A synthetic capture ``k``. ``fin_after_s`` is the manifest's ``finished_utc`` minus the grid time of its slot (None: the key is absent)."""
+    d = root / (name or cid(k))
     d.mkdir(parents=True)
-    (d / "manifest.json").write_text(json.dumps({"state": "complete", "started_utc": iso(tcap(k)), "capture_id": cid(k)}))
+    man = {"state": "complete", "started_utc": iso(tcap(k) + timedelta(seconds=start_shift_s)), "capture_id": name or cid(k)}
+    if fin_after_s is not None:
+        man["finished_utc"] = iso(tcap(k) + timedelta(seconds=fin_after_s))
+    (d / "manifest.json").write_text(json.dumps(man))
     rec = iso(tcap(k) + timedelta(minutes=3)) if recv else ""
     rec_ext = iso(tcap(k) + timedelta(minutes=4)) if recv else ""
     with gzip.open(d / "rows.csv.gz", "wt", newline="") as fh:
@@ -143,6 +148,17 @@ def full(tmp_path):
     return snap, rr, st, mp
 
 
+def read_state(st: Path):
+    """(header dict, ledger {market_id: records}, sha_class) of the JSON-lines state file."""
+    lines = [json.loads(x) for x in (st / "state.json").read_text().splitlines()]
+    return lines[0], {d["m"]: d["r"] for d in lines[1:] if "m" in d}, {d["s"]: d["c"] for d in lines[1:] if "s" in d}
+
+
+def write_state_header(st: Path, d: dict) -> None:
+    rest = (st / "state.json").read_text().splitlines()[1:]
+    (st / "state.json").write_text("\n".join([json.dumps(d), *rest]) + "\n")
+
+
 def read_units(st: Path):
     out = []
     for p in sorted((st / "units").glob("*.jsonl.gz")):
@@ -169,7 +185,7 @@ def test_funnel_classes_and_units(full):
     assert u[6]["mid_k"] == 0.95 and u[6]["side"] == "YES"
     assert u[1]["event_open_binary_members"] == 3 and u[1]["cells"]["S8"] == "2-5"
     assert u[25]["cells"]["S7"] == "yes" and u[1]["cells"]["S7"] == "no"
-    assert u[1]["role"] == "prospective_measurement" and u[1]["spec_sha"] == "a" * 64 and u[1]["code_sha"] == hashlib.sha256(Path(m2.__file__).read_bytes()).hexdigest()
+    assert u[1]["role"] == "prospective_measurement" and u[1]["spec_sha"] == "a" * 64 and u[1]["code_sha"] == sp.code_sha()
     assert u[1]["uma_raw_k_minus_1"] == "[]" and u[1]["capture_k_minus_1_id"] == cid(K - 1) and u[1]["gap_sidecar_minus_row_s"] == 60.0
     assert abs(u[1]["fee_l1"] - 0.04 * 0.82 * 0.18) < 1e-12 and u[1]["rate_l1"] == 0.04
     assert u[1]["cells"]["S1"] == "mid" and u[1]["cells"]["S12"] == "mid|scheduled"
@@ -289,12 +305,12 @@ def test_i_missing_capture_after_six_hours_and_late_capture_ignored(tmp_path):
     rr = write_rules(tmp_path / "research_lab" / "stream_gamma_rules") and tmp_path / "research_lab" / "stream_gamma_rules"
     st = tmp_path / "store"
     mp = j1(snap, rr, st, now=tcap(5).timestamp() + 6 * 3600 + 1)
-    assert mp.extra["missing_capture"] == 1 and mp.last_slot == m2.slot_of(tcap(N - 1).timestamp())[0]
-    write_capture(snap, 5)  # late
+    assert mp.extra["missing_capture"] == 1 and mp.last_slot == m2.slot_of(tcap(5).timestamp())[0]  # slot 6 is not decided before its own grid + 6 h
+    write_capture(snap, 5)  # delivered after the slot was recorded missing
     mp2 = j1(snap, rr, st)
     assert mp2.extra["late_capture_ignored"] == 1 and not (st / "units" / f"{cid(5)}.jsonl.gz").exists()
-    # k = 6 follows a missing slot: no previous capture
-    assert mp.funnel_by_day  # classification continued
+    assert json.loads((st / "status" / f"late_{cid(5)}.json").read_text())["reason"] == "delivered_after_missing_recorded"
+    assert mp2.funnel_by_day  # classification continued after the missing slot
 
 
 def test_ii_state_holding_a_later_capture_refuses(tmp_path):
@@ -305,10 +321,10 @@ def test_ii_state_holding_a_later_capture_refuses(tmp_path):
     rr = write_rules(tmp_path / "research_lab" / "stream_gamma_rules") and tmp_path / "research_lab" / "stream_gamma_rules"
     st = tmp_path / "store"
     j1(snap, rr, st, now=tcap(7).timestamp())
-    d = json.loads((st / "state.json").read_text())
+    d = read_state(st)[0]
     d["last_slot"] = m2.slot_of(tcap(7).timestamp())[0]
     d["processed_slots"].append(d["last_slot"])
-    (st / "state.json").write_text(json.dumps(d))
+    write_state_header(st, d)
     write_capture(snap, 5)
     with pytest.raises(m2.StateOrderError):
         j1(snap, rr, st)
@@ -329,7 +345,7 @@ def test_iii_twelve_capture_catch_up_equals_incremental(tmp_path, full):
     for batch in ((0, 1, 2, 3, 4), (5, 6, 7, 8), tuple(range(9, N))):
         for k in batch:
             (inc / cid(k)).symlink_to(src / cid(k))
-        j1(inc, rr, st)
+        j1(inc, rr, st, now=(tcap(batch[-1]) + timedelta(hours=6, seconds=1)).timestamp() if batch[-1] < N - 1 else None)
     assert files(st, "units") == files(st_full, "units") and files(st, "status") == files(st_full, "status") and files(st, "followup") == files(st_full, "followup")
     assert (st / "state.json").read_bytes() == (st_full / "state.json").read_bytes()
 
@@ -359,7 +375,7 @@ def test_iv_followup_is_blind_and_never_read_by_the_extractor(tmp_path, full, mo
     assert (st / "state.json").read_bytes() == (st_full / "state.json").read_bytes()
     for name, blob in files(st_full, "status").items():
         a, b = json.loads(blob), json.loads(files(st, "status")[name])
-        a.pop("followup"), b.pop("followup")
+        a.pop("followup", None), b.pop("followup", None)
         assert a == b
     # follow-up content: after K only, one line per unit, no price / outcome field, sha and line count in the status
     fu = files(st_full, "followup")
@@ -558,9 +574,9 @@ def test_ruling12_rule_ledger_in_state_survives_retirement_of_a_day_file(tmp_pat
     rr2.mkdir(parents=True)
     (rr2 / f"{T0:%Y%m%d}.jsonl").write_bytes(next(rr.glob("*.jsonl")).read_bytes())
     st = tmp_path / "b" / "store"
-    j1(snap2, rr2, st)
-    led = json.loads((st / "state.json").read_text())["rule_ledger"]
-    assert led["records"]["1"] and led["sha_class"]
+    j1(snap2, rr2, st, now=(tcap(K - 2) + timedelta(hours=6, seconds=1)).timestamp())
+    _h, led_records, led_sha = read_state(st)
+    assert led_records[1] and led_sha
     (rr2 / f"{T0:%Y%m%d}.jsonl").unlink()  # the day file is retired
     for k in range(K - 1, N):
         (snap2 / cid(k)).symlink_to(snap / cid(k))

@@ -1,0 +1,43 @@
+{
+ "id": "q0755e_m2_analysis",
+ "title": "M2 (CH264) analysis (MEASUREMENT_M2_CH264.md 9.5, sections 4-8, 10-11): verifies the pins and both J2 manifest hashes, computes theta, theta_NF, the band, components, the event-level bound, the proposal hazard, time to close, twelve splits (69 cells) and two contrasts on one event bootstrap; prints the ledger line; on or after READOUT_UTC + 12 h; requires --out, refuses to overwrite",
+ "family": "creative_hypotheses",
+ "priority": 70,
+ "expected_value": "the one descriptive measurement (no test, no p-value, in no Holm family); the ledger line of section 1 rule 1",
+ "data": [
+  "data-dumps/research_lab/m2_ch264/ (read-only); optional signal_engine/logs/resolutions-*.jsonl for the cross-check; M1's units/ for unit market ids only (m1_overlap)"
+ ],
+ "resources": {
+  "mem_mb": 500,
+  "as_cap_mb": 6000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0755c_m2_j2_followup",
+  "q0755d_m2_j3"
+ ],
+ "not_before": "2027-01-29T12:00:00Z",
+ "argv": [
+  "scripts/run_m2.py",
+  "analysis",
+  "--store",
+  "../data-dumps/research_lab/m2_ch264",
+  "--pins",
+  "../docs/research_lab/seals/M2_pins.json",
+  "--engine-root",
+  "../data-dumps/research_lab/signal_engine",
+  "--m1-store",
+  "../data-dumps/research_lab/m1_ch263",
+  "--out",
+  "../data-dumps/research_lab/m2_ch264/M2_ANALYSIS.json"
+ ],
+ "timeout_s": 14400,
+ "max_retries": 0,
+ "outputs": [
+  "data-dumps/research_lab/m2_ch264/M2_ANALYSIS.json"
+ ],
+ "next_action": "copy the ledger line (or the void reasons) into the ledger as `measured (prospective, k = 0 ...)` with the no_favourite and m1_overlap prints and the coarse rules fired; no verdict wording",
+ "notes": "DRAFT (not in jobs/). The pins file docs/research_lab/seals/M2_pins.json {spec_sha, code_sha, registration_commit_utc (required: the analysis refuses without it), manifest_sha256, followup_manifest_sha256} is written in the registration commit and the two manifest hashes after J2; it does not exist yet. One analysis, fixed end, no extension: max_retries 0. Refuses (exit 2) before the date, without --out, over an existing --out; exits 3 with expected/actual values on any module, design-text, lexicon, spec_sha or code_sha pin difference. A missing or differing unit manifest, a missing or differing follow-up manifest (hazard unavailable), a broken state chain, coverage below 0.95, unit lines with other pins over 1% and a window that started before the registration commit plus 24 h are void with the reason printed (the numbers are then printed only under not_a_measurement). The follow-up files are first read here, after the follow-up manifest is verified. Memory: one event-bootstrap pass with matrices of 250 draws x events; about 500 MB planned. Code: backend/scripts/run_m2.py with astrolabe/research_lab/m2_spec.py, m2_j1.py, m2_j2.py, m2_readout.py, m2_analysis.py; pins checked at start."
+}

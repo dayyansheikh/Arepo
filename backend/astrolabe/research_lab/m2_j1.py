@@ -27,15 +27,18 @@ import os
 import re
 import resource
 import sys
+import time
+from array import array
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
 from . import boundary_map_ch240 as c240
 from . import costs
+from . import m2_spec as sp
 from . import population_map_ch251 as c251
 
-VERSION = "m2-j1-v1"
+VERSION = "m2-j1-v2"
 ROLE = "prospective_measurement"
 REGISTERED_UTC = datetime(2026, 11, 24, tzinfo=UTC).timestamp()
 END_UTC = datetime(2026, 12, 15, tzinfo=UTC).timestamp()
@@ -75,8 +78,8 @@ class DryModeError(Exception):
     """A dry (J0) pass was asked to write a store."""
 
 
-class StateOrderError(Exception):
-    """The state file / capture order violates 9.2 (chronological processing)."""
+class StateOrderError(sp.M2Refusal):
+    """The state file / capture order violates 9.2 (chronological processing), or the state no longer matches the code, spec or chain status."""
 
 
 # --- small helpers -------------------------------------------------------------------------------------------------------------------
@@ -94,6 +97,7 @@ def sha256_bytes(b: bytes) -> str:
 
 
 def code_sha256() -> dict:
+    """Per-file shas of the J0-era files (kept for J0's report) plus the combined ``code_sha`` of every M2 code file (``m2_spec.CODE_FILES``)."""
     here = Path(__file__).resolve()
     run = here.parents[2] / "scripts" / "run_m2_j0.py"
     return {p.name: sha256_file(p) for p in (here, run) if p.exists()}
@@ -191,6 +195,12 @@ def s3_cell(cat_k: str) -> str:
 
 def units_bucket(n: int) -> str:
     return "1" if n <= 1 else "2-3" if n <= 3 else "4-9" if n <= 9 else "10+"
+
+
+def decision_time(start: float, row_rec: float, ext_rec: float) -> tuple[float, str]:
+    """3.3: the later of the row's and the sidecar's ``received_utc``; one alone if only one parses; else the capture's manifest start (counted)."""
+    fin = [x for x in (row_rec, ext_rec) if math.isfinite(x)]
+    return (max(fin), "receipt") if fin else (start, "capture_start_fallback")
 
 
 def fee_exponent(fee_schedule) -> float:
@@ -307,30 +317,128 @@ class RulesIndex:
         return lookup_records(self.by_mid.get(mid, ()), self.sha_class, t_d, k_day)
 
 
+def _day_end_ts(day: str) -> float:
+    """Upper bound of a day file's commit times (day files are keyed by poll start): the UTC midnight that ends the file's day."""
+    return datetime(int(day[:4]), int(day[4:6]), int(day[6:8]), tzinfo=UTC).timestamp() + 86400.0
+
+
 def lookup_records(recs, sha_class: dict, t_d: float, k_day: str) -> tuple[str, float | None]:
-    """(class, commit time) of the market's last committed record visible at ``t_d`` (3.5, ruling 7). Each record has its own reader: a record
+    """(class, commit time) of the market's latest committed record visible at ``t_d`` (3.5, ruling 7). Each record has its own reader: a record
     with a parseable poll ``finished_utc`` is visible iff it is <= ``t_d``; a record without one is visible only if its day file's UTC day is
-    strictly before k's UTC day. No record -> ``no_rules``; a ``hash`` record resolves through any committed ``row`` with an equal sha
-    (``sha_class``), else ``rules_unresolved``. ``gone`` records are never read."""
+    strictly before k's UTC day. The latest record is chosen by COMMIT TIME, never by list position (code-freeze item 2): a record without a
+    parseable time is ordered by the end of its day file, ties by position. No record -> ``no_rules``; a ``hash`` record resolves through any
+    committed ``row`` with an equal sha (``sha_class``), else ``rules_unresolved``. ``gone`` records are never read."""
     kd = k_day.replace("-", "")
-    for ts, day, kind, cls_, sh in reversed(recs):
+    best = None
+    for pos, (ts, day, kind, cls_, sh) in enumerate(recs):
         if ts is not None:
             if not ts <= t_d:
                 continue
+            key = (ts, pos)
         elif not day < kd:
             continue
-        if kind == "row":
-            return cls_, ts
-        return sha_class.get(sh) or "rules_unresolved", ts
-    return "no_rules", None
+        else:
+            key = (_day_end_ts(day), pos)
+        if best is None or key > best[0]:
+            best = (key, ts, kind, cls_, sh)
+    if best is None:
+        return "no_rules", None
+    _key, ts, kind, cls_, sh = best
+    if kind == "row":
+        return cls_, ts
+    return sha_class.get(sh) or "rules_unresolved", ts
+
+
+class Ledger:
+    """The append-only rule ledger of ruling 12 (never pruned; a retired day file never changes a later unit's class), in a compact columnar form so that a ledger of
+    end-of-window size fits the 600 MB cap (final verification SHOULD 3). One record = (commit time or None, day file, kind row / hash, class, sha); the columns are
+    ``array`` / ``bytearray`` / a list of packed shas, indexed per market. ``records`` decodes a market's records on demand (only unit candidates are looked up)."""
+
+    KINDS = ("row", "hash")
+
+    def __init__(self) -> None:
+        self.ts = array("d")  # nan = no parseable commit time
+        self.day = array("i")  # YYYYMMDD
+        self.kind = bytearray()
+        self.cls = bytearray()  # index into self.cls_names; 255 = none
+        self.sha: list = []
+        self.cls_names: list = []
+        self.by_mid: dict = {}
+        self.sha_class: dict = {}  # packed sha -> class code
+
+    @staticmethod
+    def pack_sha(s):
+        if s is None:
+            return None
+        try:
+            b = bytes.fromhex(s)
+            return b if len(b) * 2 == len(s) and b.hex() == s else b"\xff" + s.encode()
+        except ValueError:
+            return b"\xff" + s.encode()
+
+    @staticmethod
+    def unpack_sha(b):
+        if b is None:
+            return None
+        return b[1:].decode() if b[:1] == b"\xff" else b.hex()
+
+    def _code(self, name):
+        if name is None:
+            return 255
+        if name not in self.cls_names:
+            self.cls_names.append(name)
+        return self.cls_names.index(name)
+
+    def append(self, mid: int, rec) -> None:
+        ts, day, kind, cls_, sh = rec
+        self.by_mid.setdefault(mid, array("I")).append(len(self.ts))
+        self.ts.append(math.nan if ts is None else float(ts))
+        self.day.append(int(day))
+        self.kind.append(self.KINDS.index(kind))
+        self.cls.append(self._code(cls_))
+        self.sha.append(self.pack_sha(sh))
+
+    def add_class(self, sh: str, cls_name: str) -> None:
+        self.sha_class.setdefault(self.pack_sha(sh), self._code(cls_name))
+
+    def records(self, mid: int) -> list:
+        out = []
+        for i in self.by_mid.get(mid, ()):
+            t = self.ts[i]
+            out.append((None if t != t else t, f"{self.day[i]:08d}", self.KINDS[self.kind[i]], None if self.cls[i] == 255 else self.cls_names[self.cls[i]], self.unpack_sha(self.sha[i])))
+        return out
+
+    def get(self, sh):
+        """sha -> class name (the mapping interface :func:`lookup_records` uses)."""
+        c = self.sha_class.get(self.pack_sha(sh))
+        return None if c is None else self.cls_names[c]
+
+    def markets(self) -> list:
+        return sorted(self.by_mid)
+
+    def n_markets(self) -> int:
+        return len(self.by_mid)
+
+    def n_records(self) -> int:
+        return len(self.ts)
+
+    def sha_items(self):
+        return sorted((self.unpack_sha(k), self.cls_names[v]) for k, v in self.sha_class.items())
 
 
 # --- discovery -----------------------------------------------------------------------------------------------------------------------
 
-def discover_captures(root: Path, start_ts: float, end_ts: float) -> tuple[list[dict], Counter]:
-    """The first complete capture of each 2 h slot (by manifest start) with start in [start, end), ordered by start."""
+def discover_all(root: Path, start_ts: float, end_ts: float) -> dict:
+    """Every complete capture (manifest ``state`` complete, rows present) with start in [start, end), sorted into: ``caps`` (the earliest-start ON-TIME
+    capture of each 2 h slot, ordered by slot), ``extra`` (later on-time duplicates), ``late`` (not on time) and ``off`` (off-grid). On time (9.2, code-freeze
+    item 1): the manifest's ``finished_utc`` is at most grid time + 6 h; a fact about the capture, never about when J1 runs. A manifest without a parseable
+    ``finished_utc`` is not on time (M1 re-check R3). ``by_id`` holds every one of them by directory id (k - 1 is found by the id the chain folded)."""
     notes: Counter = Counter()
     by_slot: dict = {}
+    extra: list = []
+    late: list = []
+    off: list = []
+    by_id: dict = {}
     for p in sorted(Path(root).glob("*/manifest.json")):
         try:
             m = json.loads(p.read_text())
@@ -344,13 +452,34 @@ def discover_captures(root: Path, start_ts: float, end_ts: float) -> tuple[list[
             notes["complete_without_rows"] += 1
             continue
         s, on_grid = slot_of(t)
+        fin = c240.parse_utc(m.get("finished_utc"))
+        c = {"id": p.parent.name, "capture_id": str(m.get("capture_id") or p.parent.name), "start": t, "slot": s, "dir": p.parent, "fin": fin, "fin_missing": not math.isfinite(fin)}
+        by_id[c["id"]] = c
         if not on_grid:
             notes["off_grid"] += 1
+            off.append(c)
+            continue
+        if c["fin_missing"] or fin > slot_time(s) + MISSING_AFTER_S:
+            notes["late"] += 1
+            late.append(c)
             continue
         cur = by_slot.get(s)
-        if cur is None or t < cur["start"]:
-            by_slot[s] = {"id": p.parent.name, "capture_id": str(m.get("capture_id") or p.parent.name), "start": t, "slot": s, "dir": p.parent}
-    return [by_slot[k] for k in sorted(by_slot)], notes
+        if cur is None:
+            by_slot[s] = c
+        elif (t, c["id"]) < (cur["start"], cur["id"]):
+            extra.append(cur)
+            by_slot[s] = c
+        else:
+            extra.append(c)
+        if cur is not None:
+            notes["duplicate"] += 1
+    return {"caps": [by_slot[k] for k in sorted(by_slot)], "extra": extra, "late": late, "off": off, "by_id": by_id, "notes": notes}
+
+
+def discover_captures(root: Path, start_ts: float, end_ts: float) -> tuple[list[dict], Counter]:
+    """The on-time first capture of each 2 h slot with start in [start, end), ordered by start, and the discovery notes (see :func:`discover_all`)."""
+    d = discover_all(root, start_ts, end_ts)
+    return d["caps"], d["notes"]
 
 
 # --- the pass ------------------------------------------------------------------------------------------------------------------------
@@ -367,12 +496,11 @@ class M2Pass:
         self.window_start, self.window_end = window_start, window_end
         self.rules = rules or RulesIndex()
         self.lookback_from = lookback_from  # N4: J1 counts look-back slots from slot_of(lookback_from)
-        self.ledger: dict = {}  # ruling 12: append-only rule ledger {market_id: [[ts|None, day, kind, class, sha], ...]}
-        self.ledger_sha_class: dict = {}
+        self.ledger = Ledger()  # ruling 12: append-only rule ledger
         self.dry = dry_run
         self.store = Path(store) if store is not None else None
         self.spec_sha = spec_sha
-        self.code_sha = sha256_file(Path(__file__).resolve())
+        self.code_sha = sp.code_sha()  # the combined sha of every M2 code file (m2_spec.CODE_FILES), as M1
         self.record_followup = record_followup
         self.followup_until = followup_until if followup_until is not None else READOUT_UTC
         # chronological state
@@ -380,6 +508,9 @@ class M2Pass:
         self.last_slot: int | None = None
         self.processed_slots: set = set()
         self.missing_slots: set = set()
+        self.last_id: str | None = None  # directory id of the capture folded at last_slot (the chain's capture for k - 1); None after a missing slot
+        self.last_kind = "init"
+        self.slot_capture: dict = {}  # {str(slot): directory id} of the capture the chain folded in each processed slot
         self.seen: set = set()
         self.unit_ids: set = set()
         self.prev: dict | None = None
@@ -399,13 +530,14 @@ class M2Pass:
         self.units: list[dict] = []
         self.classified: list[dict] = []
         self.inputs: list[dict] = []
+        self.nofav: list[dict] = []
         self.oi_nonempty = 0
         self.oi_rows = 0
         self.cat_raw: Counter = Counter()
         self.rule_cov: Counter = Counter()
         self.state_sha = "none"
         if self.store is not None:
-            for sub in ("units", "status", "followup"):
+            for sub in ("units", "status", "followup", "nofav"):
                 (self.store / sub).mkdir(parents=True, exist_ok=True)
             self._load_state()
 
@@ -413,51 +545,108 @@ class M2Pass:
     def _state_path(self) -> Path:
         return self.store / "state.json"
 
-    def _state_blob(self) -> bytes:
-        d = {"version": VERSION, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "last_slot": self.last_slot, "last_start": self.last_t if math.isfinite(self.last_t) else None,
-             "processed_slots": sorted(self.processed_slots), "missing_slots": sorted(self.missing_slots),
-             "seen": sorted(self.seen), "unit_ids": sorted(self.unit_ids),
-             "rule_ledger": {"records": {str(m): self.ledger[m] for m in sorted(self.ledger)}, "sha_class": dict(sorted(self.ledger_sha_class.items()))}}
-        return json.dumps(d, sort_keys=True, separators=(",", ":")).encode()
+    def _stage_state(self) -> str:
+        """Write the state to ``state.json.tmp`` as JSON lines and return its sha256 (streamed; no whole-state blob in memory, so the 600 MB cap holds with a
+        ledger of end-of-window size). Line 1: the header (counters and sets); then one ``{"m", "r"}`` line per market of the rule ledger and one ``{"s", "c"}`` line
+        per sha-to-class entry, in a fixed order. The file is replaced into place by :meth:`_commit_staged` AFTER the unit, status and follow-up files are written,
+        so a crash leaves the state at the previous slot and the re-run rewrites identical files (``_write_once`` accepts identical bytes)."""
+        if self.dry:
+            raise DryModeError("no state file in dry mode")
+        h = hashlib.sha256()
+        tmp = self._state_path().with_suffix(".tmp")
+        head = {"version": VERSION, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "last_slot": self.last_slot, "last_start": self.last_t if math.isfinite(self.last_t) else None,
+                "last_capture_id": self.last_id, "last_kind": self.last_kind, "slot_capture": dict(sorted(self.slot_capture.items(), key=lambda kv: int(kv[0]))),
+                "processed_slots": sorted(self.processed_slots), "missing_slots": sorted(self.missing_slots), "seen": sorted(self.seen), "unit_ids": sorted(self.unit_ids)}
+        with open(tmp, "wb") as fh:
+            buf: list = []
+
+            def put(line: str) -> None:
+                buf.append(line)
+                if len(buf) >= 4096:
+                    flush()
+
+            def flush() -> None:
+                if buf:
+                    b = ("\n".join(buf) + "\n").encode()
+                    fh.write(b)
+                    h.update(b)
+                    buf.clear()
+
+            put(json.dumps(head, sort_keys=True, separators=(",", ":")))
+            for m in self.ledger.markets():
+                put(json.dumps({"m": m, "r": self.ledger.records(m)}, separators=(",", ":")))
+            for sh, c in self.ledger.sha_items():
+                put(json.dumps({"s": sh, "c": c}, separators=(",", ":")))
+            flush()
+        return h.hexdigest()
+
+    def _commit_staged(self, sha: str) -> None:
+        os.replace(self._state_path().with_suffix(".tmp"), self._state_path())
+        self.state_sha = sha
 
     def _write_state(self) -> None:
         if self.dry:
             raise DryModeError("no state file in dry mode")
-        blob = self._state_blob()
-        tmp = self._state_path().with_suffix(".tmp")
-        tmp.write_bytes(blob)
-        os.replace(tmp, self._state_path())
-        self.state_sha = sha256_bytes(blob)
+        self._commit_staged(self._stage_state())
 
     def _load_state(self) -> None:
         p = self._state_path()
         if not p.exists():
             return
-        raw = p.read_bytes()
-        d = json.loads(raw)
-        self.state_sha = sha256_bytes(raw)
-        self.last_slot = d.get("last_slot")
-        self.last_t = d["last_start"] if d.get("last_start") is not None else -math.inf
-        self.processed_slots = set(d.get("processed_slots", ()))
-        self.missing_slots = set(d.get("missing_slots", ()))
-        self.seen = {int(x) for x in d.get("seen", ())}
-        self.unit_ids = {str(x) for x in d.get("unit_ids", ())}
-        led = d.get("rule_ledger") or {}
-        self.ledger = {int(m): [list(r) for r in recs] for m, recs in (led.get("records") or {}).items()}
-        self.ledger_sha_class = dict(led.get("sha_class") or {})
+        h = hashlib.sha256()
+        with open(p, "rb") as fh:  # streamed line by line: the ledger is never held twice
+            for i, line in enumerate(fh):
+                h.update(line)
+                d = json.loads(line)
+                if i == 0:
+                    if d.get("code_sha") != self.code_sha or d.get("spec_sha") != self.spec_sha:
+                        raise StateOrderError("the state file was written by a different code_sha or spec_sha: the code and spec are pinned for the whole window")
+                    self.last_slot = d.get("last_slot")
+                    self.last_t = d["last_start"] if d.get("last_start") is not None else -math.inf
+                    self.last_id = d.get("last_capture_id")
+                    self.last_kind = d.get("last_kind", "init")
+                    self.slot_capture = {str(k): v for k, v in (d.get("slot_capture") or {}).items()}
+                    self.processed_slots = set(d.get("processed_slots", ()))
+                    self.missing_slots = set(d.get("missing_slots", ()))
+                    self.seen = {int(x) for x in d.get("seen", ())}
+                    self.unit_ids = {str(x) for x in d.get("unit_ids", ())}
+                elif "m" in d:
+                    for r in d["r"]:
+                        self.ledger.append(int(d["m"]), r)
+                else:
+                    self.ledger.add_class(d["s"], d["c"])
+        self.state_sha = h.hexdigest()
+
+    def pad_ledger(self, n_records: int, n_markets: int) -> None:
+        """Host dry run only (code-freeze item 5, final verification SHOULD 3): fill the rule ledger with inert synthetic records for synthetic markets
+        (negative ids, which no real market has) up to the planned END-of-window size, so the 600 MB cap is measured at the ledger size it will reach.
+        Refused unless this is a dry-run spec (``run_pass`` checks); it never touches a real market's records."""
+        for i in range(n_records):
+            mid = -(i % n_markets) - 1
+            kind = "row" if i % 3 == 0 else "hash"
+            sh = f"{i:064x}"  # a valid hex sha, packed like a real one
+            cls_ = ("barrier", "both", "other", "scheduled")[i % 4]
+            self.ledger.append(mid, (1.0e9 + i, "19700101", kind, cls_ if kind == "row" else None, sh))
+            if kind == "row":
+                self.ledger.add_class(sh, cls_)
 
     def merge_rule_ledger(self) -> None:
         """Ruling 12: merge the retained day files' committed records into the append-only ledger (never pruned; a retired day file never changes
-        a later unit's class). Called at the start of every pass."""
+        a later unit's class). Called at the start of every pass. Once the pass has folded a slot at or after ``window_end`` it stops: no further unit can
+        be created (captures at or after END_UTC are follow-up only), so the ledger keeps its end-of-window size (code-freeze item 5)."""
+        if self.window_end is not None and self.last_slot is not None and slot_time(self.last_slot) >= self.window_end:
+            return
         for mid, recs in self.rules.by_mid.items():
-            cur = self.ledger.setdefault(mid, [])
-            have = {tuple(r) for r in cur}
+            have = set(self.ledger.records(mid))
             for r in recs:
-                if tuple(r) not in have:
-                    have.add(tuple(r))
-                    cur.append(list(r))
+                r = tuple(r)
+                if r not in have:
+                    have.add(r)
+                    self.ledger.append(mid, r)
         for sh, c in self.rules.sha_class.items():
-            self.ledger_sha_class.setdefault(sh, c)
+            self.ledger.add_class(sh, c)
+        self.rules.by_mid = {}  # the ledger holds every record from here on; free the second copy (memory cap)
+        self.rules.sha_class = {}
 
     # --- scanning one capture (no counters touched except notes / inputs) ------------------------------------------------------------
     def _scan(self, cap: dict, *, for_resume: bool = False) -> dict:
@@ -551,7 +740,7 @@ class M2Pass:
             raise StateOrderError(f"slot {s} is not after the state's last folded slot {self.last_slot}")
         if self.last_slot is not None and self.last_slot != s - 1:
             raise StateOrderError(f"slot {s - 1} is neither processed nor recorded missing")
-        sha_before = self.state_sha
+        sha_before, id_before = self.state_sha, self.last_id
         sc = self._scan(cap)
         start = cap["start"]
         in_window = start >= self.window_start and (self.window_end is None or start < self.window_end)
@@ -560,8 +749,10 @@ class M2Pass:
         classify = in_window and has_prev and self.prev["start"] >= self.window_start
         day = c240.day_of(start)
         new_units: list[dict] = []
-        status: dict = {"capture_id": cap["capture_id"], "id": cap["id"], "slot": s, "start_utc": iso(start), "mode": "dry" if self.dry else "j1",
-                        "classified": bool(classify), "fold_only": not classify and not after_window, "state_sha256_before": sha_before}
+        self.nofav = []
+        status: dict = {"kind": "processed", "capture_id": cap["capture_id"], "id": cap["id"], "slot": s, "grid_utc": iso(slot_time(s)), "start_utc": iso(start),
+                        "mode": "dry" if self.dry else "j1", "classified": bool(classify), "fold_only": not classify and not after_window,
+                        "prev_capture_id": self.prev["id"] if has_prev else None, "last_capture_id_before": id_before, "state_sha256_before": sha_before}
         local: Counter = Counter()
         self._cap_funnel = Counter()
         if after_window:
@@ -592,25 +783,40 @@ class M2Pass:
             fu_info = self._write_followup(cap, sc)
         for u in new_units:
             self.unit_ids.add(u["unit_id"])
-        if not self.dry:
-            if new_units:
-                self._write_units(cap, new_units)
-            else:
-                self._write_units(cap, [])
         self.units.extend(new_units) if self.dry else None
-        self.last_t, self.last_slot = start, s
+        self.last_t, self.last_slot, self.last_id, self.last_kind = start, s, cap["id"], "processed"
         self.processed_slots.add(s)
+        self.slot_capture[str(s)] = cap["id"]
         self.prev = {"slot": s, "start": start, "id": cap["id"], "ends": sc["ends"], "uma": sc["uma"], "watch": sc["watch"]}
         for k, v in local.items():
             self.extra[k] += v
         if classify:
             self.classified.append({"id": cap["id"], "start": start, "slot": s})
         if not self.dry:
-            self._write_state()
-            status.update({"counts": dict(sorted(local.items())), "funnel": dict(sorted(self._cap_funnel.items())), "units": len(new_units), "state_sha256_after": self.state_sha,
-                           "followup": fu_info})
-            self._write_status(cap, status)
+            sha_after = self._stage_state()
+            ub, nb = self._write_units(cap, new_units), self._write_nofav(cap)
+            status.update({"counts": dict(sorted(local.items())), "funnel": dict(sorted(self._cap_funnel.items())), "units": len(new_units),
+                           "unit_file_sha256": ub, "no_favourite": {"sha256": nb, "lines": len(self.nofav)}, "state_sha256_after": sha_after, "followup": fu_info,
+                           "spec_sha": self.spec_sha, "code_sha": self.code_sha, "role": ROLE})
+            self._write_status(cap, status)  # the status is written before the state: a crash in between re-runs the slot and rewrites identical bytes
+            self._commit_staged(sha_after)
         return status
+
+    def _record_missing(self, s: int) -> None:
+        """Slot ``s`` has no on-time capture at grid + 6 h: it is recorded missing, with its own write-once status file so the sha chain has no gap
+        (code-freeze item 3)."""
+        sha_before, id_before = self.state_sha, self.last_id
+        self.missing_slots.add(s)
+        self.last_slot, self.last_id, self.last_kind = s, None, "missing"
+        self.extra["missing_lookback_slot" if slot_time(s) < self.window_start else "missing_capture"] += 1
+        self.prev = None
+        if not self.dry:
+            sha_after = self._stage_state()
+            g = iso(slot_time(s))
+            status = {"kind": "missing_capture", "slot": s, "grid_utc": g, "last_capture_id_before": id_before, "state_sha256_before": sha_before,
+                      "state_sha256_after": sha_after, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "role": ROLE}
+            self._write_once(self.store / "status" / f"missing_{g.replace('-', '').replace(':', '')}.json", json.dumps(status, sort_keys=True, indent=1).encode())
+            self._commit_staged(sha_after)
 
     def _classify(self, sc: dict, day: str, local: Counter) -> list[dict]:
         start, prev = sc["start"], self.prev
@@ -634,6 +840,10 @@ class M2Pass:
                 pe = prev["ends"].get(mid)
                 if pe is not None and pe == pe and prev["start"] - pe < OVERDUE_S:
                     local["reoverdue_seen"] += 1
+                elif pe is None or pe != pe:
+                    # code-freeze item 4 (section 21): a seen market overdue at k with no row at k - 1, or with an unparseable k - 1 end_date, falls in no
+                    # class of the funnel; recorded here, over every category, as a recorded class only (it changes no unit).
+                    local["seen_without_k_minus_1_row"] += 1
         for mid, end_p in sorted(prev["watch"].items()):
             if end_p <= start - OVERDUE_S and (mid not in sc["ends"] or sc["watch_now"].get(mid, False)):
                 self.left_by_day[day] += 1
@@ -684,10 +894,20 @@ class M2Pass:
                 elif mid_k == 0.5:
                     cls = "no_favourite"
             bump(cls or "unit")
+            if cls == "no_favourite":
+                self.nofav.append(self._nofav_record(sc, mid, tup, r, bid, ask, mid_k))
             if cls is not None:
                 continue
             out.append(self._unit(sc, mid, tup, r, bid, ask, mid_k, end_k, age_k, pe, has_fe, evc, day))
         return out
+
+    def _nofav_record(self, sc, mid, tup, r, bid, ask, mid_k) -> dict:
+        """E9 ``no_favourite`` (mid exactly 0.5): a k-time funnel class, never a unit and never in an estimand. Its market id is written (k-visible fields only)
+        so the read-out can print its YES-resolved share and its fetch coverage separately (E9, 4, 8.4)."""
+        start, cap = sc["start"], sc["cap"]
+        t_d, src = decision_time(start, c240.parse_utc(tup[9]), c240.parse_utc(r[1]))
+        return {"market_id": mid, "event_id": tup[1] if str(tup[1]).strip() else f"market:{mid}", "capture_id": cap["capture_id"], "k_start_utc": iso(start), "bid": bid, "ask": ask,
+                "mid_k": mid_k, "t_d": t_d, "t_d_source": src, "role": ROLE, "spec_sha": self.spec_sha, "code_sha": self.code_sha}
 
     def _unit(self, sc, mid, tup, r, bid, ask, mid_k, end_k, age_k, end_prev, has_fe, evc, day) -> dict:
         cap, start, prev = sc["cap"], sc["start"], self.prev
@@ -698,11 +918,10 @@ class M2Pass:
         fc, fe, fsch = r[5], r[7], r[8]
         cat_k = costs.category_key(fc)
         row_rec, ext_rec = c240.parse_utc(tup[9]), c240.parse_utc(r[1])
-        fin = [x for x in (row_rec, ext_rec) if math.isfinite(x)]
-        t_d, t_d_src = (max(fin), "receipt") if fin else (start, "capture_start_fallback")
+        t_d, t_d_src = decision_time(start, row_rec, ext_rec)
         k_day = c240.day_of(start)
         self.t_d_source[t_d_src] += 1
-        rcls, rts = lookup_records(self.ledger.get(mid, ()), self.ledger_sha_class, t_d, k_day)
+        rcls, rts = lookup_records(self.ledger.records(mid), self.ledger, t_d, k_day)
         self.rule_cov[f"{rcls}|{self.rules.last_row_class.get(mid, 'no_rules')}"] += 1
         self.cat_raw[f"{fc} -> {cat_k or '(empty)'}"] += 1
         oi = str(r[10]).strip().lower()
@@ -734,17 +953,27 @@ class M2Pass:
         return buf.getvalue()
 
     def _write_once(self, p: Path, blob: bytes) -> None:
+        """Create ``p`` exclusively; an existing file is accepted only when its bytes are identical (idempotent re-run after a crash), else refused."""
         if self.dry:
             raise DryModeError("no store in dry mode")
         if p.exists():
+            if p.read_bytes() == blob:
+                return
             raise FileExistsError(f"refusing to overwrite {p}")
         tmp = p.with_suffix(p.suffix + ".tmp")
         tmp.write_bytes(blob)
         os.link(tmp, p)
         tmp.unlink()
 
-    def _write_units(self, cap: dict, units: list[dict]) -> None:
-        self._write_once(self.store / "units" / f"{cap['id']}.jsonl.gz", self._gz_bytes([json.dumps(u, sort_keys=True, default=str) for u in units]))
+    def _write_units(self, cap: dict, units: list[dict]) -> str:
+        blob = self._gz_bytes([json.dumps(u, sort_keys=True, default=str) for u in units])
+        self._write_once(self.store / "units" / f"{cap['id']}.jsonl.gz", blob)
+        return sha256_bytes(blob)
+
+    def _write_nofav(self, cap: dict) -> str:
+        blob = self._gz_bytes([json.dumps(u, sort_keys=True, default=str) for u in self.nofav])
+        self._write_once(self.store / "nofav" / f"{cap['id']}.jsonl.gz", blob)
+        return sha256_bytes(blob)
 
     def _write_status(self, cap: dict, status: dict) -> None:
         self._write_once(self.store / "status" / f"{cap['id']}.json", json.dumps(status, sort_keys=True, indent=1).encode())
@@ -764,50 +993,98 @@ class M2Pass:
         return {"sha256": sha256_bytes(blob), "lines": len(lines)}
 
     # --- driving -------------------------------------------------------------------------------------------------------------------
-    def rebuild_prev(self, caps_by_slot: dict) -> None:
-        """Resume: the k - 1 state is re-read from the last folded capture when it is still on disk (otherwise k is ``no_previous_capture``)."""
-        if self.last_slot is None or self.prev is not None:
+    def rebuild_prev(self, by_id: dict) -> None:
+        """Resume: capture k - 1 is the capture the CHAIN folded in the last slot (its directory id, held by the state file and checked against that slot's chain
+        status file), never a pick by slot: a later on-time capture of the same slot cannot replace it (code-freeze check, M1 MUST 1). When that capture is
+        no longer on disk, k is ``no_previous_capture`` (E1, gone on resume)."""
+        if self.last_slot is None or self.prev is not None or self.last_kind != "processed":
             return
-        cap = caps_by_slot.get(self.last_slot)
+        cap = by_id.get(self.last_id)
         if cap is None:
             self.notes["resume_prev_capture_gone"] += 1
             return
+        if cap["slot"] != self.last_slot:
+            raise StateOrderError(f"the state's last folded capture {self.last_id} is in slot {cap['slot']}, not slot {self.last_slot}")
+        if self.store is not None:
+            sp_ = self.store / "status" / f"{self.last_id}.json"
+            if not sp_.exists() or json.loads(sp_.read_text()).get("slot") != self.last_slot:
+                raise StateOrderError(f"the chain status of slot {self.last_slot} ({sp_.name}) is missing or names another slot")
         sc = self._scan(cap, for_resume=True)
         self.prev = {"slot": cap["slot"], "start": cap["start"], "id": cap["id"], "ends": sc["ends"], "uma": sc["uma"], "watch": sc["watch"]}
 
-    def run_available(self, caps: list[dict], now: float) -> list[dict]:
-        """Process every capture that is next in slot order; a slot is recorded missing once it has no complete capture 6 h after its grid time;
-        a capture appearing later stays unprocessed (``late_capture_ignored``). Stops at the first slot that may still arrive."""
+    def run_available(self, caps: list[dict], now: float, side: dict | None = None) -> list[dict]:
+        """Process every capture that is next in slot order. A slot is DECIDED only once ``now >= grid + 6 h`` (the set of on-time captures, judged by the
+        manifest's ``finished_utc`` <= grid + 6 h, is then final, whenever J1 runs); a decided slot with no on-time capture is recorded missing with its own
+        status file; a capture appearing later stays unprocessed and is recorded as a late / duplicate side file. ``side`` is :func:`discover_all`'s output."""
         by_slot = {c["slot"]: c for c in sorted(caps, key=lambda c: c["start"])}
+        by_id = (side or {}).get("by_id") or {c["id"]: c for c in caps}
         self.merge_rule_ledger()
         for s in sorted(by_slot):
             if self.last_slot is not None and s <= self.last_slot and s not in self.processed_slots and s not in self.missing_slots:
                 raise StateOrderError(f"the state holds a capture at or after slot {s} but slot {s} was never processed or recorded missing")
-            if s in self.missing_slots:
-                self.extra["late_capture_ignored"] += 1
-        self.rebuild_prev(by_slot)
-        if not by_slot:
-            return []
-        s = (self.last_slot + 1) if self.last_slot is not None else min(by_slot)
-        if self.last_slot is None and self.lookback_from is not None:
-            s = min(s, slot_of(self.lookback_from)[0])  # N4: look-back slots before the first retained capture are counted missing_lookback_slot
-        top = max(by_slot)
+        self.rebuild_prev(by_id)
         done: list[dict] = []
-        while s <= top:
-            c = by_slot.get(s)
-            if c is not None and s not in self.missing_slots:
-                done.append(self.feed(c))
-            elif c is None and now >= slot_time(s) + MISSING_AFTER_S:
-                self.missing_slots.add(s)
-                self.last_slot = s
-                self.extra["missing_lookback_slot" if slot_time(s) < self.window_start else "missing_capture"] += 1
-                self.prev = None if self.prev is None or self.prev["slot"] != s - 1 else self.prev
-                if not self.dry:
-                    self._write_state()
-            else:
-                break
-            s += 1
+        if by_slot:  # no capture on disk at all (a misconfigured or unreadable root) must never record every slot missing
+            s = (self.last_slot + 1) if self.last_slot is not None else min(by_slot)
+            if self.last_slot is None and self.lookback_from is not None:
+                s = min(s, slot_of(self.lookback_from)[0])  # N4: look-back slots before the first retained capture are counted missing_lookback_slot
+            top = max(by_slot)
+            if self.window_end is not None and not self.dry:
+                last_follow = math.ceil((self.followup_until - GRID0) / GRID_S) - 1
+                top = max(top, min(math.floor((now - MISSING_AFTER_S - GRID0) / GRID_S), last_follow))
+            while s <= top:
+                if now < slot_time(s) + MISSING_AFTER_S:
+                    break  # the on-time set of the slot is not final yet
+                c = by_slot.get(s)
+                if c is not None:
+                    done.append(self.feed(c))
+                else:
+                    self._record_missing(s)
+                s += 1
+        self._process_side(side, by_id)
         return done
+
+    def _side_file(self, kind: str, name: str, payload: dict) -> None:
+        """Write-once side status (late / duplicate / off-grid capture), counted once when first written (never re-added by a later run)."""
+        key = {"late": "late_capture_ignored", "dup": "duplicate_slot_capture_ignored", "off": "off_grid_capture_ignored"}[kind]
+        if self.dry:
+            self.extra[key] += 1
+            return
+        p = self.store / "status" / f"{name}.json"
+        if p.exists():
+            return
+        self._write_once(p, json.dumps(payload | {"role": ROLE}, sort_keys=True, indent=1).encode())
+        self.extra[key] += 1
+
+    def _process_side(self, side: dict | None, by_id: dict) -> None:
+        """Captures that never enter the chain are counted in write-once status files, so J2's manifest carries them (not only an append log)."""
+        if not side:
+            return
+        decided = self.processed_slots | self.missing_slots
+        for c in side["late"]:
+            if c["slot"] in decided:
+                self._side_file("late", f"late_{c['id']}", {"kind": "late_capture_ignored", "capture_id": c["capture_id"], "id": c["id"], "slot": c["slot"],
+                                                             "reason": "finished_utc_absent" if c["fin_missing"] else "finished_after_grid_plus_6h",
+                                                             "capture_start_utc": iso(c["start"]), "finished_utc": None if c["fin_missing"] else iso(c["fin"])})
+        for c in [*side["caps"], *side["extra"]]:
+            s = c["slot"]
+            kept_id = self.slot_capture.get(str(s))
+            if s in self.missing_slots:
+                why = "delivered_after_missing_recorded"
+            elif s in self.processed_slots and kept_id is not None and c["id"] != kept_id:
+                kept = by_id.get(kept_id)
+                why = "on_time_but_delivered_after_slot_decided" if kept is not None and c["start"] < kept["start"] else None
+                if why is None:
+                    self._side_file("dup", f"dup_{c['id']}", {"kind": "duplicate_slot_capture_ignored", "capture_id": c["capture_id"], "id": c["id"], "slot": s,
+                                                              "kept_id": kept_id, "capture_start_utc": iso(c["start"])})
+                    continue
+            else:
+                continue
+            self._side_file("late", f"late_{c['id']}", {"kind": "late_capture_ignored", "capture_id": c["capture_id"], "id": c["id"], "slot": s, "reason": why,
+                                                         "capture_start_utc": iso(c["start"]), "finished_utc": iso(c["fin"])})
+        for c in side["off"]:
+            self._side_file("off", f"offgrid_{c['id']}", {"kind": "off_grid_capture_ignored", "capture_id": c["capture_id"], "id": c["id"], "nearest_slot": c["slot"],
+                                                           "capture_start_utc": iso(c["start"])})
 
     # --- J0 report -----------------------------------------------------------------------------------------------------------------
     def report_j0(self, start_ts: float, end_ts: float, spec_path: Path | None, lookback_slots_used: int) -> dict:
@@ -832,7 +1109,7 @@ class M2Pass:
         gaps = sorted(g for g in (u["gap_sidecar_minus_row_s"] for u in U) if math.isfinite(g))
         return {
             "kind": "M2-J0 counts-only pre-freeze check (MEASUREMENT_M2_CH264.md 9.1): J1 code in dry mode; counts only, k = 0, uncounted; no resolution, outcome, follow-up state or post-k price read; no store written; informed (M2-J0)",
-            "version": VERSION, "dry_run": True, "code_sha256": code_sha256(), "m2_j1_code_sha256": self.code_sha, "spec_sha256": sha256_file(spec_path) if spec_path and Path(spec_path).exists() else None,
+            "version": VERSION, "dry_run": True, "code_sha256": code_sha256(), "m2_j1_code_sha256": sha256_file(Path(__file__).resolve()), "code_sha": self.code_sha, "spec_sha256": sha256_file(spec_path) if spec_path and Path(spec_path).exists() else None,
             "pins": {"imported_module_sha256": module_pins(), "rule_lexicon_sha256": lexicon_sha256(), "note": "5 / MUST 2: recorded in J0's seal and at registration"},
             "rule_reader": "per-record receipt time (3.5, ruling 7): finished_utc <= t_d, else day file strictly before k's UTC day",
             "t_d_source_counts": dict(sorted(self.t_d_source.items())),
@@ -848,8 +1125,9 @@ class M2Pass:
                                "units_per_event_strata": dict(sorted(Counter(units_bucket(n) for n in ev_units.values()).items())),
                                "note": "7.2 strata (1, 2-3, 4-9, 10+) with every unit treated as final-state; counts of events"},
             "funnel": {c: self.funnel.get(c, 0) for c in FUNNEL_ORDER} | {k: v for k, v in sorted(self.funnel.items()) if k not in FUNNEL_ORDER},
-            "side_classes": {k: self.extra.get(k, 0) for k in ("reoverdue_seen", "end_date_missing", "left_before_overdue_slot", "pre_window_source", "missing_capture",
-                                                               "missing_lookback_slot", "late_capture_ignored")},
+            "side_classes": {k: self.extra.get(k, 0) for k in ("reoverdue_seen", "seen_without_k_minus_1_row", "end_date_missing", "left_before_overdue_slot", "pre_window_source",
+                                                               "missing_capture", "missing_lookback_slot", "late_capture_ignored", "duplicate_slot_capture_ignored",
+                                                               "off_grid_capture_ignored")},
             "funnel_by_day": dict(sorted(self.funnel_by_day.items())),
             "left_before_overdue_slot_by_day": dict(sorted(self.left_by_day.items())),
             "end_date_missing_scope_by_day": dict(sorted(self.end_missing_by_day.items())),
@@ -879,13 +1157,14 @@ class M2Pass:
 def run_j0(snapshot_root: Path, rules_root: Path | None, start_ts: float, end_ts: float, *, lookback_slots: int = 12, spec_path: Path | None = None) -> dict:
     """M2-J0: the J1 extractor in dry mode over [start, end). The first ``lookback_slots`` captures only fold (the overdue-seen set); the rest are
     classified. The rule reader is per record (3.5); there is no mode to choose (N5)."""
-    caps, notes = discover_captures(snapshot_root, start_ts, end_ts)
+    info = discover_all(snapshot_root, start_ts, end_ts)
+    caps, notes = info["caps"], info["notes"]
     rules = RulesIndex.load(rules_root)
     window_start = start_ts
     if caps and lookback_slots and lookback_slots < len(caps):
         window_start = caps[lookback_slots]["start"] - 1.0  # the first classified k needs k - 1 at or after window_start
     mp = M2Pass(window_start=window_start, window_end=None, rules=rules, dry_run=True, spec_sha=sha256_file(spec_path) if spec_path and Path(spec_path).exists() else "")
-    mp.run_available(caps, now=math.inf)
+    mp.run_available(caps, now=math.inf, side=info)
     mp.notes.update({f"discover:{k}": v for k, v in notes.items()})
     rep = mp.report_j0(start_ts, end_ts, spec_path, lookback_slots)
     rep["peak_rss_mb"] = peak_rss_mb()
@@ -893,10 +1172,41 @@ def run_j0(snapshot_root: Path, rules_root: Path | None, start_ts: float, end_ts
 
 
 def run_j1(snapshot_root: Path, rules_root: Path | None, store: Path, *, window_start: float = REGISTERED_UTC, window_end: float = END_UTC, spec_sha: str,
-           now: float, record_followup: bool = True) -> M2Pass:
-    """One J1 pass (9.2): the fixed look-back span ``[window_start - 7 d, window_start)`` and the window, then follow-up captures to READOUT."""
-    caps, _ = discover_captures(snapshot_root, window_start - LOOKBACK_SLOTS * GRID_S, READOUT_UTC)
+           now: float, record_followup: bool = True, followup_until: float | None = None, pad_ledger: tuple[int, int] | None = None) -> M2Pass:
+    """One J1 pass (9.2): the fixed look-back span ``[window_start - 7 d, window_start)`` and the window, then follow-up captures to READOUT. ``spec_sha`` is
+    given by the caller (the registered runner passes the pinned one); see :func:`run_pass` for the gated entry point."""
+    fu = READOUT_UTC if followup_until is None else followup_until
+    info = discover_all(snapshot_root, window_start - LOOKBACK_SLOTS * GRID_S, fu)
     mp = M2Pass(window_start=window_start, window_end=window_end, rules=RulesIndex.load(rules_root), dry_run=False, store=store,
-                spec_sha=spec_sha, record_followup=record_followup, lookback_from=window_start - LOOKBACK_SLOTS * GRID_S)
-    mp.run_available(caps, now=now)
+                spec_sha=spec_sha, record_followup=record_followup, lookback_from=window_start - LOOKBACK_SLOTS * GRID_S, followup_until=fu)
+    if pad_ledger and mp.last_slot is None:
+        mp.pad_ledger(*pad_ledger)
+    mp.run_available(info["caps"], now=now, side=info)
+    mp.notes.update({f"discover:{k}": v for k, v in info["notes"].items()})
     return mp
+
+
+def run_pass(snapshot_root: Path, rules_root: Path | None, store: Path, spec: dict = sp.SPEC, now: float | None = None, pins: dict | None = None, paths: dict | None = None,
+             design: Path | None = None, record_followup: bool = True, pad_ledger: tuple[int, int] | None = None) -> dict:
+    """The registered J1 entry point. Refuses on a pin mismatch (design text, eight modules, lexicon; spec_sha / code_sha against ``pins`` at every pass), before
+    ``REGISTERED_UTC`` (the first pass folds the look-back and must see the span), once the follow-up manifest exists, and a ledger pad outside a dry-run spec.
+    Appends one line to ``logs/j1_runs.jsonl`` (counts, peak RSS; no follow-up content)."""
+    sp.check_pins(spec, paths, design)
+    sp.check_run_pins(pins, spec)
+    now = time.time() if now is None else now
+    reg, end = sp.ts(spec, "registered_utc"), sp.ts(spec, "end_utc")
+    if now < reg:
+        raise sp.M2Refusal(f"J1 refuses before REGISTERED_UTC ({spec['registered_utc']}): the first pass folds the look-back span and must see every pre-window capture")
+    if pad_ledger and not spec.get("dry_run"):
+        raise sp.M2Refusal("a rule-ledger pad is for the host dry run only")
+    store = Path(store)
+    if (store / "followup_manifest.json").exists():
+        raise sp.M2Refusal("J1 refuses: the follow-up is closed (followup_manifest.json exists)")
+    mp = run_j1(snapshot_root, rules_root, store, window_start=reg, window_end=end, spec_sha=sp.spec_sha(spec), now=now, record_followup=record_followup,
+                followup_until=sp.ts(spec, "readout_utc"), pad_ledger=pad_ledger)
+    rec = {"now_utc": iso(now), "peak_rss_mb": peak_rss_mb(), "spec_sha": mp.spec_sha, "code_sha": mp.code_sha, "last_slot": mp.last_slot, "processed_slots": len(mp.processed_slots),
+           "missing_slots": len(mp.missing_slots), "units_total": len(mp.unit_ids), "counts": dict(sorted(mp.extra.items())), "ledger_markets": mp.ledger.n_markets(), "ledger_records": mp.ledger.n_records()}
+    (store / "logs").mkdir(parents=True, exist_ok=True)
+    with open(store / "logs" / "j1_runs.jsonl", "a") as fh:
+        fh.write(json.dumps(rec, sort_keys=True) + "\n")
+    return rec
