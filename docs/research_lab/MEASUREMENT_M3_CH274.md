@@ -1,9 +1,9 @@
 # Measurement M3 (CH274, "the wait"): hours from a market's first two-sided capture with the favoured ask at 0.95 or more to the first capture that shows a UMA proposal state or its exit from the listing, by rule class and hours-to-end, with the early share, the ask path and the yield distribution, k = 0 (DRAFT)
 
 **Status: DRAFT 2026-10-30, revised after challenger R1 (`reviews/M3_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES on
-69c32cff; MUST 1-9, SHOULD 1-9 and rulings Q1-Q12 applied, section 19). Not re-checked, not frozen, not registered,
-nothing counted. Next: re-check of this response by `science-reviewer`, then the J1 code, M3-J0, the final pre-freeze
-verification and the design-text freeze by 2026-11-16T23:59Z (section 20).** Evidence role
+69c32cff; MUST 1-9, SHOULD 1-9 and rulings Q1-Q12 applied, section 19). Re-check `reviews/M3_R1_RECHECK_2026-10-30.md` (READY_WITH_FIXES) applied, MUST 1-4 and SHOULD 1-7 (section 22).
+Not frozen, not registered, nothing counted. Next: the J1 code, M3-J0, the final verification and the design-text freeze
+by 2026-11-16T23:59Z (section 20).** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS; each condition is mapped in section
 16). Source: `CREATIVE_HYPOTHESES_2026-11-03.md` section 2 C (CH274) and section 3 ("M3 (CH274)": estimands and cost lines
@@ -29,7 +29,7 @@ than by (a)) can change from its output.
 CH276 (orchestrator decision 2026-10-30, ledger entry "Three reviews ... 14:20Z"), so no CH276 line is a gate, threshold or
 planning input of M3. Any other CH276 output read by the designer before the freeze is listed in the freeze commit. This
 response and every section-18 ruling (as applied in section 19) are committed before q0760's output is opened; after that
-commit, CH276 changes nothing in M3.
+commit, CH276 changes nothing in M3. CH276's `ch274.built` flag (>= 30 a day) is superseded and is not a gate for M3.
 
 This is research tooling. AREPO never trades. M3 is a measurement: it reads a resolution only as the declared payoff of
 a paper route after the window, it is not a verdict, it is in no Holm family, and it is counted apart from the registered
@@ -54,7 +54,7 @@ P&L or evidence JSON was read to write it (section 15).
   `(W-, W+]` bounded by receipt times (4.1); both ends are printed.
 - **Headline estimand (one; R1 Q3).** `F_S(7 d)` = the share of **all** units whose S is observed with `W+ <= 168 h`,
   unit-weighted, event-bootstrap 95% CI with the CR1 event-clustered SE beside. It is a plain proportion: every unit has
-  at least 45 days of follow-up, so no horizon up to 30 d is censored by the read-out. Always printed in the same line:
+  about 45 days (at least 44 d 22 h) of follow-up, so no horizon up to 30 d is censored by the read-out. Always printed in the same line:
   the same figure on S8 = 1 (single-open-member events), `W50` (the unit-weighted Kaplan-Meier median of `W+`, possibly
   "not reached") and `W50-` (the same on the lower end), the censored share and the classed share.
 - **Beside it (declared, all reported):** W quartiles by rule class x hours-to-end and by the other k-visible splits; the
@@ -109,7 +109,7 @@ P&L or evidence JSON was read to write it (section 15).
 ## 2. Registration, window, freeze deadline and read-out
 
 ### 2.1 Dates
-- **Window.** `REGISTERED_UTC = 2026-11-24T00:00Z`, `END_UTC = 2026-12-15T00:00Z` (21 days, 252 slots). A capture belongs to
+- **Window.** `REGISTERED_UTC = 2026-11-24T00:00Z`, `END_UTC = 2026-12-15T00:00Z` (21 days, 252 slots; 42 days, 504 slots under 10.1 (a)). A capture belongs to
   the window if its manifest start lies in `[REGISTERED_UTC, END_UTC)`. A k is classified only if `start_k` is in
   `[REGISTERED_UTC, END_UTC)` and `start_{k-1} >= REGISTERED_UTC` (M2 ruling W8), so the first possible k is planned at
   2026-11-24T02:31Z. Captures at or after `END_UTC` serve the follow-up only (4.1, 10.2) and are never folded or classified.
@@ -128,7 +128,7 @@ P&L or evidence JSON was read to write it (section 15).
   registration commit.
 - **Read-out.** `READOUT_UTC = END_UTC + 45 days = 2027-01-29T00:00Z` (the ruling's >= 30 days; the round's date). Why 45,
   not M1's 31: W is right-censored at the read-out, and long-dated units wait to their `end_date`; 45 days gives every unit
-  at least 45 days of follow-up (units at the window's start about 66). Under 10.1 (a) (42 days): `END_UTC =
+  about 45 days (at least 44 d 22 h) of follow-up (units at the window's start about 66). Under 10.1 (a) (42 days): `END_UTC =
   2027-01-05T00:00Z`, `READOUT_UTC = 2027-02-19T00:00Z`.
 - **One analysis, fixed end, no extension.** The analysis refuses before `ANALYSIS_UTC = READOUT_UTC + 7 d + 12 h =
   2027-02-05T12:00Z` (after J3's last retry pass, 10.4; R1 SHOULD 6; under 10.1 (a) 2027-02-26T12:00Z), requires `--out`,
@@ -256,7 +256,7 @@ failing rule below, in this order, and enters the near-seen set at k:
 
 **Side counts printed per capture (k-visible; never units):** `crossed_book` row-captures; two-sided rows with a favoured
 ask >= 0.95 and the favoured mid < 0.90 (`wide_book_high_ask`); the near-seen set's size and its in-scope part; markets
-that leave the listing while near-certain are not counted at window time (that could be a unit's follow-up content).
+that leave the listing while near-certain are not counted at window time (that could be a unit's follow-up content). Side counts at capture j are taken over markets **not in the near-seen set at j**, so no unit's (or hypothetical unit's) row after its k enters any count.
 
 ### 3.4 Unit fields and decision time
 - **Decision time** `t_d` = the later of the row's `received_utc` and the sidecar row's `received_utc` at k. If one parses
@@ -363,7 +363,7 @@ cluster keyed by its market id. No cap: weights are declared instead (5).
 - **Composite S** = the first of P and C, at capture `j_S`; `j_S'` is the last processed capture before `j_S` (capture k
   itself if `j_S` is the first follow-up capture). **Interval (R1 MUST 4, the reviewer's wording):** "`W+ = t⁺ − t_d`,
   where `t⁺` is the sidecar row's `received_utc` at `j_S` for P, the row's for C-by-`closed`, and capture `j_S`'s manifest
-  `finished_utc` for C-by-absence." "`W− = max(0, t⁻ − t_d)`, where `t⁻` is the market's row `received_utc` at `j_S'`
+  `finished_utc` for C-by-absence." "`W− = max(0, t⁻ − t_d)`, where `t⁻` = the sidecar row's `received_utc` at `j_S'` for P, the row's for C
   (`t_d` if `j_S'` = k)." "If a receipt is missing, fall back to `finished_utc` for `t⁺` and the manifest start for `t⁻`
   (counted)" (`receipt_fallback_plus`, `receipt_fallback_minus`; a `j_S'` at which the market was absent, an
   `absent_flicker` capture, has no row receipt and takes the fallback). The state change lies after the pre-S state was
@@ -372,7 +372,7 @@ cluster keyed by its market id. No cap: weights are declared instead (5).
   `interval_spans_missing` (its `W-` uses the last processed capture, so the interval widens; never filled).
 - **Censoring:** a unit with no S at any follow-up capture is right-censored at `t_last - t_d` (`t_last` = the manifest
   `finished_utc` of the last processed follow-up capture before `READOUT_UTC`). Censoring is administrative (it depends
-  on k only), declared now. Every unit has at least 45 days of follow-up (2.1), so **no horizon up to 30 d is censored by
+  on k only), declared now. Every unit has about 45 days (at least 44 d 22 h) of follow-up (2.1), so **no horizon up to 30 d is censored by
   the read-out**; a unit with no S whose `t_last - t_d` is below a horizon h (possible only if the recorder stopped) is
   counted `horizon_unreached(h)` (expected 0) and every share at h prints the bounds [all such units without S, all with
   S] beside it.
@@ -420,7 +420,7 @@ change of reference):
   `two_sided` / `ask_vanished`). A one-sided row whose only value is a favoured ask `< 0.99` is not A99.
 - **Estimands (R1 MUST 3, the reviewer's wording):** "A99 share = units with A99 observed before S and within 30 d of
   `t_d`, over all units." (Within 30 d: the A99 capture's start is at most `t_d + 30 d`.) Every unit is then determinate,
-  because every unit has at least 45 d of follow-up. The slots from k to A99 are printed **labelled "conditional on
+  because every unit has about 45 days (at least 44 d 22 h) of follow-up. The slots from k to A99 are printed **labelled "conditional on
   A99"**. The favoured ask at the last two-sided follow-up capture before S (`ask_last`) and `ask_last - ask_f` (the
   discount a buyer who waited would have lost), as distributions. Grid caveats as W's.
 - **This needs prices after k in the blind follow-up (10.2); R1 Q1 ACCEPT** (status strings are already outcome content,
@@ -651,7 +651,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   seen set size at the end of the fold; cells of S1-S13 (S11 as k-time zone counts); the classed share overall and by S1;
   the `cat_k` distribution with raw `fee_category` beside; the rule reader's day-file contiguity from `RULES_FIRST_DAY`,
   committed lines without a parseable `finished_utc`, commits crossing midnight, maximum poll duration; the forms of the
-  status string (distinct normalised forms, every non-whitelist form at E6 uncapped); receipt gaps (sidecar minus row);
+  status string **on candidate rows at E6 only** (distinct normalised forms, every non-whitelist form uncapped); receipt gaps (sidecar minus row);
   `t_d_source` counts; sports and crypto candidate counts (the owner's arm sizes); the planned follow-up volume (units x
   captures to the read-out). **No status-semantics line** (dropped, R1 MUST 7: siblings of hypothetical units can be
   hypothetical units after their own k, so the line would read post-k status; CH276's line (1) covers the question).
@@ -663,8 +663,8 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
 - **Decision rules declared now, before any count:** (a) **median full-day units fewer than 48 (= ⌈1,000/21⌉): window
   extended to 42 days**, dates rewritten before the freeze (2.1) (R1 MUST 6: the draft's 25, CH274's kill line, left 25-47
   units a day with no extension although coarse rule 1's N < 1,000 was then near-certain; 48 makes (a) and coarse rule 1
-  consistent); (b) *record only, redundant* (fewer than 1,008 projected over 21 days; 48 x 21 = 1,008, so (a) always fires
-  first); (c) none of J0's numbers changes an estimand, split, cell, cut, cost line, class rule, threshold or date other
+  consistent); (b) *record only*: the projected 21-day count = median full-day units x 21 < 1,008, which is identical to (a) by
+  construction; (c) none of J0's numbers changes an estimand, split, cell, cut, cost line, class rule, threshold or date other
   than by (a); the classed-share kill line of CH274 is **not** a J0 rule (it is coarse rule 3, applied to the window's own
   units). Output labelled `informed (M3-J0)`, counts only, sealed with its code hash and the pins of 5.
 - Memory: under 600 MB (M2-J0 peaked at 457.7 MB with the rule ledger; M1-J0 297.6 MB); dry run measured.
@@ -755,8 +755,10 @@ read of either.
 ### 10.4 M3-J3: read-out resolution fetch, shared with M2-J3 (on or after `READOUT_UTC`)
 - **Shared with M2 (R1 feasibility; M2 unchanged).** M2's read-out is also 2027-01-29T00:00Z. M3-J3 is **the procedure
   of `MEASUREMENT_M2_CH264.md` section 9.4 (M2-J3), adopted verbatim by reference**, run **in the same job on the same
-  date with the same fetch code**: one J3 module, written once, pinned in both registration commits, which takes a
-  measurement's unit-id list and write-once store as arguments. In the shared job M2's ids are fetched first, in their own
+  date with the same fetch code**: one J3 module, written once, pinned in both registration commits, which takes only a
+  measurement's unit-id list and write-once store as arguments (ids, store). **M3's two extra fetch passes and the
+  `closed_after_readout` rule live in an M3-only wrapper (R1 re-check SHOULD 1); the shared J3 module stays byte-identical to
+  what M2 pins**, so no M3-side edit changes M2's pinned file. In the shared job M2's ids are fetched first, in their own
   batches, exactly as M2 9.4 states (M2's batches, attempts, records and store are not altered by M3's presence); M3's ids
   follow in their own batches of 50 into M3's own write-once `readout/`. A market in both stores is fetched in both lists
   independently; neither measurement reads the other's read-out records. Nothing in M2's text, pins, dates or outputs
@@ -771,9 +773,10 @@ read of either.
 - **M3-only widened retries (R1 SHOULD 6; Q8 mitigation).** For M3's ids only, ids still `unavailable (fetch)` after the
   shared pass are retried in two further passes with the same procedure, at `READOUT_UTC + 3 d` and `READOUT_UTC + 7 d`
   (three passes over 7 days), so that a Gamma outage cannot void the measurement through the coverage floor of 9.4. Ids
-  still without a definite answer after the third pass are `unavailable (fetch)`. A record from pass 2 or 3 whose
-  `closedTime` is after `READOUT_UTC` is classed `pending` (`closed_after_readout`, counted; its payoff unused), so every
-  class refers to the state at `READOUT_UTC`. M2's ids are not retried by M3's passes.
+  still without a definite answer after the third pass are `unavailable (fetch)`. **`closed_after_readout` covers every M3 record of passes 1-3** (the shared pass 1 also fetches after
+  `READOUT_UTC`) and is applied in M3-A: a record whose `closedTime` is after `READOUT_UTC` is classed `pending`
+  (`closed_after_readout`, counted; its payoff unused), so every class refers to the state at `READOUT_UTC`. A pass 2 or 3
+  record with a missing `closedTime` is `pending` (sub-class `closed_time_missing_late_pass`), never final. M2's ids are not retried by M3's passes.
 
 ### 10.5 M3-A: analysis (on or after `ANALYSIS_UTC = READOUT_UTC + 7 d + 12 h`)
 Verifies the pins (5), both J2 manifest hashes and `registration_commit_utc`; refuses before `ANALYSIS_UTC`
@@ -789,7 +792,7 @@ M3 is reported **coarse** (every number still printed) if any of:
    within plus or minus 5 points, the round's own precision language);
 3. the classed share (S2 scheduled, barrier, both, consensus, other) below 0.5 (CH274's kill line, applied to the window's
    own units, not to J0);
-4. window slot coverage below 75% of the 252 slots;
+4. window slot coverage below 75% of the window's slots (252; 504 under 10.1 (a));
 5. follow-up slot coverage (window start to `READOUT_UTC`) below 75%;
 6. for 6.2 and `Y` only (labelled there): non-final units (`pending + not_found + unavailable + no_readout_record`) above
    10% of units.
@@ -821,7 +824,7 @@ M3 is reported **coarse** (every number still printed) if any of:
   heavy-tailed and possibly bimodal (CH274's boring explanation: barrier units within a day, scheduled units at their end),
   so a class-pooled median may fall in a low-density gap and be imprecise. The round's figure is not used; this is why the
   headline is the fixed-horizon share `F_S(7 d)` (R1 Q3) and `W50` is printed beside it, not gated.
-- Censoring: every unit has at least 45 days of follow-up, so the S4 `>= 43 d` cell is expected to be largely censored and
+- Censoring: every unit has about 45 days (at least 44 d 22 h) of follow-up, so the S4 `>= 43 d` cell is expected to be largely censored and
   its median "not reached"; it is kept in the population (R1 Q9) and disclosed in advance; it changes no rule.
 - Fees: 0.05-0.33c a share (6.1 arithmetic) against `c` of 0-5c.
 - The bound `T_U`: with zero losses at least 4.38 / N_F times the sum over non-empty strata of their units per event (7.2);
@@ -858,9 +861,9 @@ M3 is **void** (recorded in the ledger, its numbers not reported as a measuremen
   CH267 or CH275 test that reads rule class by hours-to-end, and CH274's `settle_24h` engine target if it is ever run as a verdict) is
   labelled **`informed (M3)`**, uses a window that starts after `READOUT_UTC` (disjoint and later), and counts none of M3's
   data as its evidence.
-- If it targets a split, cell or contrast chosen after seeing M3, it reports M3's selection width: **13 splits, 84 cells, 2
+- If it targets a split, cell or contrast chosen after seeing M3, it reports M3's selection width: **13 splits, 84 cells (87 under 10.1 (a)), 2
   contrasts (5 numbers)** (8). **Any later test on class x hours-to-end, for any target** (the CH267 spread into the close,
-  the CH275 insurance price, or another), is `informed (M3)` and reports 13 splits, 84 cells and 5 contrast numbers (R1 Q6).
+  the CH275 insurance price, or another), is `informed (M3)` and reports 13 splits, 84 cells (87 under (a)) and 5 contrast numbers (R1 Q6).
 - M3 may set planning SDs, design effects, censoring shares and population counts for a later design; it never sets a
   threshold after the fact.
 - **The `settle_24h` engine target (CH274's builder arm) is not part of M3.** It needs its own DESIGN_V1 note before any
@@ -1102,7 +1105,7 @@ committed before q0760's (CH276's) output is opened (MUST 5).
 | Capacity optional | dropped (SHOULD 7) | 504 |
 | Keep the ask path; fallback only if J1 slips past 11-12 | applied | 427 |
 
-**Unchanged by R1:** the unit rule (3.2-3.3, apart from E1's chain and tie wording and E8's new class), the 13 splits, 84
+**Unchanged by R1:** the unit rule (3.2-3.3, apart from E1's chain and tie wording and E8's new class), counts unchanged; S4's edges changed (MUST 3): the 13 splits, 84
 cells (87 under 10.1 (a)) and 2 contrasts (5 numbers), the cost lines, the outcome classes, the floor, the window and the
 read-out date. Changed dates: J2 at 12-15T07:00Z (was 06:00Z); analysis on or after 2027-02-05T12:00Z (was 01-29T12:00Z).
 
@@ -1143,3 +1146,20 @@ read-out date. Changed dates: J2 at 12-15T07:00Z (was 06:00Z); analysis on or af
 >   measured. J3 shared with M2. J0 rule (a) at 48 units a day. Window 2026-11-24..12-14, read-out on or after 2027-01-29,
 >   analysis on or after 2027-02-05T12:00Z. CH276's line 7 removed (orchestrator, 14:20Z); this response committed before
 >   q0760's output is opened. Correction: the 13:50Z entry's "eleven" open questions should read twelve. Next: re-check.
+
+## 22. Re-check mapping (`reviews/M3_R1_RECHECK_2026-10-30.md`, READY_WITH_FIXES on b1a2a669; applied; line numbers refer to this file after the edit)
+No estimand, threshold, cell or date changed. Items were located by content (the re-check's line numbers refer to b1a2a669).
+| Item | Applied as | Where |
+|---|---|---|
+| MUST 1 | Side counts at capture j taken over markets not in the near-seen set at j | section 3.3, after the side-counts paragraph (l.259-260) |
+| MUST 2 | J0 status-forms count scoped to candidate rows at E6 only | section 10.1, J0 output list (l.~657) |
+| MUST 3 | "252; 504 under 10.1 (a)" for the 75% slot floor; "21 days, 252 slots; 42 days, 504 slots under 10.1 (a)" | section 2.1 window (l.112); section 11 rule 4 (l.~797) |
+| MUST 4 | Rule (b) record only, projection = median full-day units x 21 < 1,008, identical to (a) by construction | section 10.1 rules (l.~667) |
+| SHOULD 1 | M3-only wrapper for the two extra passes and `closed_after_readout`; shared J3 byte-identical to M2's pin, takes (ids, store) | section 10.4 (l.~758-762) |
+| SHOULD 2 | `closed_after_readout` covers every M3 record of passes 1-3, applied in M3-A; false "every class" claim fixed | section 10.4 (l.~775-780) |
+| SHOULD 3 | Pass 2/3 record with missing `closedTime` is `pending`, sub-class `closed_time_missing_late_pass` | section 10.4 (l.~779) |
+| SHOULD 4 | `t⁻` = the sidecar row's `received_utc` at `j_S'` for P, the row's for C | section 3.5 interval (l.~366) |
+| SHOULD 5 | CH276's `ch274.built` flag (>= 30 a day) superseded, not a gate for M3 | status block (l.32) |
+| SHOULD 6 | "counts unchanged; S4's edges changed (MUST 3)" | section 19 "Unchanged by R1" (l.~1105) |
+| SHOULD 7 | "about 45 days (at least 44 d 22 h)" at the five follow-up sentences (2.1 x2, 3.5 censoring, A99 estimand, section 8 censoring note); "(87 under (a))" at both selection-width lines (section 14) | l.57, 131, 375, 423, 824; l.~861-863 |
+Status block updated: re-check READY_WITH_FIXES applied; next J1 code, J0, final verification, design-text freeze by 2026-11-16T23:59Z.
