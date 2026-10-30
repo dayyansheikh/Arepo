@@ -317,20 +317,31 @@ def merge(run_dir: Path, *, state: tuple[str, list[str]] | None = None) -> dict:
     tree = check_tree(state or git_state())  # immediately before invoking
     t0 = _utc()
     p = subprocess.run(argv, cwd=BACKEND, capture_output=True)
-    after = check_tree(state or git_state()) if p.returncode == 0 else tree
+    after_err = None
+    after = tree
+    if p.returncode == 0:
+        try:
+            after = check_tree(state or git_state())
+        except Refusal as exc:  # tree turned disallowed-dirty during the merge: same failure path
+            after_err = str(exc)
     rec = {"step": "merge", "argv": argv[1:], "started_utc": t0, "finished_utc": _utc(),
            "rc": p.returncode, **tree, "dirty_tracked_after": after["dirty_tracked"],
            "stderr_tail": p.stderr.decode(errors="replace")[-4000:],
            "merge_manifest": str(out / "MERGE_MANIFEST.json")}
-    if p.returncode != 0:
+    if after_err is not None:
+        rec["after_check_error"] = after_err
+    if p.returncode != 0 or after_err is not None:
         # The merge reveals no outcome, so a re-run is honest. Keep the evidence of the failed
         # attempt (moved aside, never deleted) and write NO permanent MERGE_RUN.json marker.
         if out.exists():
             out.rename(run_dir / f"merged.failed-{_stamp()}")
         _write_unique(run_dir, "MERGE_RUN.failed", json.dumps(rec, indent=1))
-        # exit 2 from the CLI is its dirty-tree/HEAD refusal: retryable (75); otherwise its code
-        raise Refusal(f"gap-fill CLI exited {p.returncode}; see MERGE_RUN.failed-*.json",
-                      TEMPFAIL if p.returncode == REFUSED else _child_code(p.returncode))
+        # CLI exit 2 (unreadable HEAD or usage error) is a real refusal and stays 2; a child's 75
+        # is mapped to 1. A failed post-merge tree check with rc 0 is reported as a refusal (2).
+        code = _child_code(p.returncode) if p.returncode != 0 else REFUSED
+        raise Refusal(f"gap-fill CLI exited {p.returncode}"
+                      f"{'; after-check: ' + after_err if after_err else ''}; "
+                      "see MERGE_RUN.failed-*.json", code)
     (run_dir / "MERGE_RUN.json").write_text(json.dumps(rec, indent=1))
     return rec
 
@@ -343,6 +354,11 @@ def analyze(run_dir: Path, exp: str, label: str, *, now: float | None = None,
     if label == "primary":
         root = run_dir / "merged"
         mp = root / "MERGE_MANIFEST.json"
+        mr = run_dir / "MERGE_RUN.json"
+        if not mr.is_file():
+            raise Refusal(f"{mr} missing: run merge first")
+        if json.loads(mr.read_text()).get("rc") != 0:
+            raise Refusal(f"{mr} does not record a successful merge (rc != 0)")
         if not mp.is_file():
             raise Refusal(f"{mp} missing: run merge first")
         mm = json.loads(mp.read_text())

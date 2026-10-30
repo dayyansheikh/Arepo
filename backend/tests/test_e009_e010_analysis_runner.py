@@ -315,7 +315,7 @@ def test_failed_merge_leaves_no_permanent_marker_and_can_be_retried(srcs, tmp_pa
     monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: P())
     with pytest.raises(rn.Refusal) as e:
         rn.merge(run, state=("abc123", ["docs/research_lab/trials.jsonl"]))
-    assert e.value.code == rn.TEMPFAIL  # CLI exit 2 -> retryable
+    assert e.value.code == 2  # CLI exit 2 stays 2 (real refusal), not 75
     assert not (run / "MERGE_RUN.json").exists() and not (run / "merged").exists()
     assert len(list(run.glob("MERGE_RUN.failed-*.json"))) == 1
     monkeypatch.setattr(rn.subprocess, "run", real)
@@ -325,3 +325,41 @@ def test_failed_merge_leaves_no_permanent_marker_and_can_be_retried(srcs, tmp_pa
     assert (run / "MERGE_RUN.json").is_file()
     with pytest.raises(rn.Refusal):  # a non-allowed dirty file is still refused before the call
         rn.merge(tmp_path / "nope", state=("h", ["backend/x.py"]))
+
+
+def test_merge_after_check_failure_takes_failure_path(srcs, tmp_path, monkeypatch):
+    can, cop, expect = srcs
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    calls = []
+
+    def fake_state():
+        calls.append(1)  # clean for the two pre-call checks, bad dirt for the post-merge check
+        return ("abc123", [] if len(calls) <= 2 else ["backend/x.py"])
+
+    monkeypatch.setattr(rn, "git_state", fake_state)
+    with pytest.raises(rn.Refusal) as e:
+        rn.merge(run)
+    assert e.value.code == 2 and len(calls) == 3
+    assert not (run / "MERGE_RUN.json").exists() and not (run / "merged").exists()
+    assert len(list(run.glob("merged.failed-*"))) == 1
+    failed = list(run.glob("MERGE_RUN.failed-*.json"))
+    assert len(failed) == 1 and "after_check_error" in json.loads(failed[0].read_text())
+
+
+def test_primary_analyze_requires_successful_merge_run(srcs, tmp_path):
+    can, cop, expect = srcs
+    run = tmp_path / "analysis"
+    rn.freeze(run, can, cop, now=AFTER, expect_copy=expect, state=CLEAN)
+    rn.merge(run, state=CLEAN)
+    mr = run / "MERGE_RUN.json"
+    rec = json.loads(mr.read_text())
+    mr.rename(run / "MERGE_RUN.moved")
+    with pytest.raises(rn.Refusal, match="MERGE_RUN.json") as e:
+        rn.analyze(run, "e009", "primary", now=AFTER, state=CLEAN)
+    assert e.value.code == 2
+    rec["rc"] = 1
+    mr.write_text(json.dumps(rec))
+    with pytest.raises(rn.Refusal, match="rc") as e:
+        rn.analyze(run, "e009", "primary", now=AFTER, state=CLEAN)
+    assert e.value.code == 2
