@@ -198,6 +198,13 @@
    "spec_sha256": "0c390b8ad7f7e9ad8080d5287e211e8a462b2408f0bde0217b975ebb965e30ac",
    "status": "active",
    "added_utc": "2026-10-30T03:00:00Z"
+  },
+  {
+   "model_id": "se28_lr_rules",
+   "file": "se28_lr_rules.json",
+   "spec_sha256": "7f76a23b1ca51ba582aa0f53e1fff36f29225db327a0397191ac44e895ff8689",
+   "status": "active",
+   "added_utc": "2026-10-30T04:29:00Z"
   }
  ]
 }

@@ -37,6 +37,9 @@ OCCUR_Q_RE = re.compile(rf"\b(?:by|before) (?:the end of |end of )?(?:{_MONTHS}|
 OCCUR_D_RE = re.compile(r"\bbetween (?:the )?(?:market(?:'s)? creation|creation of (?:this|the) market)\b")
 URL_HOST_RE = re.compile(r"https?://(?:www\.)?([a-z0-9.-]+)")
 N_HOSTS_CAP = 5
+# the stream's first day file on the host (2026-10-20). Every day file from it to the capture's day must be present: a
+# missing file would silently turn known text into rc_has 0 or older text (review 2026-10-30), so the build refuses
+RULES_FIRST_DAY = "20261020"
 RULES_COLUMNS = ["rc_has", "cl_sched", "cl_barrier", "cl_consensus", "rc_inclusive", "rc_numeric", "rc_n_hosts", "rc_log_len",
                  "rc_occur_by"]
 TEXT_COLUMNS = RULES_COLUMNS[1:]  # NaN for a market with no known row
@@ -52,6 +55,10 @@ def parse_rule(data: dict) -> list[float]:
     return [float(bool(SCHEDULED_RE.search(t))), float(bool(BARRIER_RE.search(t))), float(bool(CONSENSUS_RE.search(t))),
             float(bool(INCLUSIVE_RE.search(t))), float(bool(NUMERIC_RE.search(q))), float(min(len(hosts), N_HOSTS_CAP)),
             math.log1p(len(d)), float(bool(OCCUR_Q_RE.search(q.lower()) or OCCUR_D_RE.search(d.lower())))]
+
+
+class RulesGap(Exception):
+    """A day file between the stream's first day and the capture's day is missing (restore it from the releases)."""
 
 
 _MEMO: dict = {}  # path -> (size, mtime_ns, parsed); day files are append-only, so a same-size file is unchanged
@@ -101,6 +108,19 @@ def rules_at(root: Path, cap_start: float) -> dict:
     from . import store as S
 
     cap_day = S.day_of(cap_start).replace("-", "")
+    have = {p.stem for p in root.glob("*.jsonl")}
+    if cap_day >= RULES_FIRST_DAY:
+        from datetime import UTC, datetime, timedelta
+
+        d, end = datetime.strptime(RULES_FIRST_DAY, "%Y%m%d").replace(tzinfo=UTC), datetime.strptime(cap_day, "%Y%m%d").replace(tzinfo=UTC)
+        gaps = []
+        while d <= end:
+            if d.strftime("%Y%m%d") not in have:
+                gaps.append(d.strftime("%Y%m%d"))
+            d += timedelta(days=1)
+        # the capture's own day may not have a file yet only if no poll of that day has run (before ~00:50Z)
+        if gaps and gaps != [cap_day]:
+            raise RulesGap(f"gamma_rules day files missing: {gaps[:5]}{'...' if len(gaps) > 5 else ''}")
     for p in sorted(root.glob("*.jsonl")):
         if p.stem > cap_day:
             break
