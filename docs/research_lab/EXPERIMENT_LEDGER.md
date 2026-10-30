@@ -5154,3 +5154,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `cb17_census`, `live_tests11_base`, `population_map_ch251`, `calibration`, `costs`) become spec pins (void 11.1 on mismatch).
   SHOULD 1-10 (fees_enabled parsing, denominators, split bootstrap, look-back fold timing, `reoverdue_seen`, `not_found`
   double query, planning figures). Fixes delegated on `feat/m2-ch264`; text freeze still due by 2026-11-16.
+
+## M1 final pre-freeze verification NOT_READY (two text fixes, six disclosures); J0 span correction, 2026-10-30 ~07:40Z (experiments autopilot; nothing counted)
+- `reviews/M1_FINAL_VERIFY_2026-10-30.md` on `076500bf…df9db`: re-check, 17.6 and J0 effects all correctly in; no estimand,
+  threshold, cell, cost line or date moved. **MUST 1:** pin the class-setting imported readers (`boundary_map_ch240`,
+  `population_map_ch251`, the `tier_of` source, `costs`, `calibration`), as M2's MUST 2. **MUST 2:** 17.7's span is wrong.
+- **Correction to the M1-J0 entry above (not an edit of it):** J0 **read 96 captures** (288 inputs = 96 x manifest, rows,
+  rows_ext; 10-22T06:31Z..10-30T04:31Z inside the 8-day span from 10-22T04:31:03Z); the first 12 were warm-up only and **84
+  were processed** (first 10-23T06:31Z); 6 full UTC days; no missing slot. Rules (a) / (b) are unaffected.
+- Disclosures D1-D6 to insert (none changes a rule): status lists accumulate history (no re-proposal residual seen);
+  proposals are usually seen in one 2-hourly capture (length-biased sample; wait / capital lines near zero); **`c <= 0.001`
+  for 1,195 of 1,232 units, so `theta_low` is expected negative whatever the outcome and `T_U` governs (coarse near-certain)**;
+  fees immaterial (fee_on 12); capacity rests on about 30 units; `ask_f = 1.0` placeholder units counted and printed (bias toward
+  lower `theta`, conservative; E6 not changed after seeing J0). Fixes delegated on `feat/m1-ch263`; then a diff-only check and
+  the freeze (by 2026-11-16).
