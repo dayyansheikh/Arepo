@@ -254,7 +254,7 @@ def test_e_drafts_exist_parse_and_are_drafts_not_jobs():
         a = ap.parse_args(d["argv"][1:])
         assert callable(a.fn)
         if d["resources"]["lane"] == "net" and a.cmd != "smoke":
-            assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40"
+            assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] in ("40", "50")  # 40 or the 2026-10-28 ops guard 50 (66fa90a5)
         if a.cmd in run_cb15.DECLARED_DISK_CAP_GB or f"{a.cmd}-E" in run_cb15.DECLARED_DISK_CAP_GB:
             key = a.cmd if a.cmd in run_cb15.DECLARED_DISK_CAP_GB else f"{a.cmd}-E"
             assert abs(a.disk_cap_gb - run_cb15.DECLARED_DISK_CAP_GB[key]) < 1e-9, d["id"]
@@ -350,7 +350,7 @@ def test_p_drafts_exist_parse_and_carry_the_p_sha():
         assert callable(a.fn)
         assert rules["common"]["rules_sha256"] in d["notes"] and rules["P"]["rules_sha256"] in d["notes"], d["id"]
         if d["resources"]["lane"] in ("net", "cron") and a.cmd not in ("smoke",):
-            assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40", d["id"]
+            assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] in ("40", "50"), d["id"]  # 40 or the 2026-10-28 ops guard 50 (66fa90a5)
         if a.cmd in run_cb15.DECLARED_DISK_CAP_GB:
             assert abs(a.disk_cap_gb - run_cb15.DECLARED_DISK_CAP_GB[a.cmd]) < 1e-9
         assert getattr(a, "rps", 0.0) <= run_cb15.DECLARED_RPS_MAX.get(a.cmd, 99.0) + 1e-9

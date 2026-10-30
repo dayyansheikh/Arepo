@@ -71,5 +71,5 @@ def test_q0696_timing_draft_is_clock_only_and_sane():
     q93 = json.loads((queue / "drafts" / "q0693_lt11_size_check.json").read_text())
     assert d["argv"][:2] == ["scripts/run_live_tests11.py", "size-timing"] and "--seed" not in d["argv"]
     assert d["resources"]["lane"] == "cpu" and d["resources"]["mem_mb"] <= q93["resources"]["mem_mb"]
-    assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40" and 0 < d["timeout_s"] <= 86400
+    assert d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] in ("40", "50") and 0 < d["timeout_s"] <= 86400
     assert d["argv"][d["argv"].index("--worlds") + 1] == "20" and d["argv"][d["argv"].index("--draws") + 1] == "200"

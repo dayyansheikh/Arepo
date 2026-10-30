@@ -42,7 +42,7 @@ def test_every_draft_exists_parses_and_is_a_draft_not_a_job():
         a = ap.parse_args(d["argv"][1:])
         assert callable(a.fn)
         if d["resources"]["lane"] == "net" and a.cmd != "smoke":  # smokes write counts only
-            assert "--data-dumps-cap-gb" in d["argv"] and d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] == "40"
+            assert "--data-dumps-cap-gb" in d["argv"] and d["argv"][d["argv"].index("--data-dumps-cap-gb") + 1] in ("40", "50")  # 40 or the 2026-10-28 ops guard 50 (66fa90a5)
         for dep in d["depends_on"]:
             assert dep[:5] in {f"q{n:04d}" for n in IDS} | {"q0276", "q0227", "q0221"}
 
