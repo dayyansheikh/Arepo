@@ -198,6 +198,7 @@ def _p_fixture(root: Path) -> None:
     (fdir / "manifest.json").write_text(json.dumps({"status": "pyth_frame_complete"}))
     _write(bdir / "states.csv.gz", py.STATE_COLUMNS, [])
     _write(bdir / "prints.csv.gz", py.PRINT_COLUMNS, [])
+    (bdir / "manifest.json").write_text(json.dumps({"status": "pyth_books_complete", "complete": True}))
 
 
 # ---- batch-Holm, trial lines and battery2 ---------------------------------------------------------------------------------------
@@ -379,3 +380,116 @@ def test_halfday_before_window_idles(monkeypatch, capsys, tmp_path):
     assert _run(argv, capsys)[1]["status"] == "idle_heartbeat"
     code, out = _run(argv, capsys)
     assert code == 75 and "half session 2026-11-27" in out["tempfail"]
+
+
+@pytest.mark.parametrize("man", [None, {"status": "in_progress", "complete": False}, {"status": "pyth_books_complete", "complete": False},
+                                 {"status": "something_else", "complete": True}])
+def test_census_not_now_while_books_manifest_not_final(capsys, tmp_path, man):
+    """Ruling CB9_Q0183 condition 5: a pending / partial q0184 must not be labelled 'source unavailable' in the write-once census."""
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    if man is None:
+        (root / "pyth" / "manifest.json").unlink()
+    else:
+        (root / "pyth" / "manifest.json").write_text(json.dumps(man))
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and "not final" in out["tempfail"]
+    assert not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()
+
+
+def test_census_accepts_ingress_cap_reached(tmp_path):
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    (root / "pyth" / "manifest.json").write_text(json.dumps({"status": "ingress_cap_reached", "complete": True}))
+    run_cb9.require_books_final(root / "pyth")
+
+
+# ---- FAITHFUL_EMPTY frame (reviewer ruling 2026-10-30) --------------------------------------------------------------------------------------
+
+
+def _empty_frame_root(tmp_path, kept=0, status="pyth_frame_complete") -> Path:
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    (root / "pyth_frame" / "manifest.json").write_text(json.dumps({"status": status, "complete": True, "counts": {"frame": 1235, "kept": kept},
+                                                                  "drops": {"id": 222, "key": 1013, "kept": kept}}))
+    return root
+
+
+def test_empty_frame_census_screen_and_rep(monkeypatch, capsys, tmp_path):
+    import hashlib
+
+    root = _empty_frame_root(tmp_path)
+    (root / "pyth" / "manifest.json").unlink()  # q0184 not run: no books manifest at all
+    (root / "pyth" / "states.csv.gz").unlink()
+    (root / "pyth" / "prints.csv.gz").unlink()
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", hashlib.sha256((root / "pyth_frame" / "frame.csv.gz").read_bytes()).hexdigest())
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    monkeypatch.setattr(py, "census_p", lambda *a, **k: (_ for _ in ()).throw(AssertionError("census_p 0/0 artefact must not run")))
+    tp = tmp_path / "t.jsonl"
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "ct.jsonl")], capsys)
+    assert code == 0, out
+    pc = json.loads((root / "census.json").read_text())["P"]
+    label = "not testable (empty frame: exclusion keys)"
+    assert pc["label_P1"] == label and pc["label_P2"] == label and pc["gate_GP_P1"] is False
+    eb = pc["empty_frame"]
+    assert eb["frame_manifest_sha256"] == hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest()
+    assert (eb["kept"], eb["dropped_by_id"], eb["dropped_by_key"]) == (0, 222, 1013)
+    spec = tmp_path / "cb9_v1.json"
+    spec.write_text("{}")
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    fz = ["--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--trials-path", str(tp)]
+    code, out = _run(["screen", "--family", "P", "--root", str(root), *fz], capsys)
+    assert code == 0 and out["P1"]["p"] == 1.0 and out["P1"]["verdict"] == label and out["P2"]["verdict"] == label
+    lines = [json.loads(x) for x in tp.read_text().splitlines()]
+    tests = [x for x in lines if x["kind"] == "cb9_test"]
+    assert {x["hypothesis"] for x in tests} == {"P1", "P2"} and all(x["p"] == 1.0 and x["testable"] is False and x["verdict"] == label for x in tests)
+    counts = [x for x in lines if x["kind"] == "ml_explain"]
+    assert sum(x["n_tests"] for x in counts) == 2 and {x["source"] for x in counts} == {"creative_batch_9:P"}
+    assert json.loads((root / "results_P.json").read_text())["P1"]["empty_frame"]["dropped_by_key"] == 1013
+    n = len(lines)
+    code, out = _run(["rep", "--family", "P", "--root", str(root), *fz], capsys)  # P1-rep / P2-rep: not run, nothing counted
+    assert code == 0 and out["status"] == "rep_P_not_run" and not (root / "results_P_rep.json").exists() and len(tp.read_text().splitlines()) == n
+
+
+@pytest.mark.parametrize("kept,status", [(1, "pyth_frame_complete"), (True, "pyth_frame_complete"), (None, "pyth_frame_complete"), (0, "in_progress")])
+def test_empty_frame_label_needs_int_zero_and_complete_status(tmp_path, kept, status):
+    root = _empty_frame_root(tmp_path, kept=kept, status=status)
+    assert run_cb9.empty_frame_binding(root / "pyth_frame") is None
+
+
+def test_empty_frame_census_not_blocked_by_missing_books_but_other_cases_still_75(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    # pinned sha mismatch (empty frame, but not the pinned manifest) -> condition 5 unchanged
+    root = _empty_frame_root(tmp_path / "a")
+    (root / "pyth" / "manifest.json").unlink()
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and "not final" in out["tempfail"] and not (root / "census.json").exists()
+    # non-empty frame without books -> 75 even with the pin set to its own sha
+    root = _empty_frame_root(tmp_path / "b", kept=5)
+    (root / "pyth" / "manifest.json").unlink()
+    import hashlib
+
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()
+
+
+@pytest.mark.parametrize("how", ["mismatch", "missing"])
+def test_books_waiver_fails_closed_on_a_wrong_or_missing_frame_file(monkeypatch, capsys, tmp_path, how):
+    import hashlib
+
+    root = _empty_frame_root(tmp_path)
+    (root / "pyth" / "manifest.json").unlink()
+    fdir = root / "pyth_frame"
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((fdir / "manifest.json").read_bytes()).hexdigest())
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", hashlib.sha256((fdir / "frame.csv.gz").read_bytes()).hexdigest())
+    assert run_cb9.books_not_required(fdir)
+    if how == "mismatch":
+        monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", "0" * 64)
+    else:
+        (fdir / "frame.csv.gz").unlink()
+    assert not run_cb9.books_not_required(fdir)
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()

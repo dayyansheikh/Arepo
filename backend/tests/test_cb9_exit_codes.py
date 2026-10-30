@@ -121,15 +121,43 @@ def test_kd_paths(monkeypatch, capsys, argv, books):
     capsys.readouterr()
 
 
+DRAFTS = JOBS.parent / "drafts"
+
+
+def _spec_path(name):
+    for d in (JOBS, DRAFTS):
+        if (d / f"{name}.json").exists():
+            return d / f"{name}.json"
+    return None
+
+
 def test_exit_0_chunk_logs_a_status_the_repeat_regex_does_not_match_and_75_never_matches_it(capsys):
-    """q0184 / q0186: a budget chunk prints status in_progress (exit 0) so the repeat block re-queues it; only a complete status ends the repeat."""
+    """q0184 / q0186: a budget chunk prints status in_progress (exit 0) so the repeat block re-queues it; only a complete status ends the repeat.
+    Ruling CB9_Q0183 condition 6: ``budget_chunk_ok=True`` is hard-coded, so q0184 must carry a repeat block. A missing q0184 spec FAILS (no silent skip);
+    q0186 is checked as soon as its spec exists (kd-books is not drafted in the repo yet)."""
+    spec_q184 = _spec_path("q0184_cb9_pyth_books")
+    assert spec_q184 is not None, "q0184 spec missing from queue/jobs and queue/drafts"
     for name in ("q0184_cb9_pyth_books", "q0186_cb9_kd_books"):
-        spec = json.loads((JOBS / f"{name}.json").read_text()) if (JOBS / f"{name}.json").exists() else None
-        if spec is None:
+        path = _spec_path(name)
+        if path is None:
+            assert name == "q0186_cb9_kd_books"
             continue
+        spec = json.loads(path.read_text())
+        assert "repeat" in spec and spec["repeat"]["max_runs"] >= 2, f"{name} hard-codes budget_chunk_ok=True and needs a repeat block"
         rx = re.compile(spec["repeat"]["until_log_regex"])
         assert not rx.search(json.dumps({"status": "in_progress", "stopped": "budget reached"}))
         assert rx.search('{"status": "%s"}' % ("pyth_books_complete" if "pyth" in name else "kd_books_complete"))
+        if "pyth" in name:
+            assert rx.search('{"status": "ingress_cap_reached"}')
+
+
+def test_q0184_draft_parses_against_the_real_argparse():
+    spec = json.loads(_spec_path("q0184_cb9_pyth_books").read_text())
+    assert spec["depends_on"] == ["q0183_cb9_pyth_frame"] and spec["resources"]["lane"] == "net"
+    argv = spec["argv"]
+    a = run_cb9.build_parser().parse_args(argv[1:])
+    assert argv[1] == "pyth-books" and a.ingress_cap_gb == py.INGRESS_CAP_GB and a.rps == 2 and a.data_dumps_cap_gb == 50
+    assert a.fn is run_cb9.cmd_pyth_books
 
 
 @pytest.mark.parametrize("name,sub", [("q0183_cb9_pyth_frame", "pyth-frame"), ("q0185_cb9_kd_frame", "kd-frame")])
