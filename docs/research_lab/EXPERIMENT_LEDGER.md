@@ -5640,3 +5640,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   byte-identical between a live and a catch-up pass), R2 (J1 itself refuses without `registration_commit_utc` or with a
   window < 24 h after it), R3 (a real J1 refuses until the design sha is pinned at freeze). Import is about 170 MB.
 - Next: code check (`science-reviewer`, running), then J0 (q0780) before the design-text freeze (by 11-16).
+
+## CB7 code-freeze check FREEZE_WITH_FIXES, 2026-10-30 17:52Z (experiments autopilot; nothing frozen, nothing counted)
+- `reviews/CB7_CODE_FREEZE_CHECK_2026-10-30.md` on 301b6679: census hash re-check PASS (rules, constants, xv definitions,
+  census source, three seals, h_geo pins all match); G1 / X1 / S1 / Holm / KIND_RULES / causality match the design.
+  **MUST:** (1) q0148 / q0149 / q0150 drafts cannot run (`--n-boot` not accepted; stale `depends_on` q0147 / q0156; wrong
+  outputs); rewrite, q0149 depends on q0148 and q0150, all `not_before` = `screen_not_before_utc`. (2) **Reading A1 is an
+  amendment** (15 clusters for theme / date ways, written after the census was seen; the design says >= 30 in each way):
+  revert to 30. It changes nothing at the census counts (theme 177, dates 295). (3) Re-take the hashes after 1-2.
+- MDEs from the census (reviewer): G1 3.5c at alpha 0.01 (3.9c at the first Holm step) with the design's 1.3 inflation;
+  X1 0.55-1.11c (G = 70 event clusters vs about 95 assumed; S prints 23,760, 32% of the 75k assumed).
+- Dates to freeze: `screen_not_before_utc` = the first 06:00Z at least 2 h after the deployed freeze commit;
+  `T7_X_list` 2026-11-03T06:00Z; `T7_S_rep_start` not applicable. Fixes delegated (`feat/cb7-cf-fixes`).
