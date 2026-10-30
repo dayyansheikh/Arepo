@@ -8,22 +8,24 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 03:08 UTC+1)
-- **Done this session:** creative round 19 merged (CH262-CH269, a5877d70) + ledger; CANDIDATES round-19 engine notes
-  (`resid`, `fragile`; LT14/LT15 requests on file; CH252's `payreturn` request lapsed); CB3 `T3_fu_start` = 10-30T00:31:02Z,
-  so `T3_dev_end` = 11-03T00Z (q0064a only after that); test_run_cb10 no longer writes to the real trials.jsonl (2dff46c2).
-- **In flight (subagents):** CB9 kd-cap amendment committed on `fix/cb9-kd-cap` (bdfb4a0b, §11.4, rules v3 29e781b0…,
-  draft q0185b) -> science-reviewer ruling `reviews/CB9_KD_CAP_AMENDMENT_RULING_2026-10-30.md`; CB5 re-check of 5b534a26
-  (+ q0105 zero-families decision) -> `reviews/CB5_CODE_RECHECK_2026-10-30.md` on `fix/cb5-freeze-check`; LT13 full R1
-  re-check + LT12 fee-step impact -> `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md`; CH269 counts-only map job on
-  `feat/ch269-map` (new q-id >= q0720); round-19 rule 26 (registered measurements) ruling ->
-  `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`. If a session stops mid-way: check those files/branches first.
-- **Queue:** q0116k (MC1, exclusive) in slice 1, fold 4 of M1 at 02:45Z; at its 5.5 h slice stop (exit 75, 30 min wait)
-  q0085 (CB4, prio 45) and q0147c (CB7, prio 40, before ~11-03 03:30Z) start. After q0147c: snapshots rule 12 -> 8 days +
-  ledger line. Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9… until q0116k completes.
-- **Carried over:** CB9 q0184/q0186 promotion carries ruling conditions 5-6; CB10 q0201 fix on `fix/cb10-q0201` (needs
-  q0183/q0185b frame pins + ruling); LT11 census q0691 not before 11-07T08Z; LT12 census/seal from 11-07. E026 recording;
-  next phone note: weekly counts ~11-01. Storage candidates: ml_cache old panels (after q0116k), history/ readers review.
+## Experiments autopilot live state (2026-10-30 03:16 UTC+1)
+- **Done this session:** creative round 19 merged (CH262-CH269) + ledger + CANDIDATES engine notes; CB3 `T3_fu_start`
+  10-30T00:31:02Z -> `T3_dev_end` 11-03T00Z (q0064a only after); CB9 kd-cap amendment ACCEPT_WITH_FIXES, merged, **q0185b
+  promoted and deployed** (mem 2000 / as_cap 4500); CB10 q0201 draft repointed to q0185b/kd_frame_v3 (on `fix/cb10-q0201`
+  d970fb45, still unmerged pending its own ruling); **LT13 design text FROZEN** (d940c0ab, sha256 ae594aa1…, CH253 alone,
+  k <= 1); LT12 fee-step = DISCLOSE (ledger); R19 rule 26 ruling ACCEPT_WITH_CONDITIONS (CH263 M1 coherent after MUSTs,
+  CH264 M2 REVISE); test_run_cb10 trials pollution fixed.
+- **In flight (subagents/branches):** `feat/ch269-map` (CH269 counts-only map; q-id must be q0730+, not q0720-q0729 = LT13);
+  `feat/lt13-code` (LT13 stage-A census code + code note `reviews/LT13_CODE_NOTE_2026-10-30.md`; then an independent
+  code-freeze check); `fix/cb5-freeze-check` d7709b2b (zero-family G59 census path; targeted science-reviewer check
+  running; then merge, ledger "q0105/q0107 not run: empty frame family list", q0106 release conditions).
+- **Queue:** q0116k (MC1, exclusive) slice 1; at its slice stop q0085 (CB4), q0185b (CB9, net, after q0085) and q0147c (CB7,
+  before ~11-03 03:30Z) run. After q0147c: snapshots rule 12 -> 8 days + ledger. Do not edit run_ml_dev.py / hashed ml
+  modules or delete ml_cache/38dc17c9… until q0116k completes.
+- **Next after in-flight:** CH269 job deploy + run, then M1 (CH263) design draft under the rule-26 conditions; LT13 code-freeze
+  check; CB10 q0201 ruling after q0183/q0185b frames exist.
+- **Carried over:** CB9 q0184/q0186 conditions 5-6; LT11 census q0691 not before 11-07T08Z; LT12 census/seal from 11-07;
+  E026 weekly-count phone note ~11-01. Storage candidates: ml_cache old panels (after q0116k), history/ readers review.
 - **Registered live analyses:** E009/E010 3 Nov, E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
