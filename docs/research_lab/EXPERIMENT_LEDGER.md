@@ -5033,3 +5033,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   champion's signed score, not |s| as CH262 specifies, so its tier and tenure prints describe up-calls only; (2) its fee-class
   split sums to 1,059 of 126,477 units and is not usable for planning. The LT14 count line (175 >= 100) is read on the signed
   decile; whether that reading stands is a challenger R1 question. Challenger R1 running.
+
+## M1 challenger R1 GO_WITH_CHANGES; round-19 registration count corrected, 2026-10-30 ~04:36Z (experiments autopilot; nothing counted)
+- `reviews/M1_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1 strictly chronological J1 (catch-up look-ahead; void
+  case); 2 look-back over every retained pre-window capture, status-form counts; 3 `T_U` stratified by units per event at
+  level 1 - 0.05/S; 4 no dedicated book fetch, capacity on the covered subset labelled; 5 population wording (two-sided at k,
+  seen at a capture) and `theta_low` / `theta_W` in the same line as `theta`; 6 below; 7 L2 called with
+  `fees_enabled=None`. SHOULD 1-6. Revisions delegated on `feat/m1-ch263`.
+- **Correction (rule-26 ruling condition 4; R1 MUST 6):** `CREATIVE_HYPOTHESES_2026-11-02.md` section 3's "about 1.8
+  registrations from this round" counts CH263 (0.7) and CH264 inside it. Measurements are counted apart from registered tests,
+  so the round's expected number of **registered tests** is **about 0.9** (that file's own figure without rule 26); M1 and M2,
+  if registered, are counted separately as measurements. The idea file is not edited.
