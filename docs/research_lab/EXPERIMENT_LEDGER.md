@@ -4943,3 +4943,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (commit-clock times, run order from file times / the probe's own start line, the "property of the champion" claim).
 - Nothing registered; the active set and K are unchanged (28 models). The CH269 map's CH265 / CH268 lines (q0730) are
   not needed by the engine for these two families; they remain the experiments track's own counts.
+
+## LT13 code-freeze check, design amendment 13, re-check; code merged, 2026-10-30 ~02:56Z (experiments autopilot; nothing counted)
+- Code-freeze check `reviews/LT13_CODE_FREEZE_CHECK_2026-10-30.md` **ACCEPT_WITH_FIXES**: refusals, causality guards,
+  write-once, seeds and constants verified against the frozen text; **A3 confirmed material** (K's `spread_k`, 3.3's own
+  innovation and `spread_{i,k-1}` are an exact identity, so every fit was `NaN` by construction). Ruling: drop
+  `spread_{i,k-1}` from 3.3's controls (same column space, so by Frisch-Waugh-Lovell b_bt, its inference, every gate,
+  threshold, MDE and window are numerically unchanged; `thin_i` still reads it); clause (b): zero-variance demeaned
+  controls removed before the rank (`zero_variance_dropped`). Precedent LT7 13.6 / LT8 13.7. MUST 3: unknown fee class ->
+  `fee_on` NaN, excluded and counted (never 0). SHOULD 4-6 applied (code-hash refusal at census, gate-flip tests, rename
+  and absent-member prints).
+- Re-check `reviews/LT13_CODE_RECHECK_2026-10-30.md` **ACCEPT** (101 tests; the appended text matches the ruling exactly;
+  the rank test runs on 756 rows; nothing else changed). Disclosure: the A8 print is `batch_members_absent` (no two-sided
+  row at k-1 or k: closed, one-sided or gone), wider than a closed-member share. Merged a05d84fd (fixes a3b8e4cf);
+  declaration sha256 `dcd49e718920d8af824e4da5c5c1bc31ccac9e4f10f65609a999e4bf1c9bca15`.
+- **LT13 DESIGN TEXT AMENDED 13:** old sha256 `ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738` -> new sha256
+  `737f8b1529906093a3f132c13891b32af962a9cd43377b8c7a9c089aa8b2b2a2` (section 13 appended after the freeze, before the seal
+  and census, from code reading only; no capture, sidecar or census output read; governs where earlier text differs).
+- Drafts q0720 (restore, not before 2026-11-17T09:00Z, after LT12 q0710-q0712), q0721 (seal), q0722 (census) stay drafts;
+  q0722 needs a host dry-run memory measurement (A17) before promotion.
