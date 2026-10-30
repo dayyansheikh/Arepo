@@ -4875,3 +4875,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `payreturn` (CH252) lapsed with the withdrawal.
 - **Next:** stage-A census code (origin-side unit builders, batch join, pseudo-batch rule, twin-state loader, states only; the
   refuse / print lists of section 6), its independent code-freeze check, then the census job per section 6.
+
+## CH269 counts-only map queued (q0730), 2026-10-30 ~04:30Z (experiments autopilot; counts only, k = 0, uncounted)
+- `census_map_ch269.py` + `scripts/run_ch269_map.py` (merged from `feat/ch269-map`, ef88b968; 10 fixture tests). Read-only
+  over the last 8 days of sidecars, the engine's `quotes/`, `features/`, `predictions/` (pinned champion
+  `se0_champion_lr_mm`) and resolution logs, and `stream_gamma_rules`; prints the section 2 F lines and its decision lines
+  (LT14 >= 100 top-decile units a capture; M1 > 100 proposals a day; M2 > 25 overdue a day; LT15 > 30 scheduled closes a
+  day; CH266 sketch > 50 crossings a day). The label-store win rate by 0.1c bin (< 3c, > 97c) is a declared map line
+  (rule 19: maps may read the store's own resolutions; nothing is a target).
+- Disclosed limits before the run: sweep-1 `ask_size_1` coverage not mapped (a later light step on `book_sweeps`);
+  CH262 rung constants / MDE and CH267's identification gate not computed; `open_interest` empty on all 255,188 rows of
+  the latest capture, so CH264's terciles use a labelled liquidity proxy and the output prints OI presence; CH267's rule
+  class uses a placeholder keyword classifier (printed; CH239's parser is not in the repo), so its class counts are
+  planning-only; tier = the sidecar `liquidity` column. Lane cpu (local stores only), mem_mb 450, as_cap 6000 (virtual).
