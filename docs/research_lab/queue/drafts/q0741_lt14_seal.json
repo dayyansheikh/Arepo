@@ -14,7 +14,8 @@
   "network": "none"
  },
  "depends_on": [
-  "q0740_lt14_schema_precheck"
+  "q0740_lt14_schema_precheck",
+  "q0743_lt14_sidecar_restore"
  ],
  "not_before": "2026-11-17T05:01:00Z",
  "argv": [
@@ -34,6 +35,6 @@
  "outputs": [
   "docs/research_lab/seals/lt14_census_inputs.json"
  ],
- "next_action": "commit the seal (the census refuses an untracked or modified seal); if engine files within the span are outside retention, run scripts/lt14_restore_guard.py first (once, bytes first)",
- "notes": "DRAFT, not in queue/jobs. LT14 census code ambiguities: docs/research_lab/reviews/LT14_CODE_NOTE_2026-10-30.md. Counts 0 (descriptive; no trials line). Reads no host price after the origin; the census reads st / t_off at k + 1 only. Runs under the heavy-job lock convention. The seal exits 75 (not now) until the last tail slot is complete or past its tolerance, 3 on a refusal (design hash, ledger, imported files, failed audit). Seal ONCE."
+ "next_action": "commit the seal (the census refuses an untracked or modified seal); the sidecar restore q0743 has already run (sha-checked, bytes first). The seal is written once: any existing lt14_census_inputs* in docs/research_lab/seals refuses a second seal",
+ "notes": "DRAFT, not in queue/jobs. LT14 census code ambiguities: docs/research_lab/reviews/LT14_CODE_NOTE_2026-10-30.md. Counts 0 (descriptive; no trials line). Reads no host price after the origin; the census reads st / t_off at k + 1 only. Runs under the heavy-job lock convention. The seal exits 75 (not now) until the last tail slot is complete or past its tolerance, 3 on a refusal (design hash, ledger, imported files, failed audit). Seal ONCE. Depends on q0743 (the span sidecars are deleted from the host after 8 days; about 27 of the 120 origins would otherwise seal as uncovered; code-freeze check MUST 5). The seal records files the stores should hold but do not as absent_files."
 }

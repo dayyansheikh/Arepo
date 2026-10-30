@@ -32,13 +32,16 @@
   "--data-dumps-cap-gb",
   "50",
   "--out",
-  "../data-dumps/research_lab/live_tests14_census/CC14.json"
+  "../data-dumps/research_lab/live_tests14_census/CC14.json",
+  "--commit-copy-dir",
+  "../docs/research_lab/seals"
  ],
  "timeout_s": 43200,
  "max_retries": 1,
  "outputs": [
-  "data-dumps/research_lab/live_tests14_census/CC14.json"
+  "data-dumps/research_lab/live_tests14_census/CC14.json",
+  "docs/research_lab/seals/lt14_cc14.json"
  ],
- "next_action": "commit CC14.json with its sha256 in the ledger; record k_tests / dropped_tests / census_unavailable and the census-fixed values (exact floats); the size-check and analysis code only if CH262 is in k_tests. A peak RSS above 800 MB is refused (exit 2); above 500 MB at the dry run: re-plan as exclusive",
+ "next_action": "commit docs/research_lab/seals/lt14_cc14.json (the runner's write-once copy of CC14.json; the data dump directory is gitignored) with its sha256 in the ledger; record k_tests / dropped_tests / census_unavailable and the census-fixed values (exact floats); the size-check and analysis code only if CH262 is in k_tests. A peak RSS above 800 MB is refused (exit 2); above 500 MB at the dry run: re-plan as exclusive",
  "notes": "DRAFT, not in queue/jobs. LT14 census code ambiguities: docs/research_lab/reviews/LT14_CODE_NOTE_2026-10-30.md. Counts 0 (descriptive; no trials line). Reads no host price after the origin; the census reads st / t_off at k + 1 only. Runs under the heavy-job lock convention. ONE streaming pass, one capture at a time; write-once (a marker beside the seal refuses a second run). 'net' lane as written in 6 job 3 although the job makes no network request (ambiguity A10). as_cap_mb 6000 is a virtual-memory cap for pyarrow / pandas, not RAM. Promote only after the independent science-reviewer code-freeze check on synthetic data (LIVE_TESTS_14.md header step 3) and never while another memory-heavy census, size check or analysis job is running."
 }
