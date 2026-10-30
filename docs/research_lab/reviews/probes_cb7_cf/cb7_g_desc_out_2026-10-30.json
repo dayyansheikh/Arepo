@@ -1,0 +1,44 @@
+{
+ "eligible_units": 1756,
+ "units_by_named_theme": {
+  "ru-ua": 581,
+  "(unnamed: own event)": 392,
+  "iran": 378,
+  "il-ps": 255,
+  "lb-sy-ye": 45,
+  "ve": 33,
+  "in-pk": 30,
+  "cn-tw": 23,
+  "kp": 19
+ },
+ "markets_by_named_theme": {
+  "(unnamed: own event)": 267,
+  "ru-ua": 353,
+  "lb-sy-ye": 33,
+  "il-ps": 172,
+  "ve": 24,
+  "iran": 276,
+  "cn-tw": 16,
+  "in-pk": 27,
+  "kp": 15
+ },
+ "units_with_close_and_end": 1753,
+ "close_within_1h_of_end_share": 0.0011409013120365088,
+ "close_more_than_7d_before_end_share": 0.022247575584711923,
+ "sample_cols": [
+  "market_id",
+  "event_id",
+  "event_ids",
+  "neg_risk_market_id",
+  "question",
+  "event_title",
+  "slug",
+  "fee_category",
+  "end_epoch",
+  "close_epoch",
+  "closed_after_cap",
+  "market_tag_ids",
+  "event_tag_ids"
+ ],
+ "note": "outcome-free: sample + origin_prices only; close_epoch is a timestamp; no outcome or payout file read"
+}

@@ -5652,3 +5652,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   X1 0.55-1.11c (G = 70 event clusters vs about 95 assumed; S prints 23,760, 32% of the 75k assumed).
 - Dates to freeze: `screen_not_before_utc` = the first 06:00Z at least 2 h after the deployed freeze commit;
   `T7_X_list` 2026-11-03T06:00Z; `T7_S_rep_start` not applicable. Fixes delegated (`feat/cb7-cf-fixes`).
+
+## CB7-G outcome-free descriptives (code-freeze check SHOULD 2), 2026-10-30 17:53Z (experiments autopilot; counts only, uncounted)
+- Script `reviews/probes_cb7_cf/cb7_g_desc.py` (reuses `cb7_census` unit building; reads the sealed `sample.csv.gz` and
+  `origin_prices.csv.gz` only, asserts no outcome / payout column), output `cb7_g_desc_out_2026-10-30.json`. 1,756 eligible
+  units (= census). **Units by named theme:** ru-ua 581, iran 378, il-ps 255, lb-sy-ye 45, ve 33, in-pk 30, cn-tw 23, kp 19;
+  392 units in unnamed own-event clusters. Three themes hold 69% of units, so the theme way is very unbalanced (as the
+  reviewer warned): CR1 with a normal reference may be anti-conservative there; the break-even placebo is the declared guard.
+- **End-date shares (1,753 units with both times):** close within 1 h of `end_at` 0.11%; close more than 7 days before
+  `end_at` 2.2%. Nothing changes; disclosed before the screen.
