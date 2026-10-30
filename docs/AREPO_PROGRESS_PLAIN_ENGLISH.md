@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 18:24 UTC+1
+**Last updated:** 2026-10-30 18:48 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -10,17 +10,18 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
 - **M1 (the discount left after an outcome is proposed) is REGISTERED (30 Oct).** The server rehearsal used 346 MB of its
   600 MB limit, so the code is now locked by fingerprint and its collection job is scheduled. Window 24 Nov to 14 Dec,
   read-out from 15 Jan 2027. It is a measurement (a number with an error bar), never called a finding.
-- **M2 (the overdue favourite):** its code is written; an independent code check is running now. Then a server rehearsal
-  and registration before 22 Nov.
+- **M2 (the overdue favourite):** its code passed the independent check (after four small fixes); the server rehearsal
+  is queued. Registration before 22 Nov.
 - **M3 ("the wait", how long after a favourite reaches 95 cents until an outcome is proposed):** the challenger's second
-  round asked for four text fixes, now made. Its collection code is being written. Aim: freeze by 16 Nov.
+  round asked for four text fixes, now made. Its collection code is written and under independent check. Aim: freeze by 16 Nov.
 - **Batch 7's count finished:** the "very specific markets" test has far too few markets for its pre-declared size (787 of
-  3,000 needed), so it counts as a test that could not be run. The geopolitics and Kalshi parts have enough data. An
-  independent check before freezing them is running.
+  3,000 needed), so it counts as a test that could not be run. The geopolitics and Kalshi parts have enough data. The
+  checker found their analysis code had never been written; it is now written and under independent check before freezing.
 - **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** passed its code re-check and
   is queued to run before 1 Nov, when the server rotates its old snapshots.
 - **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.**
-- **Fixing:** a holders-collection job (batch 8) started running out of memory at start-up; being diagnosed.
+- **Fixed:** a holders-collection job (batch 8) ran out of memory at start-up (a shared health check reads every snapshot's
+  index file); given more memory and re-queued. A lighter health check is a later code fix.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov). Registered
   measurement M1 (window from 24 Nov).

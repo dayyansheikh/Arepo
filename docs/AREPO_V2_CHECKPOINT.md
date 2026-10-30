@@ -8,25 +8,30 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 17:25Z)
-- **Done this session:** **M1 REGISTERED** (f939c0b5, commit time = `registration_commit_utc` 2026-10-30T17:17:28Z;
-  `seals/M1_pins.json`; q0751/q0751b in jobs/; J1 cron line in crontab.txt AND installed on host, guarded on q0751 `done`
-  in attempts.jsonl). CH276 MUST A/B fixed (97d44e5b) -> **q0760 promoted** (prio 90; must start before 11-01T02:45Z).
-  CB7 census written up (S1 not testable, counted; GG/GX pass; `CREATIVE_BATCH_7.md` 2.7a). M3 R1 re-check fixes merged
-  (7d547ad2). Deployed 9feae1a4.
-- **In flight (background agents):** CB7 freeze check (`science-reviewer` -> `reviews/CB7_FREEZE_CHECK_2026-10-30.md`);
-  M2 code-freeze check (`science-reviewer` -> `reviews/M2_CODE_FREEZE_CHECK_2026-10-30.md`); M3 J1/J0 code on
-  `feat/m3-code` (worktree ../astrolabe-m3-code); q0163 MemoryError diagnosis (ops-only fix to its spec if possible).
-- **Next:** verify q0760 started (before 11-01T02:45Z). CB7: apply freeze check, freeze `model_specs/cb7_v1.json`.
-  M2: apply code-freeze MUSTs -> promote q0754 dry run -> registration by 11-22 (note M3 10: the three J1s must run
-  serially per 2 h pass; M1's cron is alone at :20 now). M3: code review -> J0 (q0780) -> final verification -> freeze by
-  11-16. E009/E010 on 11-03: commit results into `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
+## Experiments autopilot live state (2026-10-30 17:48Z)
+- **Done this session:** **M1 REGISTERED** (f939c0b5, `registration_commit_utc` 2026-10-30T17:17:28Z; `seals/M1_pins.json`;
+  q0751/q0751b in jobs/; J1 cron in crontab.txt AND on host, guarded on q0751 `done`). CH276 MUST A/B fixed -> **q0760
+  promoted** (prio 90; must start before 11-01T02:45Z). CB7: census written up (S1 not testable, counted; S2 not run;
+  k2 = 1 if X1 advances else 0); freeze check NOT_READY (analysis code missing) -> analysis code written and merged
+  (301b6679, declaration sha `8eb396ba…438f`). **M2:** code-freeze check ACCEPT_WITH_FIXES -> fixes -> diff check ACCEPT,
+  **code_sha `03984d2c…d6e2`**, **q0754 dry run promoted**. **M3:** J1/J0 code merged (33cd591c, code_sha `105587be…98ef`).
+  q0163 MemoryError (collector health check loads all manifests, ~490 MB) -> mem 1000 / as_cap 2048, retried. Deployed 5c78b849.
+- **In flight (background `science-reviewer`s):** CB7 code-freeze check (-> `reviews/CB7_CODE_FREEZE_CHECK_2026-10-30.md`,
+  census copy at /tmp/cb7_census/census.json); M3 code check (-> `reviews/M3_CODE_CHECK_2026-10-30.md`). Both return text;
+  the orchestrator saves it.
+- **Next:** CB7: apply MUSTs -> freeze commit (`model_specs/cb7_v1.json` per the check's list; `T7_X_list` = max(11-03T06:00Z,
+  freeze + 24 h); promote q0148 (not-testable), q0150, q0149). M3: apply MUSTs -> promote q0780 (J0) + q0781 -> final
+  verification -> freeze by 11-16. M2: when q0754 passes (peak RSS, code_sha `03984d2c…` in `j1_runs.jsonl`) -> registration
+  commit by 11-22 (record the dumps-cap plan first; three J1s must run serially per 2 h pass, design M3 10). Verify q0760 ran.
+  E009/E010 on 11-03: commit results to `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
   **11-24: check q0751 done** (else the M1 cron never starts).
-- **Queue:** q0085 (CB4, net) + q0116k (MC1, exclusive, resumable) running; q0760 next; q0086, q0103b, q0106, q0064,
-  q0518; LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's census
-  (q0742, 11-17).** Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k completes.
-- **Carried over:** CB9 SHOULD 6; CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not
-  before 11-07T08Z; LT12 census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
+- **Queue:** q0116k (MC1, exclusive) running; q0760, q0163, q0754 queued; q0085 slices; q0086, q0103b, q0106, q0064, q0518;
+  LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's census (q0742, 11-17).**
+  Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k completes. Dumps guard 50 GiB vs
+  ~38 GiB used (rotation live).
+- **Carried over:** follow-up code fix: `cb2_weather.collector_healthy` should stream manifests (check pins first). CB9 SHOULD 6;
+  CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not before 11-07T08Z; LT12
+  census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
 - **Registered live analyses:** E009/E010 3 Nov (queued), E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
   Registered measurement M1: window 11-24..12-14, read-out from 2027-01-15.
 ## Interactive session state (2026-10-23 08:30Z)
