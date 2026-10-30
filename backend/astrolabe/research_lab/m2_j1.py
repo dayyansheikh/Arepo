@@ -513,7 +513,7 @@ class M2Pass:
         self.slot_capture: dict = {}  # {str(slot): directory id} of the capture the chain folded in each processed slot
         self.seen: set = set()
         self.unit_ids: set = set()
-        self.unit_events: dict = {}  # {unit_id: event_id at the unit's own k} (amendment 22: the S8 member count never reads an earlier unit's row after its k)
+        self.unit_events: dict = {}  # {unit_id: event_id at the unit's own k} (amendment 23: the S8 member count never reads an earlier unit's row after its k)
         self.prev: dict | None = None
         # counts
         self.funnel: Counter = Counter()
@@ -613,6 +613,8 @@ class M2Pass:
                     self.seen = {int(x) for x in d.get("seen", ())}
                     self.unit_ids = {str(x) for x in d.get("unit_ids", ())}
                     self.unit_events = {str(k): str(v) for k, v in (d.get("unit_events") or {}).items()}
+                    if self.unit_ids and not d.get("unit_events"):
+                        raise StateOrderError("the state file has unit_ids but no unit_events: it was not written by this code_sha")
                 elif "m" in d:
                     for r in d["r"]:
                         self.ledger.append(int(d["m"]), r)
@@ -707,7 +709,7 @@ class M2Pass:
                     overdue.append(mid)
                     if mid not in self.seen:
                         cand[mid] = tup
-                elif is_open and end_ts <= start + SLOT_MAX_FWD_S:
+                elif is_open and end_ts <= start + SLOT_MAX_FWD_S and mid not in follow_mids:  # amendment 24: an earlier unit never enters the watch
                     watch_cand.append(mid)
         for uid in self.unit_ids:
             evc[self.unit_events[uid]] += 1  # every earlier unit of the event counts, by its event_id at its own k, even if it has left the listing
@@ -842,13 +844,15 @@ class M2Pass:
 
         # counted side classes
         for mid in sc["end_missing"]:
+            if f"m2:{mid}" in self.unit_ids:  # amendment 24: an earlier unit's later end_date is follow-up content
+                continue
             r = ext.get(mid)
             if r is not None and c240.category_of(r[4], r[5], r[6], True) == SCOPE:
                 self.end_missing_by_day[day] += 1
                 self.end_missing_markets.add(mid)
                 local["end_date_missing"] += 1
         for mid in sc["overdue"]:
-            if mid in self.seen and f"m2:{mid}" not in self.unit_ids:  # amendment 22: an earlier unit's end_date / k - 1 row is follow-up content
+            if mid in self.seen and f"m2:{mid}" not in self.unit_ids:  # amendment 23: an earlier unit's end_date / k - 1 row is follow-up content
                 pe = prev["ends"].get(mid)
                 if pe is not None and pe == pe and prev["start"] - pe < OVERDUE_S:
                     local["reoverdue_seen"] += 1
@@ -857,6 +861,8 @@ class M2Pass:
                     # class of the funnel; recorded here, over every category, as a recorded class only (it changes no unit).
                     local["seen_without_k_minus_1_row"] += 1
         for mid, end_p in sorted(prev["watch"].items()):
+            if f"m2:{mid}" in self.unit_ids:  # amendment 24: an earlier unit's later closed flag / missing row is follow-up content
+                continue
             if end_p <= start - OVERDUE_S and (mid not in sc["ends"] or sc["watch_now"].get(mid, False)):
                 self.left_by_day[day] += 1
                 local["left_before_overdue_slot"] += 1

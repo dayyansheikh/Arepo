@@ -32,3 +32,20 @@ q0754 (the host dry run) was cancelled and must re-run on this code as q0754b. D
 ## Tests
 
 `pytest -q tests/test_m2*.py tests/test_m1_code.py` and `ruff check astrolabe/research_lab/m2_*.py scripts/run_m2.py tests/test_m2*.py` pass.
+
+## Amendment 24 (MUSTs and SHOULDs of `M2_AMENDMENT23_REVIEW_2026-10-30.md`)
+
+- `m2_j1.py`: `_scan` adds `mid not in follow_mids` to the `watch_cand` branch; `_classify` skips M2 unit ids in the `end_missing` loop (including `end_missing_by_day` and `end_missing_markets`) and in the `left_before_overdue_slot` loop. Loading a state with `unit_ids` but no `unit_events` raises `StateOrderError` (a refusal). Comments renumbered 22 to 23.
+- Tests (`test_amendment23_*`, renamed from 22): new variants `watch_closed`, `watch_gone` and `end_unparseable`; unit and status files byte-identical and `extra` equal. The three new variants fail on code_sha aa6182ba and pass now. The pin test in `test_m2_code.py` is updated.
+- Design amended with section 24 (lines 808-817, appended; no earlier line edited).
+- Queue: `q0754_m2_dryrun.json` moved to `drafts/` and marked cancelled; `q0754b` notes updated, still a draft.
+
+Design sha256 (817 lines): `ff342ff36f815b5cce6851cb1c4526a4daf0829ba5e033012704c80f3bd9b98c` (before `a7f30de2121a4c8817cca89a688f276ed72a449315b7dcbcc847b95ec3736e07`).
+
+`code_sha` = `64b5dee0b1788c040071eafdd2b345c759c26a71a274b461315d650cdf491de2` (before `aa6182ba…b2270b`).
+
+| file | sha256 |
+|---|---|
+| m2_j1.py | 7f744c7619b5e370f5fa24ff39d6e7fb1a6f8f269ac8191470012ed2136332c5 |
+| m2_spec.py | 41909837649b21d3fbe8473f83a154e92619327f27a8e21cb102ff56a6d931e2 |
+| m2_j2.py, m2_readout.py, m2_analysis.py, scripts/run_m2.py | unchanged (see above) |
