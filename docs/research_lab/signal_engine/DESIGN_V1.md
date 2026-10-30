@@ -1160,3 +1160,37 @@ PASS; three must-fixes (census provenance, control attribution, replay dependenc
   2026-11-18 a reward-status interaction is allowed (`rewards`); not built.
 - **Diagnostics CANDIDATES lists (spread change, flat class on non-crypto rows)** are not computed here; they would be a
   separate counts read after se27 has scored days, labelled development.
+
+## 37. `resid` (CH265) census and the meta-family rule: definitions fixed before the run (2026-10-30 ~03:30Z; no scoring change)
+
+**Meta-family rule (CH265's "rule 27"; applies to every family built from the engine's own outputs).** A column may be
+built from the engine's write-once predictions only if, for origin capture k: (a) every prediction it reads belongs to a
+capture before k and passed the scorer's own validity tests (logged, rows and `features_sha256` matching the features
+file, written before its target slot: the `on_time` rule of `scoring.score_prospective`); (b) every label it reads has
+its target slot at or before k (`labels.direction_labels`, the label of origin k - j at horizon h needs h/2 <= j), so
+the label's quotes file is the one the features of k are built from or an earlier one; (c) the model whose predictions
+are read is named in the family's version, and a refit of that model changes the column's meaning, so a promotion of
+a new champion does **not** silently re-point the family (a new aux version would be needed); (d) predictions of
+embargoed models are never read (their scores would leak through the column). Only `se0_champion_lr_mm` is read here.
+- **What the census decides.** Only CH265's two census kills (CANDIDATES round 19): the champion's 2 h residual's lag-1
+  autocorrelation within market under 0.02, or |Pearson(`rs_2h_m6`, `mo_chg_1d`)| > 0.8. The 28-day "no gain over se1"
+  kill belongs to the challenger's prospective score, not to the census. No K, no column, no table, no model.
+- **This census reads outcomes.** The residual needs realised 2 h labels, so the lag-1 autocorrelation is a development
+  look at the family's core relation on the champion's prospective predictions of 10-21 .. 10-30. The census declares
+  that; the challenger's evidence is only its own prospective score after registration.
+- **Inputs.** Engine files only: `index`, `features/<cid>.parquet` (`market_id`, `end_ts`, `ms_mid`, `mo_chg_1d`,
+  `mo_d2h`), `predictions/<cid>/se0_champion_lr_mm.parquet` (`dir_2h_dn`, `dir_2h_up`), the `predictions` log and
+  `quotes/`. Script `census/se_resid_census_2026-10-30.py` (committed with this section, before the run).
+- **Residual.** For origin k, a row that is `dir_2h`-eligible (`labels.elig_mask`), labelled (state 0) and whose champion
+  prediction is valid and on time: r = (y - 1) - (P(up) - P(down)), y the 3-class label, probabilities dequantised as the
+  scorer does (`predict.dequantise_dir`).
+- **Lag-1 autocorrelation.** Pooled Pearson over every (market, k - 1, k) pair of consecutive slots with both residuals.
+  Kill if < 0.02 (as written, one-sided: CH265's hypothesis is continuation). A value <= -0.02 is printed as "killed as
+  written (reversal)": a reversal family would be a new idea with its own review, not this family re-read. Information
+  only: a market-clustered bootstrap 95% CI (B = 400, seed 265) and the market-demeaned Pearson.
+- **`rs_2h_m6` at origin k.** The mean of the residuals of k - 1 .. k - 6 that exist (each known at k by rule (b)), NaN
+  with fewer than 4. Correlation with `mo_chg_1d` at k: pooled Pearson over `dir_2h`-eligible rows with both finite.
+  Kill if |.| > 0.8. Information only: Pearson(`rs_2h_l1`, `mo_d2h`) and the coverage of eligible rows.
+- **Reading.** Both lines pass -> a builder section (columns of CH265, the shuffled placebo, the isolate challengers)
+  follows after an independent science review. Either kill -> `resid` is not built; the result is recorded here and in
+  CANDIDATES' builder status. The census is not re-run with other thresholds or windows.
