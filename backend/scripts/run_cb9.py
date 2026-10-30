@@ -379,6 +379,28 @@ def census_s_block(root: Path) -> dict:
     return out
 
 
+EMPTY_FRAME_LABEL = "not testable (empty frame: exclusion keys)"
+
+
+def empty_frame_binding(fdir: Path) -> dict | None:
+    """Reviewer ruling FAITHFUL_EMPTY (2026-10-30). When the q0183 manifest says ``pyth_frame_complete`` with ``counts.kept`` exactly the int 0, the P
+    verdict is the empty-frame label, bound to the frame manifest sha256 and the kept / dropped counts (runner-only; ``census_p``'s 0/0 artefact
+    "source unavailable" is never produced). None for any other frame."""
+    import hashlib  # noqa: PLC0415
+
+    mp = Path(fdir) / "manifest.json"
+    if not mp.exists():
+        return None
+    raw = mp.read_bytes()
+    m = json.loads(raw)
+    kept = (m.get("counts") or {}).get("kept")
+    if m.get("status") != "pyth_frame_complete" or isinstance(kept, bool) or not isinstance(kept, int) or kept != 0:
+        return None
+    d = m.get("drops") or {}
+    return {"label": EMPTY_FRAME_LABEL, "frame_manifest_sha256": hashlib.sha256(raw).hexdigest(), "kept": 0, "dropped_by_id": d.get("id"),
+            "dropped_by_key": d.get("key"), "n_frame_candidates": (m.get("counts") or {}).get("frame")}
+
+
 BOOKS_FINAL_STATUSES = ("pyth_books_complete", "ingress_cap_reached")
 
 
@@ -403,6 +425,10 @@ def census_p_block(root: Path) -> dict:
     if st:
         return {"status": st["status"], "stall_reason": st.get("reason"), "label_P1": st["label"], "label_P2": st["label"], "gate_GP_P1": False, "gate_GP_P2": False}
     require_books_final(bdir)  # ruling CB9_Q0183 condition 5: pending is not "source unavailable"
+    eb = empty_frame_binding(fdir)
+    if eb:
+        return {"status": "empty_frame", "label_P1": EMPTY_FRAME_LABEL, "label_P2": EMPTY_FRAME_LABEL, "gate_GP_P1": False, "gate_GP_P2": False,
+                "coverage_audit": {"pass": False}, "empty_frame": eb}
     if not (fdir / "frame.csv.gz").exists() or not (bdir / "states.csv.gz").exists():
         return {"status": "inputs missing", "label_P1": "not testable (source unavailable)", "label_P2": "not testable (source unavailable)"}
     fman = json.loads((fdir / "manifest.json").read_text())
@@ -460,6 +486,9 @@ def screen_p_doc(root: Path, census: dict) -> dict:
     st = c9.stall_of(root / "pyth_frame") or c9.stall_of(root / "pyth")
     if st:  # M5: the stall label is carried, both tests counted with p = 1
         return {t: {"testable": False, "p": 1.0, "advance": False, "verdict": st["label"], "stall": st["status"]} for t in ("P1", "P2")}
+    eb = empty_frame_binding(root / "pyth_frame")
+    if eb:  # FAITHFUL_EMPTY: both tests counted with p = 1 and the bound empty-frame label
+        return {t: {"testable": False, "p": 1.0, "advance": False, "verdict": EMPTY_FRAME_LABEL, "empty_frame": eb} for t in ("P1", "P2")}
     frame, bars, strikes, states, prints, outcomes, settle = _p_inputs(root, "screen-P")
 
     def y_of(u: dict, token: str):
@@ -822,6 +851,8 @@ def cmd_rep(a):
     c9.require_freeze(Path(a.freeze_spec) if a.freeze_spec else None, require_committed=not a.allow_uncommitted_rules)
     sha, _ = _rules(a, "pyth")
     root = _cb9_root(a)
+    if empty_frame_binding(root / "pyth_frame"):  # trigger cannot fire (no Stage-1 advance): 'not run', no results file, no counted rows
+        return 0, {"status": "rep_P_not_run", "reason": "empty frame: exclusion keys (P1-rep, P2-rep not run)", "tests": []}
     doc = {**rep_p_doc(root), "rules_sha256": sha}
     rsha = c9.write_results_once(Path(a.out) if a.out else root / "results_P_rep.json", doc)
     tp = Path(a.trials_path) if a.trials_path else None

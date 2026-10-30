@@ -402,3 +402,52 @@ def test_census_accepts_ingress_cap_reached(tmp_path):
     _p_fixture(root)
     (root / "pyth" / "manifest.json").write_text(json.dumps({"status": "ingress_cap_reached", "complete": True}))
     run_cb9.require_books_final(root / "pyth")
+
+
+# ---- FAITHFUL_EMPTY frame (reviewer ruling 2026-10-30) --------------------------------------------------------------------------------------
+
+
+def _empty_frame_root(tmp_path, kept=0, status="pyth_frame_complete") -> Path:
+    root = tmp_path / "creative_batch9"
+    _p_fixture(root)
+    (root / "pyth_frame" / "manifest.json").write_text(json.dumps({"status": status, "complete": True, "counts": {"frame": 1235, "kept": kept},
+                                                                  "drops": {"id": 222, "key": 1013, "kept": kept}}))
+    return root
+
+
+def test_empty_frame_census_screen_and_rep(monkeypatch, capsys, tmp_path):
+    import hashlib
+
+    root = _empty_frame_root(tmp_path)
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    monkeypatch.setattr(py, "census_p", lambda *a, **k: (_ for _ in ()).throw(AssertionError("census_p 0/0 artefact must not run")))
+    tp = tmp_path / "t.jsonl"
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "ct.jsonl")], capsys)
+    assert code == 0, out
+    pc = json.loads((root / "census.json").read_text())["P"]
+    label = "not testable (empty frame: exclusion keys)"
+    assert pc["label_P1"] == label and pc["label_P2"] == label and pc["gate_GP_P1"] is False
+    eb = pc["empty_frame"]
+    assert eb["frame_manifest_sha256"] == hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest()
+    assert (eb["kept"], eb["dropped_by_id"], eb["dropped_by_key"]) == (0, 222, 1013)
+    spec = tmp_path / "cb9_v1.json"
+    spec.write_text("{}")
+    rules = c9.write_rules("pyth", tmp_path / "r.json")
+    fz = ["--freeze-spec", str(spec), "--allow-uncommitted-rules", "--rules", str(rules), "--trials-path", str(tp)]
+    code, out = _run(["screen", "--family", "P", "--root", str(root), *fz], capsys)
+    assert code == 0 and out["P1"]["p"] == 1.0 and out["P1"]["verdict"] == label and out["P2"]["verdict"] == label
+    lines = [json.loads(x) for x in tp.read_text().splitlines()]
+    tests = [x for x in lines if x["kind"] == "cb9_test"]
+    assert {x["hypothesis"] for x in tests} == {"P1", "P2"} and all(x["p"] == 1.0 and x["testable"] is False and x["verdict"] == label for x in tests)
+    counts = [x for x in lines if x["kind"] == "ml_explain"]
+    assert sum(x["n_tests"] for x in counts) == 2 and {x["source"] for x in counts} == {"creative_batch_9:P"}
+    assert json.loads((root / "results_P.json").read_text())["P1"]["empty_frame"]["dropped_by_key"] == 1013
+    n = len(lines)
+    code, out = _run(["rep", "--family", "P", "--root", str(root), *fz], capsys)  # P1-rep / P2-rep: not run, nothing counted
+    assert code == 0 and out["status"] == "rep_P_not_run" and not (root / "results_P_rep.json").exists() and len(tp.read_text().splitlines()) == n
+
+
+@pytest.mark.parametrize("kept,status", [(1, "pyth_frame_complete"), (True, "pyth_frame_complete"), (None, "pyth_frame_complete"), (0, "in_progress")])
+def test_empty_frame_label_needs_int_zero_and_complete_status(tmp_path, kept, status):
+    root = _empty_frame_root(tmp_path, kept=kept, status=status)
+    assert run_cb9.empty_frame_binding(root / "pyth_frame") is None

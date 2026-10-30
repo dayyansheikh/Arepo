@@ -11,6 +11,7 @@ import pytest
 
 from astrolabe.research_lab import cb9_common as c9
 from astrolabe.research_lab import cb9_pyth as py
+from astrolabe.research_lab.cb6_tail import Refused
 
 DAY = "2026-09-15"  # out-of-window full session (EDT)
 
@@ -378,3 +379,37 @@ def test_pyth_frame_rerun_after_disjointness_stall_stays_stalled(tmp_path):
     m = py.pyth_frame(root, None, rules_sha="x", smoke_path=smoke, exclusion_keys_path=tmp_path / "k.csv.gz", now=c9.T_SEAL_EPOCH + 1)
     assert m["status"] == c9.STALL_DISJOINTNESS and m["status"] != "pyth_frame_complete"
     assert c9.stall_of(root / "pyth_frame")["status"] == c9.STALL_DISJOINTNESS  # the manifest on disk is untouched
+
+
+def _empty_frame_dir(tmp_path, partial: bool):
+    """A q0183-shaped frame dir with a header-only frame (the host result of 2026-10-28: kept 0)."""
+    import gzip
+
+    from astrolabe.research_lab import h5_seal
+
+    fdir = tmp_path / "cb9" / "pyth_frame"
+    fdir.mkdir(parents=True)
+    for name, cols in (("frame.csv.gz", py.FRAME_COLUMNS + ["ticker_status"]), ("bars_pre.csv.gz", py.BAR_COLUMNS), ("strikes.csv.gz", py.STRIKE_COLUMNS),
+                       ("closes_settle_guarded.csv.gz", ["ticker", "day", "close"]), ("outcomes_guarded.csv.gz", py.OUTCOME_COLUMNS), ("frame_all.csv.gz", ["market_id"])):
+        with gzip.open(fdir / name, "wt", newline="") as fh:
+            fh.write(",".join(cols) + "\n")
+    if partial:
+        (fdir / "frame_partial.jsonl").write_text('{"day": "2026-04-13"}\n')
+    files = {n: h5_seal.sha256_file(fdir / n) for n in sorted(p.name for p in fdir.glob("*.csv.gz"))}
+    (fdir / "manifest.json").write_text(json.dumps({"status": "pyth_frame_complete", "complete": True, "stopped": None, "counts": {"frame": 1235, "kept": 0, "tickers": 0},
+                                                    "drops": {"id": 222, "key": 1013, "kept": 0}, "file_sha256": files}))
+    smoke = tmp_path / "smoke.json"
+    smoke.write_text(json.dumps({"smoke_version": "cb9-smoke-v2", "criteria": {"yahoo_clock": True, "gamma_paging": True, "pmxt_heads": True}}))
+    return fdir, smoke
+
+
+@pytest.mark.parametrize("partial", [False, pytest.param(True, marks=pytest.mark.xfail(
+    strict=True, raises=Refused, reason="REPORTED, not forced: cm.verify_manifest_files refuses the undeclared frame_partial.jsonl that q0183 leaves on the host"))])
+def test_pyth_books_on_an_empty_frame_completes_with_zero_days(tmp_path, partial):
+    """Ruling FAITHFUL_EMPTY (2026-10-30): q0184 on a header-only frame completes (0 days) so the census gate is released; the frame dir also holds the
+    undeclared ``frame_partial.jsonl`` left by q0183 on the host."""
+    fdir, smoke = _empty_frame_dir(tmp_path, partial)
+    b = py.pyth_books(tmp_path / "cb9", None, rules_sha="x", smoke_path=smoke, frame_dir=fdir, fetch=None, size_fn=None, now=c9.T_SEAL_EPOCH + 1)
+    assert b["status"] == "pyth_books_complete" and b["complete"] is True
+    assert b["counts"]["days_done"] == 0 and b["counts"]["state_rows"] == 0 and b["counts"]["print_rows"] == 0
+    assert (tmp_path / "cb9" / "pyth" / "states.csv.gz").exists()
