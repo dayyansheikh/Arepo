@@ -4908,3 +4908,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `prev_chain` ok 178 / broken 1; (3) deployed `arepo_pass.sh` passes the 50 GiB dumps guard; (4) §2.8 headroom: the dumps
   folder at 36 GiB against the 50 GiB guard, root 33 GB free; (5) lane `net`. **q0103b promoted to jobs/** (prio 41, depends on
   q0101, done). q0106 waits for q0103b's cohort manifest `complete: true`.
+
+## CB10 q0201 fix ruled and merged (draft stays in drafts), 2026-10-30 ~05:20Z (experiments autopilot; nothing counted)
+- Ruling `reviews/CB10_Q0201_FIX_RULING_2026-10-30.md` **GO_WITH_CHANGES**: the run-scoped exclusion fix only adds ids, never
+  drops one silently, and never exits 0 on an incomplete run. **MUST 1 caught a pin error** (present since the 10-28 draft):
+  the K/D pin named the whole walked frame; the design asks for the 1,000 seeded SCREEN + HOLDOUT ids, now
+  `creative_batch9/kd_frame_v3/sample.csv.gz`. MUST 2: the 2% rule does not bound NOT_EXTRACTABLE risk; D1 / B1 / B2 records now
+  carry `exclusion_not_verified_against` (counts and seal names, plus `unparseable:*` copies), disclosure only, no gate.
+  SHOULD 3-7 applied (module sha256 in params, q0200 smoke in `depends_on`, release check in notes, `n_cb8_ids` disclosure).
+  CB10 rules hash unchanged (no hashed file edited). 163d96e2, merged; 288 CB9/CB10 tests.
+- q0201 stays a draft until q0183 and q0185b finish and both FILL_ pins hold host sha256 values (`pins_absent` must be empty).
