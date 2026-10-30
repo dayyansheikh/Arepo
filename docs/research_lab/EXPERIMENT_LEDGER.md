@@ -5348,3 +5348,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Census:** capture `20261030T103101Z_c1803a16`; covered 18,864 of 53,973 eligible rows. 7-day text edits 68
   (0.36%) and 7-day end-date moves 69 (0.37%) of covered rows, both under the 0.5% kill line fixed in §43 (CH228's):
   **family killed**. No aux family, challenger or table built; K unchanged.
+
+## Creative round 20 recorded: CH270-CH276, 2026-10-30 12:30Z (experiments autopilot; ideas only, nothing tested, k = 0)
+- `CREATIVE_HYPOTHESES_2026-11-03.md` (Fable xhigh; written by the previous session's background agent and left
+  uncommitted; committed 6805031d, merged 99f6f07b). Seven entries: CH273 the losers' NO (siblings of a proposed winner,
+  measurement, M1 companion), CH270 the adding-up constraint (`coh`, engine), CH274 the wait from the first 0.95 ask to the
+  proposal (M3 candidate), CH272 the impatient seller after a proposal (measurement), CH271 the surviving side of a one-sided
+  book (`edge` / `ox`, engine), CH275 the insurance price against disputes (LT15 candidate, k <= 1), CH276 the counts-only map.
+- Routing: CH276 code delegated (`feat/ch276-map`, draft q0760, reviewer code check before promotion). CH270 / CH271 entered
+  as idea-level families in `signal_engine/CANDIDATES.md` (no token requested). **M1 is not amended for CH272 / CH273**: M1
+  is at its R1-R3 diff check before registration and a rule-29 amendment would need new J1 code, a new code check and a new
+  dry run; both stay candidates for separate rule-26 measurements after CH276 (decision recorded here, by the orchestrator).
