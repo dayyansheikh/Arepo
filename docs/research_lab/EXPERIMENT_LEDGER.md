@@ -4973,3 +4973,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   Host check: cap 16 GB, used 0.328, se1's legacy fit loads with sha checks.
 - **Owner decision pending (by ~11-15):** activate the deferred engine retention rules (predictions 35 d,
   features/quotes 45 d) plus an `aux/` 45-day rule; otherwise 16 GB binds ~11-20. Engine files are in the verified releases.
+
+## CH269 map (q0730) counts recorded; CB9-P empty frame ruled FAITHFUL_EMPTY, 2026-10-30 ~04:35Z (experiments autopilot; counts only for CH269; CB9-P counted p = 1 at its screen)
+- **CH269** (q0730 done 04:19Z; `seals/CH269_map_q0730.json` sha256 `9f0acff3…41c3`; note `reviews/CH269_MAP_2026-10-30.md`;
+  k = 0, uncounted). Declared decision lines: **M1 (CH263) drafted** (821 proposals a day > 100), **M2 (CH264) drafted** (159
+  > 25; design REVISE first), **LT14 (CH262) drafted** (175 top-decile units a capture >= 100; unavailable gaps all < 10
+  points), **LT15 (CH267) not drafted** (20 scheduled closes a day, not > 30; placeholder classifier disclosed),
+  **CH266 sketch kept** (588 > 50). Engine: **`resid` killed at its census** (within-market lag-1 residual autocorrelation
+  -0.086 / -0.091, under 0.02); `fragile` not killed (16.2% positive, corr 0.18). Peak RSS 558.8 MB vs spec 450 (ops).
+- **CB9-P (P1, P2): not testable (empty frame).** q0183 `pyth_frame_complete` with 0 of 1,235 frame-rule markets surviving the
+  q0182b exclusion keys (`e613604a…375f`): 222 by id, 1,013 by series key; prior batches used all 18 equity daily series.
+  Ruling (science-reviewer, FAITHFUL_EMPTY): keys are event, `negRiskMarketID` and series exactly as §1.3 declares, no time
+  window; no cross-ticker key; no code defect in the frame. **Counted, p = 1 (§2.7, §2.5); no result, not a null.**
+  Batch Holm stays k1 = 5. P1-rep, P2-rep, q0195, q0196 are not run (trigger cannot fire). The machine label would have said
+  "source unavailable" (a 0/0 audit artefact, `cb9_pyth.py:920-934`); a runner-only label fix is being made on
+  `fix/cb9-q0184` (reviewer check of the diff before merge). CB10 q0201's pyth pin is the header-only file (adds 0 ids).
