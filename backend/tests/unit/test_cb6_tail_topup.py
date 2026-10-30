@@ -187,7 +187,7 @@ def _h7_done(w):
 def test_topup_every_non_complete_ending_drops_it_and_h8_tail_seals_alone(topup_world):
     w, _ = topup_world
     _h7_done(w)
-    kw = dict(seals_dir=w.seals, sleep=lambda s: None, topup_run_id=t.RUN_ID_B, trials_path=w.tmp / "tr.jsonl")
+    kw = dict(seals_dir=w.seals, sleep=lambda s: None, topup_run_id=t.RUN_ID_B, trials_path=w.tmp / "tr.jsonl", wall_clock=lambda: NOW)  # pinned clock: real time is past T_seal
     with pytest.raises(t.NotNow):  # not started, before T_seal: pending
         t.seal_tail(w.root, t.RUN_ID, **kw)
     assert run_b(w, wall_clock=lambda: t.T_SEAL_EPOCH + 1)["status"] == t.NOT_RUN_TOKEN  # a chunk at or after T_seal: not run

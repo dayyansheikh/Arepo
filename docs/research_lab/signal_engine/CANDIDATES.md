@@ -296,6 +296,11 @@ kill lines; section 3 ranks the round). Status of every note below: **idea, unte
 rules as round 18 below (one challenger and one K each, `DESIGN_V1.md` section 13; read against se1 and the champion,
 event-clustered, market-deduplicated). CH269 is the counts-only map that prints the round's unprobed numbers (job in
 preparation on `feat/ch269-map`).
+- **CH269 map (2026-10-30, q0730, counts only; `reviews/CH269_MAP_2026-10-30.md`):** `resid` **killed at its census**
+  (within-market lag-1 autocorrelation of the champion's 2 h residual -0.086 non-sports ex-crypto / -0.091 all, under the 0.02
+  line; corr with `mo_chg_1d` 0.01). `fragile` **not killed** (`fr_unavail_12 > 0` on 16.2% of eligible rows, 6.3%
+  non-sports ex-crypto; |corr| with `log1p liquidity` 0.18 / 0.13): the display-pool rule and family are the builder's call.
+  CH267 (LT15) not drafted at the map's placeholder classifier (20 scheduled closes a day, line > 30).
 - **`resid` (CH265, residual momentum; engine-first).** Per-market history of the champion's own residuals
   `sign(dmid) - (P(up) - P(down))` from `predictions/`, using only labels known at k (2 h at k - 1; 6 h at k - 3; 24 h at
   k - 12). Columns `rs_2h_l1`, `rs_2h_m6`, `rs_2h_m12`, `rs_6h_m4`, `rs_24h_l12`, `rs_abs_m12`, `rs_run`, with counted

@@ -195,7 +195,9 @@ def _args(world, cmd, out, snaps=None, disk="20"):
             "--out", str(out), "--disk-cap-gb", disk, "--data-dumps-cap-gb", "40", "--standalone", "--allow-uncommitted-rules", "--no-trials"]
 
 
-def test_runner_census_is_written_once(world):
+def test_runner_census_is_written_once(world, monkeypatch):
+    # hermetic: the free-disk guard must not read the real machine's disk (a nearly full laptop would exit 75)
+    monkeypatch.setattr(shutil, "disk_usage", lambda _p: shutil._ntuple_diskusage(10**13, 0, 10**13))
     run = _runner()
     out = world["out_dir"] / "F.json"
     assert run.main(_args(world, "census-f", out)) == 0
