@@ -5735,3 +5735,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `--last-days 8` kept (the text says 8; retention currently 12 days).
 - **M3 code_sha `345b96c88a58a58d7bba2eae5b87cacd80e3c87e5c0cedd6884e6cc4faa07d6d`**; draft design sha256 `34f17a62…a752`.
   226 M1 + M2 + M3 tests. Diff-only check running; then q0780 (J0).
+
+## M2 amendment 23 review ACCEPT_WITH_FIXES, 2026-10-30 18:10Z (experiments autopilot; before registration; nothing counted)
+- `reviews/M2_AMENDMENT23_REVIEW_2026-10-30.md`: section 23 append-only (predecessor `bb7c27e0…` = 689de040), the S8 and
+  status-count fix exact, same-event tests fail on the old code. **MUST:** the two open items do read forbidden state:
+  `left_before_overdue_slot` (an earlier unit whose end_date moves near j, then closed / gone at j + 1: the 7.3 C signal in
+  an unsealed status file) and `end_date_missing` (an earlier unit's follow-up end_date); exclude M2 units, append section
+  24 (23 is not edited), tests. SHOULD: extend the J0 disclosure (`left_before_overdue_slot` 1,123, `end_date_missing`
+  1,587 / 20 markets, `status_forms`), numbering, explicit refusal for a state without `unit_events`, q0754 moved out of
+  `jobs/`. q0754b after a diff-only check. Delegated (`feat/m2-a24`).
