@@ -5810,3 +5810,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   retry after a partial write is refused by the `--out` guard, so it is safe but ambiguous); q0461 depends on q0460 (LT2
   collect, running); the `live_tests2` battery2 kind exists (`battery2.py:457`). E026: verify the `skillset_sha256` pin
   against q0540's output before 12-06.
+- **E026 skillset pin verified (read-only):** `model_specs/copy_skilled_v1.json` `skillset_sha256` `8120c12e…0f46` equals the
+  sha256 of the host's `copy_skilled/skillset/skillset.csv.gz` and its manifest's `sha256` (frozen 2026-10-21T15:14:02Z by
+  q0540). Nothing else read.
