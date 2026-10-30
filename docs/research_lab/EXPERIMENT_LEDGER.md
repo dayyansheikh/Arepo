@@ -5057,3 +5057,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   |s|, pinned sidecar classifiers); the map counted the signed decile with the engine's own category. The map's recorded
   outcome stands as recorded (no relabel). The binding |s| gate (>= 100 units a capture) is in LT14's own census. No outcome
   data were involved and no threshold changes.
+
+## M1 second draft re-check: NOT_READY (planning figure and three wording defects), 2026-10-30 ~04:50Z (experiments autopilot; nothing counted)
+- `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md` on `6362f3a7…9dca`: R1 discharged, nothing loosened. Blocking: (1) the tail
+  bound's planning figure was about 17x too optimistic (about 24,800 final-state units needed with all four units-per-event
+  strata, not 1,460), so a "coarse" read is expected and is disclosed in advance (no rule changes); (2) S2 and the fee lines use
+  `costs.category_key` of the sidecar `fee_category`; (3) a deterministic missing-capture rule and an auditable state chain;
+  (4) S8 "1" = S3 standalone disclosed; (5) degenerate zero-reversal CIs printed as such. Order: J0 counts run before the
+  design-text freeze (as the text says), then final verification and freeze, before 2026-11-22.
