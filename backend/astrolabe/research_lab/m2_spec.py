@@ -65,7 +65,7 @@ SPEC: dict = {
     "fetch": {"batch": 50, "attempts": 3, "attempt_gap_s": 3600.0},
     "identity_tol": 1e-9,
     # the pins (design text, imported modules, rule lexicon)
-    "design_sha256": "a7f30de2121a4c8817cca89a688f276ed72a449315b7dcbcc847b95ec3736e07",
+    "design_sha256": "ff342ff36f815b5cce6851cb1c4526a4daf0829ba5e033012704c80f3bd9b98c",
     "pinned_module_sha256": {
         "boundary_map_ch240.py": "2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a",
         "calibration.py": "567cdbe9eab0a8fa5fccdf4350e44cb2fea0104d445e62188e3e363fba12dda1",

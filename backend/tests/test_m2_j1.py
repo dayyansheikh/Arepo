@@ -640,7 +640,7 @@ def test_n5_runner_has_no_rules_mode(tmp_path):
         runner.main(["--snapshot-root", str(snap), "--rules-root", str(rr), "--last-days", "8", "--rules-mode", "receipt", "--out", str(tmp_path / "research_lab" / "x.json")])
 
 
-# --- amendment 22: the S8 member count and the status counts never read an earlier unit's row after its k -----------------------------
+# --- amendment 23: the S8 member count and the status counts never read an earlier unit's row after its k -----------------------------
 
 def _sibling_markets(k, variant):
     m = markets(k)
@@ -655,6 +655,16 @@ def _sibling_markets(k, variant):
             m[40]["end"] = iso(tcap(k) + timedelta(hours=100))
         elif variant == "moved_reoverdue":
             m[40]["end"] = iso(tcap(K + 1) - timedelta(hours=1))
+        elif variant in ("watch_closed", "watch_gone"):
+            if k == K + 1:
+                m[40]["end"] = iso(tcap(K + 1) - timedelta(hours=1))  # open, not yet overdue: it would enter the left_before watch
+            elif variant == "watch_closed":
+                m[40]["end"] = iso(tcap(K + 1) - timedelta(hours=1))
+                m[40]["closed"] = "true"
+            else:
+                del m[40]
+        elif variant == "end_unparseable":
+            m[40]["end"] = ""
     return m
 
 
@@ -673,8 +683,8 @@ def _sibling_run(tmp, variant):
     return st, mp, status
 
 
-@pytest.mark.parametrize("variant", ["closed", "gone", "moved_far", "moved_reoverdue"])
-def test_amendment22_earlier_sibling_unit_after_its_k_changes_nothing_for_the_later_unit(tmp_path, variant):
+@pytest.mark.parametrize("variant", ["closed", "gone", "moved_far", "moved_reoverdue", "watch_closed", "watch_gone", "end_unparseable"])
+def test_amendment23_earlier_sibling_unit_after_its_k_changes_nothing_for_the_later_unit(tmp_path, variant):
     st0, mp0, status0 = _sibling_run(tmp_path / "base", "none")
     st1, mp1, status1 = _sibling_run(tmp_path / variant, variant)
     u0 = {x["market_id"]: x for x in read_units(st0)}
@@ -683,3 +693,4 @@ def test_amendment22_earlier_sibling_unit_after_its_k_changes_nothing_for_the_la
     assert files(st0, "units") == files(st1, "units")  # byte-identical unit files, including the later unit's member count
     assert {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status0.items()} == {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status1.items()}
     assert mp0.extra["reoverdue_seen"] == mp1.extra["reoverdue_seen"] and mp0.extra["seen_without_k_minus_1_row"] == mp1.extra["seen_without_k_minus_1_row"]
+    assert mp0.extra == mp1.extra  # every status count, including left_before_overdue_slot and end_date_missing
