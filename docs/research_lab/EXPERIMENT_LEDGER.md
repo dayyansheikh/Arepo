@@ -4808,3 +4808,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   moves `T3_dev_end` to **2026-11-03T00:00Z** (as the wire review computed). q0064a is created only when now >= 11-03T00Z
   and quote_state is accounted for up to it; q0064 stays held until then. The design's top-level
   `cb3_followup/manifest.json` was never implemented (per-capture manifests only; disclosed 10-30 ops batch).
+
+## LT13 full R1 re-check GO_WITH_CHANGES; LT12 fee-step impact DISCLOSE, 2026-10-30 ~03:15Z (experiments autopilot; nothing counted)
+- `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md` (on `LIVE_TESTS_13.md` sha256 `09501b14…6efb806`): every R1 MUST / SHOULD
+  discharged; q0717 fix 1 partly ("unexplained" at two lines). CH253 alone (k = 1) is coherent. MUST before stage A code:
+  (1) declare the verbatim `fee_category` reading for `cbar` and disclose it is now near a venue-wide factor; (2) stage A
+  includes the origin-side unit builders, batch join, pseudo-batch rule and twin-state loader (states only). SHOULD 1-5
+  (stale CH252 text and priors, moot coverage argument, "unexplained", aliased-controls rule, twin-state wording). Fixes
+  delegated on `feat/live-tests-13b`.
+- **LT12 (frozen a543db63…): DISCLOSE, not a deviation.** The venue fee step of 2026-10-20T16:31-18:31Z (q0717) moved 1,800
+  markets without a sports slug from sports to non-sports under the pinned `is_sports_sidecar`, and set `fee_category` to
+  `other:zero_fees` for about 0.90-0.95 of non-sports ex-crypto rows. LT12's census and window are wholly after the step,
+  so the rule applies verbatim and consistently. The "non-sports" population includes these former sports markets, and
+  the K category dummies carry little topic content. Crypto is unaffected. Any further venue step inside LT12's window is
+  recorded as an operational deviation.
