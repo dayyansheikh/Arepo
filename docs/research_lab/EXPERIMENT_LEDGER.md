@@ -5799,3 +5799,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **M1 cron (ops only):** the J1 line's `ulimit -v` raised from 1.5 GiB to 6,000 MB (6144000 KB), the address cap q0750c
   was tested under; 1.5 GiB was never tested (finding carried over from the M2 conditions, defect 4). Repo and host crontab
   updated (backup `~/crontab.bak.*`). No M1 code, pin or rule changes.
+
+## Live-test analysis readiness audit, 2026-10-30 18:26Z (experiments autopilot; repo files only; no live data read)
+- **E011 (surprise detector, analysis once after 2026-11-11T13:00Z): no queue job, no date refusal in
+  `run_surprise_snapshot.py analyze`, no code-hash check, no readiness review.** Prep delegated (`feat/e011-analysis`:
+  runbook, new wrapper enforcing the registered sha256s and the date, queue drafts; registered code untouched), then a
+  `science-reviewer` review as for E009/E010.
+- E012-E014 (q0461, 11-13T12Z), E015 (q0475, 11-15T12Z), E022 (q0486, 11-17T12Z), E026 (q0543, 12-06T12Z): jobs queued,
+  each runner checks its registered spec / code sha at load. Notes: the four one-shot analyses have `max_retries` 1 (a
+  retry after a partial write is refused by the `--out` guard, so it is safe but ambiguous); q0461 depends on q0460 (LT2
+  collect, running); the `live_tests2` battery2 kind exists (`battery2.py:457`). E026: verify the `skillset_sha256` pin
+  against q0540's output before 12-06.
