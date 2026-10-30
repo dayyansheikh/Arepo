@@ -5239,3 +5239,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   J1 keeps an append-only rule ledger. J0 look-back fixed at 12 slots (declared before any J0 output).
 - **q0733b promoted** (supersedes the cancelled q0733, which wrote nothing). Its only effects: rules (a) / (e) and the cell
   distribution record; then final verification and the freeze by 2026-11-16.
+
+## M1 code-freeze check PASS_WITH_FIXES (8 MUST, one needs a text amendment), 2026-10-30 ~09:45Z (experiments autopilot; nothing counted)
+- `reviews/M1_CODE_FREEZE_CHECK_2026-10-30.md` on 3f8c3428 (39 tests; design sha and all eight module pins match; no frozen,
+  pinned, engine or `m1_j0.py` file touched; no post-k leak into units). **MUST:** (1) missing-capture rule judged by wall
+  clock (a 10 h late capture processed in catch-up) -> judge by the manifest's `finished_utc <= grid + 6 h`; (2) no start-date
+  gate for J1; (3) resolved-but-not-closed read as final (8.1: not closed = pending); (4) event coverage floor = every unit of
+  the event covered (ambiguity 2, conservative); (5) void 11.6 skippable when `registration_commit_utc` is absent; (6) counted
+  missingness (sidecar / column / sweep notes, look-back record) never reaches the output; (7) missing row at k folded into
+  `not_open_at_k` silently, unparseable ids uncounted; **(8) text conflicts: `m2_overlap` needs M2's ids while 3.1 says M2's
+  store is not read; the survivorship line needs a category the engine log lacks -> a design-text amendment** (LT7 13.6 /
+  LT13 13 precedent: appended section, from code reading only, no window data exists). Ambiguities 1-15 ruled (14 as
+  interpretations). SHOULD 1-12. Fixes + amendment draft delegated on `feat/m1-code`; then a re-check before q0750.
