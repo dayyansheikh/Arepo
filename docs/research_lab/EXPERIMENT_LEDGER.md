@@ -5526,3 +5526,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   2026-12-15T00:00Z, read-out on or after 2027-01-15.
 - q0751 (J1) and q0751b (J2) moved from `drafts/` to `jobs/` unchanged. **Still to do before 2026-11-24T00:00Z:** install
   the J1 cron line from q0751's notes (`20 */2`) on the host; it exits 2 and writes nothing before REGISTERED_UTC.
+- **17:30Z addendum (ops only):** the J1 cron line is in `scripts/oracle/crontab.txt` and installed on the host (backup
+  `~/crontab.bak.*`). It is guarded to start only after q0751 (the queue's first J1 pass) is recorded `done` in
+  `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
+  if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
