@@ -5203,3 +5203,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   field, `t_d` fallback, window-edge folding, J0's 12-slot look-back on 8 retained days, etc.) to be ruled before the freeze.
 - **q0733 (M2-J0) promoted** per re-check MUST 1 (J0 = J1 in dry mode, its code_sha sealed): counts only, cpu lane, 600 MB;
   only effects rules (a) / (e) and the cell distribution record. J0 uses a 12-slot look-back (host retention), disclosed.
+
+## M2 J1 ambiguity rulings REVISE; q0733 stopped before any output, 2026-10-30 ~08:45Z (experiments autopilot; nothing counted, nothing read)
+- `reviews/M2_J1_AMBIGUITY_RULINGS_2026-10-30.md`: 15 code-note ambiguities ruled (wording W1-W16) plus five unlisted
+  defects: N1 `no_previous_capture` never counted (funnel not exhaustive), N2 an unparseable `end_date_{k-1}` lets a market
+  become a unit, N3 J1 status lacks the funnel, N4 missing look-back slots before the first retained capture not counted,
+  N5 `--rules-mode` would let a hand choice bypass rule (e). Rulings 7, 10, N1, N2, N5 must be in the code **before J0**;
+  all rulings declared before any J0 output exists. J0 look-back fixed at 12 slots now (never revised after J0).
+- **q0733 stopped:** it had started at 07:10Z on the pre-ruling code; its runner was SIGTERMed at ~07:13Z (3 min, only q0733;
+  q0085 untouched) and the job cancelled. **No output file was written** (`m2_j0/` does not exist). Not counted; a fresh
+  q0733b runs after the fixes, and its seal records the fixed code.
