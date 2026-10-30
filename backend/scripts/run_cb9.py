@@ -404,6 +404,17 @@ def empty_frame_binding(fdir: Path) -> dict | None:
 BOOKS_FINAL_STATUSES = ("pyth_books_complete", "ingress_cap_reached")
 
 
+# sha256 of the host q0183 pyth_frame/manifest.json (2026-10-28, kept 0): the only frame for which the P books are "not run (empty frame)".
+EMPTY_FRAME_MANIFEST_SHA256 = "f4deb7846be1cc2051e2f76b1fe8e41f30b3c65b0bbb3ef4db8d0d3ce31408c1"
+
+
+def books_not_required(fdir: Path) -> bool:
+    """Decision 2026-10-30 (ruling FAITHFUL_EMPTY): q0184 is 'not run (empty frame)' only when the frame manifest is ``pyth_frame_complete`` with
+    ``kept`` the int 0 AND its sha256 equals the pinned host manifest. Any other frame keeps condition 5 unchanged."""
+    eb = empty_frame_binding(fdir)
+    return bool(eb) and eb["frame_manifest_sha256"] == EMPTY_FRAME_MANIFEST_SHA256
+
+
 def require_books_final(bdir: Path) -> None:
     """Ruling CB9_Q0183 condition 5. q0184 is a repeat job: after ``max_runs`` incomplete runs the queue marks it done, and the write-once q0189 census would
     then label P "not testable (source unavailable)" for what is only pending. Runner-only (not a rules-hashed function): the books manifest must be
@@ -424,7 +435,8 @@ def census_p_block(root: Path) -> dict:
     st = c9.stall_of(fdir) or c9.stall_of(bdir)
     if st:
         return {"status": st["status"], "stall_reason": st.get("reason"), "label_P1": st["label"], "label_P2": st["label"], "gate_GP_P1": False, "gate_GP_P2": False}
-    require_books_final(bdir)  # ruling CB9_Q0183 condition 5: pending is not "source unavailable"
+    if not books_not_required(fdir):
+        require_books_final(bdir)  # ruling CB9_Q0183 condition 5: pending is not "source unavailable"
     eb = empty_frame_binding(fdir)
     if eb:
         return {"status": "empty_frame", "label_P1": EMPTY_FRAME_LABEL, "label_P2": EMPTY_FRAME_LABEL, "gate_GP_P1": False, "gate_GP_P2": False,

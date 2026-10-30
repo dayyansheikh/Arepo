@@ -419,6 +419,10 @@ def test_empty_frame_census_screen_and_rep(monkeypatch, capsys, tmp_path):
     import hashlib
 
     root = _empty_frame_root(tmp_path)
+    (root / "pyth" / "manifest.json").unlink()  # q0184 not run: no books manifest at all
+    (root / "pyth" / "states.csv.gz").unlink()
+    (root / "pyth" / "prints.csv.gz").unlink()
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
     monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
     monkeypatch.setattr(py, "census_p", lambda *a, **k: (_ for _ in ()).throw(AssertionError("census_p 0/0 artefact must not run")))
     tp = tmp_path / "t.jsonl"
@@ -451,3 +455,20 @@ def test_empty_frame_census_screen_and_rep(monkeypatch, capsys, tmp_path):
 def test_empty_frame_label_needs_int_zero_and_complete_status(tmp_path, kept, status):
     root = _empty_frame_root(tmp_path, kept=kept, status=status)
     assert run_cb9.empty_frame_binding(root / "pyth_frame") is None
+
+
+def test_empty_frame_census_not_blocked_by_missing_books_but_other_cases_still_75(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
+    # pinned sha mismatch (empty frame, but not the pinned manifest) -> condition 5 unchanged
+    root = _empty_frame_root(tmp_path / "a")
+    (root / "pyth" / "manifest.json").unlink()
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and "not final" in out["tempfail"] and not (root / "census.json").exists()
+    # non-empty frame without books -> 75 even with the pin set to its own sha
+    root = _empty_frame_root(tmp_path / "b", kept=5)
+    (root / "pyth" / "manifest.json").unlink()
+    import hashlib
+
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()
