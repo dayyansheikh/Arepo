@@ -5444,3 +5444,20 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   semantics robustness, S8 = 1 line; `rules_gap`; headline `F_S(7 d)`), SHOULD 1-9, rulings Q1-Q12. Freeze by 11-16 judged
   realistic if J3 is shared with M2 and optional machinery dropped.
 - All three fix sets delegated.
+
+## E009 / E010 one-shot analysis jobs promoted (q0770-q0777, not before 2026-11-03T08:30Z), 2026-10-30 14:45Z (experiments autopilot; nothing counted, no outcome read)
+- Wrapper re-check `reviews/E009_E010_ANALYSIS_WRAPPER_RECHECK_2026-10-30.md` ACCEPT_WITH_FIXES (no new MUST; promotable);
+  SHOULD-A/B/C applied (27044dbb: CLI exit 2 stays a refusal; a failed post-merge check takes the failure path; primary analyze
+  requires `MERGE_RUN.json` rc 0; runbook wording). Merged; 15 wrapper tests pass.
+- **Pins enforced at every step** (refuse exit 2 on mismatch): `cross_venue_live.py` `eac14e68…f581`, `cross_venue_live_e010.py`
+  `a75aad47…5b7f`, `run_cross_venue_live.py` `2a7a6cdf…4d7a` (all 9beda37e), `cross_venue_gapfill.py` `9ca78570…74ed`,
+  `run_cross_venue_gapfill.py` `14454133…9e67` (4751a46d), `live_verdicts.py` `b5b53bb0…8169` (e5f6ca7f), `scripts/live_verdicts.py`
+  `c786ae4e…bc8f` (b3b54f93); rule doc `d9d17d8d…421f`. Recorded only: `economics.py` (differs from 9beda37e by additions;
+  `MIN_TRADES`, `MIN_CLUSTERS`, `taker_fee` untouched per the 10-19 readiness audit), `cross_venue.py`, `forecast.py`.
+- **Chain:** q0770 freeze (byte prefixes; refuses before 08:00Z; outcome-mtime catch-up check, exit 75 if stale) -> q0771
+  gap-fill merge (`gapfill-v2`) -> q0772 E009 primary (exclusive, 5.5 GB) -> q0773 E009 sensitivity; q0774 E010 primary ->
+  q0775 E010 sensitivity; q0776 verdicts (`live_verdicts.py`); q0777 off-host archive of the frozen inputs (does not gate).
+  Analyses max_retries 0 and refuse once an output exists: analysed once. Registered windows: E009 [10-13T00Z, 11-03T00Z),
+  E010 [10-13T02Z, 11-03T00Z); role `prospective_confirmation`. Next session: commit the result files and manifests into
+  `docs/research_lab/e009_e010_analysis/` (= the analysis commit LT10's seal needs), ledger verdict entries, registry, phone
+  note none (E026 is the only notified experiment).
