@@ -5483,3 +5483,27 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   CH276 output read by the designer before the freeze is listed in the freeze commit.
 - **Correction** to the 13:50Z entry: the draft's section 18 had **twelve** open questions, not eleven.
 - Next: re-check (`science-reviewer`).
+
+## CH276 re-check PROMOTE_WITH_FIXES; SEMANTICS READING RULE DECLARED before the run; M2 code merged, 2026-10-30 15:30Z (experiments autopilot; nothing counted)
+- `reviews/CH276_CODE_RECHECK_2026-10-30.md` on 681128c8: MUST 1-7 fixed; new MUST A (a sibling with no `rows_ext` row is
+  `ext_missing`, never unstatused; line 6 likewise) and MUST B (dispute share denominator = first-seen proposal events ∪ disputed
+  events, in scope and window); promote after these with no further round if the diff stays limited. Delegated.
+- **CH276 status-field semantics reading rule (declared now, before q0760 runs; constants not tuned):** Unit: a neg-risk group
+  (open binary rows sharing a non-empty `neg_risk_market_id`) at a capture k that has a capture k−1, where at least one open
+  member first shows a proposal (status code 1 containing 'propos', no status at k−1) and at least one other open member exists.
+  A = the lowest market_id among those first-seen proposals. Each group counts once per capture; nothing after k is read. Per
+  sibling at k: ext_missing = no `rows_ext` row (left out of every share, printed); unstatused = own status string empty;
+  identical = own status string non-empty and equal to A's. U = share of groups with >= 1 unstatused sibling. I = identical
+  siblings / siblings with an ext row. The in-scope reading (A's category, non-sports ex-crypto) is used by the decisions; the
+  all-category reading is printed beside it. Fewer than 20 groups -> null. U >= 0.05 -> per_market. U <= 0.01 AND I >= 0.99 ->
+  event_level. Otherwise mixed. per_market lets CH273 be decided on its count; event_level -> CH273 False; mixed or null -> CH273
+  null, never False. Constants 0.01, 0.05, 0.99, 20; raw counts printed.
+- **Informed labels (declared now):** LT15 / CH275 planning counts and any CH272 / CH273 measurement are `informed (CH276)`.
+  Frozen M1, M2, LT14 are never revised from CH276. M3 (draft; R1 response committed 15:05Z, before this run) reads no
+  CH276 line-7 early-settlement share (removed); any other CH276 output read before M3's freeze is listed in its freeze commit.
+- **Host span (read-only, 15:20Z):** snapshots 10-10..10-30 (235 captures); monitor `trades-*.jsonl` 10-20..10-30 under a
+  10-day rule (10-21 at risk at the 11-01 03:30Z rotation); `stats.jsonl` from 10-12; `aux/rules` tables for 38 of the 96
+  window captures 10-22..10-29 (the rest count as `unavailable`, disclosed). Window 2026-10-22..10-30. **q0760 must start
+  before 2026-11-01T02:45Z** (blackout, then rotation).
+- **M2 code merged** (e5d00d8f: J2 / J3 / analysis, the five l.19 code-freeze items each with a test, design-text pin; 91 M2
+  tests; code_sha `f09e23a8…c705`; drafts q0754 dry run, q0755* jobs). Code-freeze check (`science-reviewer`) running.
