@@ -1,41 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 00:43 UTC+1
+**Last updated:** 2026-10-30 03:13 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **Your storage message (28 Oct): done.** The server's data folder is down from **45 GB to 36 GB**, and the disk now has
-  33 GB free.
-  - I measured it first. 37 of the 45 GB was already copied to GitHub by the nightly archive. The problem was copies kept
-    on the server after upload.
-  - Five finished "restore copies" (about 11 GB, from closed or finished tests, read by no current job) were removed.
-    Every file was first checked against its GitHub copy (886 of 886 matched), and any of them can be brought back with one
-    command.
-  - I did this tonight rather than at 03:30 because the folder was 1.4 GB from the limit where collectors start skipping.
-  - Other large folders stay for now because live work uses them. Each has a review point: the model cache after the MC1
-    run, older market snapshots after the batch 7 count, and an old history folder once its last reader is done.
-- **Stuck jobs fixed (no rule changed):**
-  - **MC1 (long model run):** could never finish, because each restart rebuilt its data from a moving window. It now uses
-    one fixed saved dataset and is running.
-  - **Batch 4 trade fetch:** ran out of memory. It now loads only the columns it uses (same results, a third of the memory)
-    and is queued again.
-  - **Batch 9:** one data step hit a size limit that the design itself set far too small. Changing a declared limit needs a
-    written amendment and an independent review, which is under way.
-- **Batch 3:** it missed its freeze date during the 24-28 Oct gap. The independent ruling says the date was a target: its
-  own rules push the later windows back, and nothing is rescued by moving goalposts. A data-collection step that had never
-  been switched on was reviewed and switched on tonight.
-- **Batch 5:** the reviewer's code check found five defects before its next data fetch. For example, a failed download could
-  be recorded as finished. All five are fixed and waiting for a re-check.
-- **LT13 (new live test):** the fee probe showed that Polymarket switched about 26,000 markets to zero fees on 20 Oct. That
-  breaks the fee-charging comparison, so that idea is withdrawn before counting, exactly as its pre-declared rule said. The
-  second idea continues alone. A reviewer is also checking whether the same fee change affects the frozen LT12 design.
-- **Batch 7's counting check** is queued with its inputs pinned, due before 3 Nov. **Round 19 of original ideas** is being
-  written.
+- **New ideas (round 19):** eight original ideas are written up. The lead one: after someone formally proposes how a
+  market resolved, does the winning side still trade at a discount worth more than the small risk the proposal is
+  overturned? A reviewer agreed that such questions can be run as pre-registered *measurements* (a number with an error
+  bar, frozen in advance, never called a finding). One of the eight needs redesign because it accidentally used
+  information from the future. A light counting job is being built to decide which ideas go forward.
+- **Batch 9 unblocked:** the size limit that stopped one data step was reviewed. The reviewer confirmed it limits disk space
+  only, was set before any results were seen, and that raising it changes nothing scientific. The step is queued again
+  from scratch.
+- **LT13 (new live test):** a full independent re-check said "go, with changes". The changes are made, and a final check
+  before freezing the design is running.
+- **LT12 (frozen live test):** Polymarket's 20 Oct fee change moved about 1,800 markets from "sports" to "non-sports" under
+  LT12's fixed rule. The review says this is a disclosure, not a breach: the whole LT12 window comes after the change, so
+  the rule applies the same way throughout.
+- **Batch 3:** its new data step ran for the first time at 00:31 tonight, so its development window now ends on 3 Nov
+  (by its own rule).
+- **Batch 5:** the code re-check passed with one item. With zero usable families found, the count must record the declared
+  result "too rare to test", not "data missing". That fix is being made.
+- **Server:** the long model run (MC1) is working through its folds. When it pauses (about 06:00 UTC+1), the batch 7 count
+  (due before 3 Nov) and the batch 4 trade fetch get their turn.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec).
+
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).
    - Pause: `python3 scripts/autopilot/autopilot.py pause` (on the Mac, in the repo). Use `resume` to undo, or `stop` to
