@@ -423,6 +423,7 @@ def test_empty_frame_census_screen_and_rep(monkeypatch, capsys, tmp_path):
     (root / "pyth" / "states.csv.gz").unlink()
     (root / "pyth" / "prints.csv.gz").unlink()
     monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", hashlib.sha256((root / "pyth_frame" / "frame.csv.gz").read_bytes()).hexdigest())
     monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
     monkeypatch.setattr(py, "census_p", lambda *a, **k: (_ for _ in ()).throw(AssertionError("census_p 0/0 artefact must not run")))
     tp = tmp_path / "t.jsonl"
@@ -470,5 +471,25 @@ def test_empty_frame_census_not_blocked_by_missing_books_but_other_cases_still_7
     import hashlib
 
     monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((root / "pyth_frame" / "manifest.json").read_bytes()).hexdigest())
+    code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
+    assert code == 75 and not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()
+
+
+@pytest.mark.parametrize("how", ["mismatch", "missing"])
+def test_books_waiver_fails_closed_on_a_wrong_or_missing_frame_file(monkeypatch, capsys, tmp_path, how):
+    import hashlib
+
+    root = _empty_frame_root(tmp_path)
+    (root / "pyth" / "manifest.json").unlink()
+    fdir = root / "pyth_frame"
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_MANIFEST_SHA256", hashlib.sha256((fdir / "manifest.json").read_bytes()).hexdigest())
+    monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", hashlib.sha256((fdir / "frame.csv.gz").read_bytes()).hexdigest())
+    assert run_cb9.books_not_required(fdir)
+    if how == "mismatch":
+        monkeypatch.setattr(run_cb9, "EMPTY_FRAME_CSV_SHA256", "0" * 64)
+    else:
+        (fdir / "frame.csv.gz").unlink()
+    assert not run_cb9.books_not_required(fdir)
+    monkeypatch.setattr(run_cb9, "_kd_module", lambda: None)
     code, out = _run(["census", "--root", str(root), "--trials-path", str(tmp_path / "t.jsonl")], capsys)
     assert code == 75 and not (root / "census.json").exists() and not (tmp_path / "t.jsonl").exists()

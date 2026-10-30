@@ -408,11 +408,19 @@ BOOKS_FINAL_STATUSES = ("pyth_books_complete", "ingress_cap_reached")
 EMPTY_FRAME_MANIFEST_SHA256 = "f4deb7846be1cc2051e2f76b1fe8e41f30b3c65b0bbb3ef4db8d0d3ce31408c1"
 
 
+EMPTY_FRAME_CSV_SHA256 = "ab34dd3ed11da5aea46876139d29b82603f94b293a4ad2ed542b455856f11f9f"  # host pyth_frame/frame.csv.gz (header-only)
+
+
 def books_not_required(fdir: Path) -> bool:
     """Decision 2026-10-30 (ruling FAITHFUL_EMPTY): q0184 is 'not run (empty frame)' only when the frame manifest is ``pyth_frame_complete`` with
-    ``kept`` the int 0 AND its sha256 equals the pinned host manifest. Any other frame keeps condition 5 unchanged."""
+    ``kept`` the int 0, its sha256 equals the pinned host manifest AND ``frame.csv.gz`` hashes to the pinned value (missing file: False). Any other frame keeps condition 5 unchanged."""
+    import hashlib  # noqa: PLC0415
+
     eb = empty_frame_binding(fdir)
-    return bool(eb) and eb["frame_manifest_sha256"] == EMPTY_FRAME_MANIFEST_SHA256
+    fp = Path(fdir) / "frame.csv.gz"
+    if not eb or eb["frame_manifest_sha256"] != EMPTY_FRAME_MANIFEST_SHA256 or not fp.is_file():
+        return False  # fail closed: condition 5 unchanged (exit 75)
+    return hashlib.sha256(fp.read_bytes()).hexdigest() == EMPTY_FRAME_CSV_SHA256
 
 
 def require_books_final(bdir: Path) -> None:
