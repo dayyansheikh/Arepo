@@ -5562,7 +5562,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   now logs `peak_vm_mb` (VmPeak). se27 (3 direction fits; res_7d insufficient_coverage), se28, se29 and se30 (4 targets
   each) fitted at 13:34Z with `.json.gz` artifacts.
 
-## CB7 freeze check NOT_READY; census write-up corrected, 2026-10-30 18:00Z (experiments autopilot; nothing frozen, nothing counted)
+## CB7 freeze check NOT_READY; census write-up corrected, 2026-10-30 17:30Z (experiments autopilot; nothing frozen, nothing counted)
 - `reviews/CB7_FREEZE_CHECK_2026-10-30.md` (`science-reviewer`, read-only; text saved by the orchestrator): **NOT_READY**,
   because the G1 and X1 analysis code, `cb7_declaration.py` and `run_cb7.py screen` do not exist (`run_cb7.py` is fetch
   and census only). Census write-up faithful (gate thresholds unchanged since 75708661; 2.7a arithmetic checks out).
@@ -5582,7 +5582,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Freeze commit pins (as listed in the review); `T7_X_list` = max(2026-11-03T06:00Z, freeze + 24 h); promote q0148
   (not-testable mode), q0149, q0150. Next: CB7 analysis code (delegated, `feat/cb7-analysis`).
 
-## q0163 (CB8-H prints) MemoryError fixed (ops only), 2026-10-30 18:05Z (experiments autopilot)
+## q0163 (CB8-H prints) MemoryError fixed (ops only), 2026-10-30 17:32Z (experiments autopilot)
 - Cause (reproduced on the host under the 1000 MB address cap, /tmp copy, no network): the collector health check
   (`cb2_weather.collector_healthy`, via `cb4_data.unhealthy` from `fr.stop_reason()`) parses all 237 capture
   `manifest.json` files and keeps them in a list, about 490 MB, growing about 25 MB a day. Peak VmPeak 991 MB.
@@ -5591,7 +5591,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   manifests and keep only the newest; other jobs that call it will hit the same wall as captures accumulate (check
   whether `cb2_weather.py` is pinned by any registered test before changing it).
 
-## M2 code-freeze check ACCEPT_WITH_FIXES, 2026-10-30 18:15Z (experiments autopilot; nothing counted)
+## M2 code-freeze check ACCEPT_WITH_FIXES, 2026-10-30 17:34Z (experiments autopilot; nothing counted)
 - `reviews/M2_CODE_FREEZE_CHECK_2026-10-30.md` on code_sha `f09e23a8…c705` (text saved by the orchestrator; probes run
   inline, not kept): pins and design sha match, 91 tests, nothing post-k reaches a unit, void conditions implemented,
   l.19 items 1-4 tested. **MUST:** (1) after the window `merge_rule_ledger` returns before freeing `rules.by_mid`, so every
