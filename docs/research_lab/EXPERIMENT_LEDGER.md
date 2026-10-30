@@ -5123,3 +5123,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   Revisions delegated on `feat/m2-ch264`.
 - **M1 (to fix at its final verification):** `MEASUREMENT_M1_CH263.md` l. 185-186 and 191 say an unknown fee category gives
   0.07; `costs.py:93-104` returns the served rate (possibly 0) when a schedule is served. Also define S4 there (M2 SHOULD 1).
+- M1 fee-line fix (b55c535c, merged bf06052d; text sha256 `912bf746…8a6f`): L1 / L2 match `costs.py` (an unknown key gets the
+  served rate, possibly 0; 0.07 only when no schedule is served); S4 via `c251.fee_class`; prices rounded to 6 dp before every
+  cell edge. J0 is now `m1_j0` v2 (12 tests); deployed before q0731's start where possible. If q0731 ran on v1, its output's
+  `version` field says so and counts differ only for empty-`event_id` units and exact-edge prices (recorded with the output).
