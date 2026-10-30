@@ -5368,3 +5368,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   **MUST 2:** J2 (q0751b, not_before 12-15T06:00Z) would refuse before the 06:20Z J1 pass decides the last slot -> 07:00Z.
   SHOULD 1-4. Fixes delegated on `feat/m1-code`; then a new code_sha, a re-run of the dry run (q0750b) and the registration
   commit (pins file `seals/M1_pins.json`, ledger section 16 block) by 2026-11-22T23:59Z.
+
+## M2 final pre-freeze verification NOT_READY (four text-only fixes), 2026-10-30 12:50Z (experiments autopilot; nothing counted)
+- `reviews/M2_FINAL_VERIFY_2026-10-30.md` on text `eacc0d37…5aa0`: every challenger, re-check and ruling item is in the text;
+  J0 changed only what 9.1 allows; section 21 matches the seal; hashes verified; no estimand / threshold / cell changed after
+  J0. **MUST 1-4 (text only):** empty `event_id` = its own cluster; void 11.2 scoped to reads by or for M2 (M1's 01-15
+  read-out and the engine's reads must not void it); stale "no code / no seal" status sentence; missing-capture judged by
+  `finished_utc <= grid + 6 h`, never by J1's run time (code fix in the code-freeze list). Disclosures D1-D6 (wide books,
+  fee lines on zero-fee markets, short fold, cluster sizes, `no_rules` 21.7%, survivorship). Once applied, a diff check that
+  only those lines moved is enough to freeze (due by 11-16). Delegated on `feat/m2-ch264`.
