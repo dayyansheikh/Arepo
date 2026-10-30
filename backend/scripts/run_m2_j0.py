@@ -69,7 +69,6 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--end-utc")
     ap.add_argument("--last-days", type=int, default=None)
     ap.add_argument("--lookback-slots", type=int, default=12, help="captures that only fold the overdue-seen set before the first classified k (registered: 84; the host keeps ~8 days)")
-    ap.add_argument("--rules-mode", choices=("receipt", "day_before"), default=None, help="default: rule (e) decides from the committed poll lines")
     ap.add_argument("--spec", type=Path, default=SPEC)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--data-dumps-cap-gb", type=float, default=None)
@@ -106,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print("give --start-utc and --end-utc, or --last-days")
         return 2
-    res = j1.run_j0(args.snapshot_root, args.rules_root, start, end, lookback_slots=args.lookback_slots, spec_path=args.spec, rules_mode=args.rules_mode)
+    res = j1.run_j0(args.snapshot_root, args.rules_root, start, end, lookback_slots=args.lookback_slots, spec_path=args.spec)
     res["span"]["mode"] = mode
     args.out.parent.mkdir(parents=True, exist_ok=True)
     tmp = args.out.with_suffix(".tmp")
