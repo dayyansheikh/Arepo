@@ -1548,3 +1548,21 @@ science reviewer before any table exists.
   census's committed reader (not wired into `AUX_FAMILIES`). The lines are not revisited on a later capture. A
   future edit-age family needs a new idea with its own justification (for example, a wider stream frame), not a
   re-run of this census.
+
+## 44. Per-day parse cache for the `gamma_rules` readers (2026-10-30; operational, no model, target, column or value change)
+
+**Why.** Every tick process re-parses every `stream_gamma_rules/` day file: `rules_text` 18.8 s and `uma_params` 2.6 s
+cold on the host at 314 MB of stream (measured 2026-10-30 ~12:20Z, 230 MB RSS). The stream grows ~26 MB a day, so the
+`rules` read alone would pass ~60 s around late November.
+- **What.** New `signal_engine/stream_cache.py`. `rules_at`, `uma_at` and `read_day_file` take an optional
+  `cache_dir`. The aux builders (`rules`, `umaparams`, `framein`) pass `<engine>/cache/stream_parse/`. A day file's
+  parse (the same `{"rows", "polls"}` the reader built before) is pickled per reader tag, keyed by the file's size,
+  its mtime and the reader's code sha256. Any append, restore or code change is a miss and a fresh parse. Only days
+  before the current UTC day are written (today's file grows each hour), and one entry per day file is kept. A torn
+  entry is a miss, never an error. `cache_dir` None (tests, censuses, the default) behaves as before.
+- **Invariance.** The cache holds derived data only: deleting it changes nothing. The parse logic is unchanged
+  (moved into `_parse_day_file`). The clock rule (`poll` finished <= capture start) is applied after the cache
+  on every read, so the cache cannot let a row through earlier. A test checks that cold, warm, appended and torn
+  reads return values identical to the uncached reader.
+- **Shas.** `rules_text.py` and `uma_params.py` get new shas. Tables record the sha they were built with, so older
+  tables keep the older sha. No spec, registry pin, fit or reading rule refers to a reader sha.

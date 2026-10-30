@@ -1225,6 +1225,10 @@ def rules_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
     return out
 
 
+# per-day parse cache of the gamma_rules readers (section 44; derived data under the engine root)
+STREAM_CACHE = ("cache", "stream_parse")
+
+
 def umaparams_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
     """``res``: ``uma_params.uma_at`` at the capture start. ``rules_features``' rule for the UMA columns (section 42)."""
     n = len(ids)
@@ -1245,7 +1249,7 @@ def umaparams_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
 
 def _umaparams_builder(ctx: dict) -> pd.DataFrame:
     """DESIGN_V1 section 42: the gamma_rules rows' UMA fields known at the capture start (poll finished at or before it)."""
-    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"], ctx["paths"].sub(*STREAM_CACHE))
     ctx["provenance"] = {"uma_params_sha256": UP.code_sha256(), "rules_files": res["files"],
                          "rules_last_slot": res["last_slot"], "uma_known_markets": len(res["known"])}
     return umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)
@@ -1257,7 +1261,7 @@ FRAMEIN_COLUMNS = ["fi_has"]
 def _framein_builder(ctx: dict) -> pd.DataFrame:
     """Section 42 review: ``up_has`` / ``rc_has`` alone (in the gamma_rules by-volume frame), the control arm that
     separates frame membership from the UMA and rule-text values. Same read as umaparams (memoised in the process)."""
-    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"], ctx["paths"].sub(*STREAM_CACHE))
     ctx["provenance"] = {"uma_params_sha256": UP.code_sha256(), "rules_files": res["files"],
                          "rules_last_slot": res["last_slot"], "uma_known_markets": len(res["known"])}
     has = umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)["up_has"].to_numpy(np.float32)
@@ -1266,7 +1270,7 @@ def _framein_builder(ctx: dict) -> pd.DataFrame:
 
 def _rules_builder(ctx: dict) -> pd.DataFrame:
     """DESIGN_V1 section 41: the gamma_rules rows known at the capture start (poll finished at or before it)."""
-    res = RT.rules_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    res = RT.rules_at(ctx["paths"].rules_stream, ctx["cap_start"], ctx["paths"].sub(*STREAM_CACHE))
     ctx["provenance"] = {"rules_text_sha256": RT.code_sha256(), "rules_files": res["files"],
                          "rules_last_slot": res["last_slot"], "rules_known_markets": len(res["known"])}
     return rules_features(ctx["f"]["market_id"].to_numpy(np.int64), res)
