@@ -4846,3 +4846,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Attempt naming: queue attempt 1 (10-28 10:30Z) MemoryError, wrote only `kd_frame/request_clock.json`; attempt 2
   (11:28-11:33Z) the `disk_budget` stop. Both superseded, never read. **q0185b promoted to jobs/** (net lane, prio 42,
   depends on q0182b, done). After it: manifest `exclusion_keys_sha256` must equal `e613604a…` and `rules_sha256` the v3 hash.
+
+## Round 19 rule 26 (registered measurements) ruling: ACCEPT_WITH_CONDITIONS, 2026-10-30 ~03:40Z (experiments autopilot; nothing counted)
+- `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`: a prospective measurement (k = 0) is a separate evidence role
+  `prospective_measurement`, never confirmation or an edge claim. Conditions: estimand-only wording (no p-values; banned
+  words listed), everything frozen and code-pinned before the window, every declared split reported, later tests on the same
+  object `informed (M1/M2)` on a disjoint later window, counted apart from registered tests (not in the "about 1.8
+  registrations"), void on any post-start change or early read, outcome classes kept distinct.
+- **CH263 (M1) coherent after MUSTs:** payoff `c - r_eff` with `r_eff = P(loss) + 0.5 P(split)`; no double-counted
+  half-spread; event-level reversal bound; declared weights instead of an event cap; decision time = latest receipt of row,
+  sidecar and sweep 1; pinned resolution source with coverage; read-out >= 30 days after the window.
+- **CH264 (M2) REVISE:** two exclusions use post-k information (moved `end_date`, closed at k + 1); the ambiguity vs
+  inattention contrast can only be descriptive; `not_found` reported both ways; event-clustered SEs.
+- Next: CH269 map (counts) decides which of M1 / M2 / LT14 / LT15 are drafted.
