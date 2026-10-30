@@ -1,6 +1,6 @@
 # Signal engine: status (rewrite each session; do not append)
 
-**Last updated:** 2026-10-30 05:40 UTC+1 (2026-10-30 04:40Z), signal-engine autopilot session 34
+**Last updated:** 2026-10-30 06:12 UTC+1 (2026-10-30 05:12Z), signal-engine autopilot session 34
 
 ## In plain English
 - **New signal family: what a market's rules say.** The engine now reads each market's rule text, from the hourly
@@ -26,7 +26,10 @@
   - a public website version of the feed.
 
 ## Live state (host)
-- **Code:** main `8dbe8fe1` merged; deploy in progress at writing (see Next actions 1).
+- **Code:** main `b5062eed` deployed (host `rules_text.py` sha `0bdec2ee...`). **`rules` backfill done** (one-off
+  `features --max-items 20` under the collector lock after the 04:31Z pass: 40 s, 335 MB peak): 209 tables, one per
+  capture, no errors. Pre-stream captures all-NaN; `rc_has` 0.035 on 10-21 04:31Z (top-3,000 frame only), 0.225 on
+  10-22, 0.345 on 10-30 04:31Z (last slot 03:00, correct by the poll-finished rule). se28 can fit at the 13:40Z refit.
 - **Input monitor** (03:06Z): status ok, no alerts. **Refit `q0512` / score `q0513`:** daily, healthy (`tempfail` =
   not due); next refit ~13:40Z. **Probe `q0518`:** still queued (priority 30).
 - **Disk:** engine 5.24 GB of 16 GB (no warning); `research_lab` 36.0 GiB of the tick's 50 GiB cap; host 33 GiB free.
@@ -56,10 +59,7 @@
 5. Ledger entry; CANDIDATES row 31.
 
 ## Next actions
-1. **Deploy and backfill (this session or next):** once the background deploy of the old tip ends, run
-   `deploy.sh chore/arepo-claude-setup` again so the host has `8dbe8fe1` or later. Then, between passes, run
-   `flock /tmp/arepo_collector.lock ... run_signal_engine.py features --max-items 20` once to backfill the ~208 `rules`
-   tables, so se28 can fit at the 13:40Z refit. Otherwise the tick does it in ~7 passes and se28 first fits 10-31.
+1. **Done this session:** deploy + `rules` backfill (see Live state). Each new capture's table is built by the tick.
 2. **After the 10-30 refit (~15:20Z):**
    - confirm se27's 3 direction fits and se28's fits (or `insufficient_coverage` if the backfill had not finished);
    - check that the new fits carry `.json.gz` artifacts, and peak RSS against 3,400 MB;
