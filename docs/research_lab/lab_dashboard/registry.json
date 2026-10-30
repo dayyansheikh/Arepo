@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T18:04:09Z",
+ "updated": "2026-10-30T18:11:53Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1871,12 +1871,12 @@
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Challenger review, counting step, text freeze by 16 Nov, registration by 22 Nov; window 24 Nov - 14 Dec; read-out from 29 Jan 2027",
+   "next": "Counts-only check (J0) and server rehearsal queued 30 Oct; then final verification and freeze by 16 Nov; window 24 Nov - 14 Dec",
    "next_date": "2026-11-16",
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/MEASUREMENT_M3_CH274.md (DRAFT)",
-    "next": "docs/research_lab/MEASUREMENT_M3_CH274.md (DRAFT)",
+    "next": "docs/research_lab/reviews/M3_CF_FIX_DIFF_CHECK_2026-10-30.md; docs/research_lab/EXPERIMENT_LEDGER.md § M3 J0 and dry run PROMOTED (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {

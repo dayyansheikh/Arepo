@@ -5744,3 +5744,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   24 (23 is not edited), tests. SHOULD: extend the J0 disclosure (`left_before_overdue_slot` 1,123, `end_date_missing`
   1,587 / 20 markets, `status_forms`), numbering, explicit refusal for a state without `unit_events`, q0754 moved out of
   `jobs/`. q0754b after a diff-only check. Delegated (`feat/m2-a24`).
+
+## M3 J0 and dry run PROMOTED, 2026-10-30 18:11Z (experiments autopilot; counts only, uncounted; design DRAFT)
+- `reviews/M3_CF_FIX_DIFF_CHECK_2026-10-30.md`: **ACCEPT** on 4e7253d4 (MUST 1 test fails on the old code; MUST 2 text
+  verbatim and committed in e0a6bf33 at 17:57Z, before any J0 output; nothing scientific changed; q0782 cannot write a real
+  store; hashes match). **q0780 (J0) and q0781 (dry run, depends on q0780) promoted** at code_sha `345b96c8…07d6d`.
+  q0782 (serial M1 + M2 + M3 timing) stays a draft: depends on q0781, mem 800; promote after M2's final code is checked.
+- After J0: copy rule (a)'s result into the design text by hand as the 10.1 rule says (`keep_21` / `extend_42` /
+  `not_evaluable_extend_42`), then the final pre-freeze verification. Correct the "about 8 days" retention wording at freeze.

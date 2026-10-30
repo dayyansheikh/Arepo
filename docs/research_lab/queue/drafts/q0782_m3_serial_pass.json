@@ -8,13 +8,15 @@
   "host originals ~/arepo/data-dumps/research_lab/snapshots, stream_gamma_rules, book_sweeps (read-only)"
  ],
  "resources": {
-  "mem_mb": 600,
+  "mem_mb": 800,
   "as_cap_mb": 6000,
   "cpu": 1,
   "lane": "cpu",
   "network": "none"
  },
- "depends_on": [],
+ "depends_on": [
+  "q0781_m3_dryrun"
+ ],
  "argv": [
   "scripts/serial_dryrun_m123.py",
   "--base",
@@ -38,5 +40,5 @@
   "data-dumps/research_lab/m_serial_dryruns/q0782/research_lab/SERIAL_TIMING.json (write-once: per step rc, wall_s, last stdout line, stderr tail) and the three fresh dry-run stores under .../serial_dryrun/research_lab/"
  ],
  "next_action": "read serial_catch_up_wall_s and each step's last_stdout_line (peak_rss_mb); record them in the registration note; if the three catch-up passes do not fit a 2 h slot with margin, say so in the note (steady-state passes are one capture each); remove nothing (the stores are not canonical)",
- "notes": "DRAFT (not in jobs/). SHOULD 3 of the M3 code check. Wrapper scripts/serial_dryrun_m123.py (new file; not in M3's CODE_FILES; touches no M1 or M2 file) starts, strictly one after another, scripts/run_m1.py j1, run_m2.py j1 and run_m3.py j1, each with --dry-run-last-days 3 (their runners then refuse the real stores m1_ch263, m2_ch264, m3_ch274) and a FRESH store under a base directory that must be named serial_dryrun under research_lab; M3 also gets --dry-run-end-utc (the newest capture + 1 s) and is run twice, the second pass being the steady state on the same store. M1 and M2 cannot be timed twice on one store (their dry spec follows the newest capture). Test: test_should3_serial_dry_run_wrapper_only_plans_dry_runs_and_refuses_other_bases (plan only, nothing run). The M1 and M2 runners are the already-promoted code of q0750c and q0754. Do not run beside a multi-GB job (memory rule); run it only after q0750c, q0754 and q0781 have finished (it repeats the same work serially)."
+ "notes": "DRAFT (not in jobs/). SHOULD 3 of the M3 code check. Wrapper scripts/serial_dryrun_m123.py (new file; not in M3's CODE_FILES; touches no M1 or M2 file) starts, strictly one after another, scripts/run_m1.py j1, run_m2.py j1 and run_m3.py j1, each with --dry-run-last-days 3 (their runners then refuse the real stores m1_ch263, m2_ch264, m3_ch274) and a FRESH store under a base directory that must be named serial_dryrun under research_lab; M3 also gets --dry-run-end-utc (the newest capture + 1 s) and is run twice, the second pass being the steady state on the same store. M1 and M2 cannot be timed twice on one store (their dry spec follows the newest capture). Test: test_should3_serial_dry_run_wrapper_only_plans_dry_runs_and_refuses_other_bases (plan only, nothing run). The M1 and M2 runners are the already-promoted code of q0750c and q0754. Do not run beside a multi-GB job (memory rule); run it only after q0750c, q0754 and q0781 have finished (it repeats the same work serially). 2026-10-30 diff check SHOULD a: depends_on q0781, mem_mb 800 (wrapper keeps m3_j1 imported ~170 MB); promote after M2's final code (q0754b) is checked; report capture_s count for the steady-state step."
 }
