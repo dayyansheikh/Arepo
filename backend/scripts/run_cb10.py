@@ -446,8 +446,12 @@ def cmd_screen(a):
     census = json.loads(cpath.read_text())
     tp = Path(a.trials_path) if a.trials_path else None
     fam = a.family
+    from astrolabe.research_lab import cb10_exclusion_fix as xfix  # noqa: PLC0415
+
+    nv = xfix.not_verified_disclosure(_keys_path(a))  # disclosure only: no gate, no statistic or sample touched
     if fam == "D":
         doc = {**screen_d_doc(_hist(a, c10.H10_DLAD), census), "rules_sha256": sha, "written_epoch": time.time()}
+        doc["D1"] = {**doc["D1"], "exclusion_not_verified_against": nv}
         rsha = c10.write_results_once(Path(a.out) if a.out else root / "results_D.json", doc)
         r = doc["D1"]
         pl = (r.get("placebo_signflip") or {}).get("week")
@@ -457,6 +461,8 @@ def cmd_screen(a):
         return 0, {"status": "screen_D_complete", "D1": {k: r.get(k) for k in ("p", "beta", "advance", "verdict")}}
     if fam == "B":
         doc = {**screen_b_doc(_hist(a, c10.H10_BRK), census), "rules_sha256": sha, "written_epoch": time.time()}
+        for tid in ("B1", "B2"):
+            doc[tid] = {**doc[tid], "exclusion_not_verified_against": nv}
         rsha = c10.write_results_once(Path(a.out) if a.out else root / "results_B.json", doc)
         for tid, eff in (("B1", "b1_cents"), ("B2", "b2_cents")):
             r = doc[tid]

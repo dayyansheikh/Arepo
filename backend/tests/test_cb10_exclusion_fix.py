@@ -140,3 +140,40 @@ def test_rules_hashes_unchanged_and_no_hashed_function_edited():
     assert doc["rules_sha256"] == c10.rules_file_doc()["rules_sha256"]
     hashed = " ".join(doc["func_sources_sha256"])
     assert "cb10_exclusion_fix" not in hashed and "cb9_exclusion_fix" not in hashed and "cb9_exit" not in hashed
+
+
+def test_disclosure_fields_in_params_and_reader(tmp_path):
+    seals = tmp_path / "seals"
+    seals.mkdir()
+    _seals(seals)
+    (seals / "broken_SEAL.json").write_text("{not json")
+    keys = tmp_path / "creative_batch9" / "exclusion_keys.csv.gz"
+    keys.parent.mkdir()
+    keys.write_bytes(hb._gz_csv_bytes(list(c6.KEY_COLUMNS), [["102", "1", "e102", "", ""]]))
+    ksha = h5_seal.sha256_file(keys)
+    (keys.parent / c9.EXCLUSION_REPORT_NAME).write_text(json.dumps({"keys_sha256": ksha, "n_ids": 1, "n_missing": 0, "disjointness": "verified"}))
+
+    def tr(url, params):
+        ids = list(params.get("id") or [])
+        return 200, json.dumps([{"id": x, "negRiskMarketID": "", "events": [{"id": f"e{x}"}]} for x in ids]).encode(), {}
+
+    out = tmp_path / "cb10"
+    orig = c6.exclusion_stage
+    with fix.cb10_exclusion_ids():
+        m = c10.exclusion_keys(out, tr, rules_sha="r" * 64, cb9_keys_path=keys, cb9_keys_sha256=ksha, seals_dir=seals, is_committed=None, rps=1000.0, sleep=lambda s: None, data_dumps=None)
+    assert c6.exclusion_stage is orig
+    fx = m["params"]["exclusion_fix"]
+    assert fx["cb10_fix_module_sha256"] == fix.module_sha256() and fx["counts"]["n_not_extractable"] == 1
+    assert fx["counts"]["n_unparseable_skipped"] == len(fx["unparseable_skipped"]) and "n_cb8_ids" in fx["notes"]
+    (out / "manifest.json").write_text(json.dumps(m))
+    d = fix.not_verified_disclosure(out / "exclusion_keys.csv.gz")
+    assert d["available"] and d["n_not_extractable"] == 1 and d["not_extractable_seals"] == ["nothing_SEAL.json"] and "not verified" in d["note"]
+    assert d["n_unparseable_skipped"] == len(fx["unparseable_skipped"])
+    assert fix.not_verified_disclosure(tmp_path / "nowhere" / "k.csv.gz")["available"] is False
+
+
+def test_draft_pins_kd_sample_and_depends_on_smoke():
+    d = json.loads((ROOT / "docs/research_lab/queue/drafts/q0201_cb10_exclusion_keys.json").read_text())
+    pins = [x for x in d["argv"] if x.startswith("cb9_")]
+    assert any("kd_frame_v3/sample.csv.gz" in x for x in pins) and not any("kd_frame_v3/frame.csv.gz" in x for x in pins)
+    assert "q0200_cb10_smoke" in d["depends_on"] and "pins_absent" in d["notes"]
