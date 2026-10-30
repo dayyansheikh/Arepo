@@ -1,0 +1,37 @@
+{
+ "id": "q0771_e009e010_gapfill_merge",
+ "title": "E009/E010 gap fill, rule gapfill-v2, run once on the frozen inputs: re-hash the 8 frozen files, then run_cross_venue_gapfill.py into the new merged root; MERGE_MANIFEST.json (counts and sha256 only) and MERGE_RUN.json (argv, HEAD, dirty paths)",
+ "family": "e009_e010_analysis",
+ "priority": 96,
+ "expected_value": "the primary analysis root (canonical + validation copy for the 10-14 outage window)",
+ "data": [
+  "data-dumps/research_lab/e009_e010_analysis/inputs/ (read-only)"
+ ],
+ "resources": {
+  "mem_mb": 1000,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "disk_mb": 1300
+ },
+ "depends_on": [
+  "q0770_e009e010_freeze"
+ ],
+ "not_before": "2026-11-03T08:30:00Z",
+ "argv": [
+  "scripts/run_e009_e010_analysis.py",
+  "merge",
+  "--run-dir",
+  "../data-dumps/research_lab/e009_e010_analysis"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/e009_e010_analysis/merged/",
+  "data-dumps/research_lab/e009_e010_analysis/merged/MERGE_MANIFEST.json",
+  "data-dumps/research_lab/e009_e010_analysis/MERGE_RUN.json"
+ ],
+ "next_action": "q0772 / q0774 start",
+ "notes": "Memory: the merge streams the canonical files and holds only the copy's outage-window lines (about 78k predictions, 46k outcomes) and the straddle candidates, so about 0.3-0.5 GB. The host tree has docs/research_lab/trials.jsonl modified by queue jobs; the wrapper then passes --allow-dirty (rule R9: manifest tree_dirty true, disclosed with the result) and refuses any other modified tracked file. DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e009-e010-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e009_e010_analysis.py. Runbook: docs/research_lab/E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until VERDICTS.json exists nobody opens an outcome, result or log value; counts and sha256s only. Review SHOULD 1: a failed merge reveals no outcome. The wrapper moves merged/ to merged.failed-<ts>, writes MERGE_RUN.failed-<ts>.json and no MERGE_RUN.json, so a retry (max_retries 2) is honest; --allow-dirty is always passed after the wrapper's own allowed-dirty check. Move-aside-never-delete procedure in the runbook."
+}
