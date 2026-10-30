@@ -8,20 +8,21 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 13:15 UTC+1)
-- **Done this session:** q0740 LT14 pre-check died at import (MemoryError, 400 MB AS cap; nothing read) -> re-issued
-  **q0740b** (as_cap 3000); q0741/q0743/q0744 now depend on q0740b (deployed 99f6f07b). **q0750 M1 dry run done** (36 caps,
-  533 units, peak RSS 342 MB < 600). **Round 20 (CH270-CH276) committed/merged** (it was left uncommitted), ledger + CANDIDATES
-  (`coh`, `edge`/`ox`); decision: M1 NOT amended for CH272/CH273. q0147c priority 40 -> 46 (runs before exclusive q0116k).
-- **In flight (background agents):** science-reviewer M1 R1-R3 diff check (+ registration-commit contents); science-reviewer
-  M2 final pre-freeze verification; implementer CH276 map on `feat/ch276-map` (draft q0760, code note).
-- **Next:** save both reviews to `docs/research_lab/reviews/`; M1: apply fixes -> registration commit by 11-22T23:59Z.
-  M2: apply text fixes -> freeze commit (sha256 in ledger) -> J2/J3/analysis code -> code-freeze check -> dry run ->
-  registration. CH276: merge -> reviewer code check -> promote q0760.
-- **Queue:** q0085 (CB4) + q0163 running; q0147c (46) next on cpu; q0116k (MC1, exclusive, resumable ~4 h slices, many folds
-  left) after; q0185b, q0103b (net); LT14 chain from 11-17. **Keep snapshot retention at 12 days until LT14's census
-  (q0742, 11-17) unless disk forces it** (avoids the restore path); 31 GB free. Do not edit run_ml_dev.py / hashed ml
-  modules or delete ml_cache/38dc17c9… until q0116k completes.
+## Experiments autopilot live state (2026-10-30 13:24 UTC+1)
+- **Done this session:** q0740 LT14 pre-check died at import (400 MB AS cap; nothing read) -> **q0740b** (as_cap 3000);
+  q0741/3/4 depend on it. q0750 M1 dry run done (342 MB < 600). Round 20 (CH270-CH276) committed + routed (M1 not amended).
+  q0147c priority 46. **M1:** diff check ACCEPT_WITH_FIXES -> MUST 1-2 / SHOULD 1-3 fixed (ee8ce2b6, code_sha `e27b5d5b…f3b1`),
+  **q0750b** dry run queued (fresh nested store). **M2 DESIGN TEXT FROZEN** (689de040, sha256 `bb7c27e0…cbb0`, 794 lines).
+- **In flight (background agents):** reviewer check of ee8ce2b6 (incl. the side-file deviation); M2 J2/J3/analysis + l.19
+  code-freeze list on `feat/m2-j1-code` (drafts q0752+); CH276 map on `feat/ch276-map`; M3 (CH274) design draft on
+  `feat/m3-ch274`; E009/E010 analysis runbook + drafts q0770-q0779 on `feat/e009-e010-analysis` (analyses due 11-03 02:00Z /
+  08:00Z; no job existed).
+- **Next:** M1: q0750b result + reviewer -> pins file `seals/M1_pins.json` + section 16 ledger block + promote q0751/q0751b =
+  registration commit by 11-22T23:59Z. M2: code-freeze check -> dry run -> registration by 11-22. E009/E010: review runbook,
+  promote jobs before 11-03. CH276: reviewer code check -> promote. M3: challenger review.
+- **Queue:** q0085 (CB4) + q0163 running; q0147c (46) next on cpu; q0740b, q0750b light; q0116k (MC1, exclusive, resumable)
+  after; q0185b, q0103b (net); LT14 chain from 11-17. **Keep snapshot retention at 12 days until LT14's census (q0742, 11-17)
+  unless disk forces it.** Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9… until q0116k completes.
 - **Carried over:** CB9 SHOULD 6; CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not
   before 11-07T08Z; LT12 census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
 - **Registered live analyses:** E009/E010 3 Nov, E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.

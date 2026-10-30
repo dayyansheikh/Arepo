@@ -5359,3 +5359,88 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   as idea-level families in `signal_engine/CANDIDATES.md` (no token requested). **M1 is not amended for CH272 / CH273**: M1
   is at its R1-R3 diff check before registration and a rule-29 amendment would need new J1 code, a new code check and a new
   dry run; both stay candidates for separate rule-26 measurements after CH276 (decision recorded here, by the orchestrator).
+
+## M1 R1-R3 diff check ACCEPT_WITH_FIXES, 2026-10-30 12:45Z (experiments autopilot; nothing counted)
+- `reviews/M1_R_DIFF_CHECK_2026-10-30.md` on 230baa5d: R1-R3, S1-S3 implemented; the six new tests fail on the old code for
+  behavioural reasons; 93 M1 tests pass; no estimand, unit, class, threshold or date changed; the dry run cannot leak into a
+  live run. **MUST 1:** a residual race (an on-time capture appearing after its slot was decided) still breaks J1's chain for
+  the rest of the window (probes `reviews/probes_m1_r/`): k - 1 must come from the chain status, not the capture list.
+  **MUST 2:** J2 (q0751b, not_before 12-15T06:00Z) would refuse before the 06:20Z J1 pass decides the last slot -> 07:00Z.
+  SHOULD 1-4. Fixes delegated on `feat/m1-code`; then a new code_sha, a re-run of the dry run (q0750b) and the registration
+  commit (pins file `seals/M1_pins.json`, ledger section 16 block) by 2026-11-22T23:59Z.
+
+## M2 final pre-freeze verification NOT_READY (four text-only fixes), 2026-10-30 12:50Z (experiments autopilot; nothing counted)
+- `reviews/M2_FINAL_VERIFY_2026-10-30.md` on text `eacc0d37…5aa0`: every challenger, re-check and ruling item is in the text;
+  J0 changed only what 9.1 allows; section 21 matches the seal; hashes verified; no estimand / threshold / cell changed after
+  J0. **MUST 1-4 (text only):** empty `event_id` = its own cluster; void 11.2 scoped to reads by or for M2 (M1's 01-15
+  read-out and the engine's reads must not void it); stale "no code / no seal" status sentence; missing-capture judged by
+  `finished_utc <= grid + 6 h`, never by J1's run time (code fix in the code-freeze list). Disclosures D1-D6 (wide books,
+  fee lines on zero-fee markets, short fold, cluster sizes, `no_rules` 21.7%, survivorship). Once applied, a diff check that
+  only those lines moved is enough to freeze (due by 11-16). Delegated on `feat/m2-ch264`.
+
+## M2 DESIGN TEXT FROZEN; M1 diff-check fixes merged, q0750b dry run queued, 2026-10-30 13:10Z (experiments autopilot; nothing counted)
+- **M2:** final-verification fixes applied (fadc8fcf: MUST 1-4, D1-D6, SHOULD 1/4/5/8, section 22); freeze diff check
+  `reviews/M2_FREEZE_DIFF_CHECK_2026-10-30.md` NOT_READY on two wording defects (A: the l.19 code-freeze list lacked three
+  items section 22 points to; B: the D5 `scheduled` count's span) plus optional C/D; all four applied as a pure text edit
+  (no further round, as the reviewer stated). **`MEASUREMENT_M2_CH264.md` FROZEN at 689de040, sha256
+  `bb7c27e05d94e6585af09a8e8d5b2add274b149c89035dfe4fe6c8b783f7cbb0`, 794 lines** (merged into this branch). Role
+  `prospective_measurement` (rule 26), k = 0, no Holm family. Window 2026-11-24..12-14; read-out on or after 2027-01-29;
+  registration by 2026-11-22T23:59Z. Next: J2 / J3 / analysis code and the l.19 code-freeze list (`run_available` by
+  `finished_utc`, rule-ledger lookup by commit time, missing-slot status files, `seen_without_k_minus_1_row`, end-of-window
+  ledger size in the dry run), then the code-freeze check, a host dry run, registration.
+- **M1:** diff-check MUST 1-2, SHOULD 1-3 fixed (ee8ce2b6, merged; 96 M1 tests, 3 new ones fail on the old code). New
+  **code_sha `e27b5d5b733915184bda380250792de4d9e8f377f2f7f664b6e6d7fff938f3b1`** (spec_sha `3afd6ad6…68b0` unchanged).
+  q0751b J2 not_before 12-15T07:00Z. Deviation (implementer): dup / late side files are written only for slots with a chain
+  status. **q0750b** queued: the dry run again on this code, in a fresh store `m1_dryruns/q0750b/research_lab/m1_ch263_dryrun`
+  (q0750's store holds another dry window's state; moving it is blocked by the evidence hook, correctly, so it stays).
+
+## M1 fix diff check ACCEPT_WITH_FIXES (one more edge case); q0750b cancelled before it ran, 2026-10-30 13:30Z (experiments autopilot; nothing counted)
+- `reviews/M1_FIX_DIFF_CHECK_2026-10-30.md` on ee8ce2b6: MUST 1-2 and SHOULD 1-3 of the previous check done; the side-file
+  deviation is sound (J2 refuses unless all 252 slots are decided). **New MUST 1:** a second on-time capture for a slot already
+  recorded missing would go unrecorded (regression; probe `reviews/probes_m1_r/miss2.py`). SHOULD 1 `(start, id)` tie key;
+  SHOULD 2-3 code-note readings (k - 1 directory gone -> refusal; captures visible only after the last J1 pass). Fix chosen over
+  disclosure; delegated on `feat/m1-code`. **q0750b cancelled on the host while still queued** (its code_sha would no longer be
+  the pinned one); the dry run re-runs as q0750c on the final code.
+- **13:40Z addendum:** fix merged (e8c36bf0; 98 M1 tests; both new tests fail on the old code). **M1 code_sha
+  `9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148`**, spec_sha `3afd6ad6…68b0` unchanged, pins ok. J2's
+  manifest carries a notes line on the after-last-pass gap. **q0750c** (dry run on this code, fresh store) queued.
+
+## M3 (CH274, "the wait") design DRAFT, 2026-10-30 13:50Z (experiments autopilot; design only, nothing counted)
+- `MEASUREMENT_M3_CH274.md` (69c32cff, 925 lines, merged): registered prospective measurement under rule 26, k = 0, no Holm
+  family. Unit: a non-sports ex-crypto market at its first 2-hourly capture with a two-sided row, favoured ask >= 0.95 and mid
+  >= 0.90, previous capture two-sided below 0.95, empty UMA status, > 24 h from `end_date`; one unit per market. Headline:
+  unit-weighted Kaplan-Meier median wait (crossing -> proposal seen or listing exit) with an event bootstrap; early share,
+  0.99 ask path, yield `g` quantiles, `T_U`. Disjoint from M1 / M2 by construction (proposed / overdue / neither), overlap
+  counted at read-out from unit ids. Window 11-24..12-14 (J0 may extend to 42 days below 25 crossings a day); freeze by
+  11-16, registration by 11-22, read-out on or after 2027-01-29. Eleven open questions in section 18 for the challenger.
+- Next: challenger review R1 (`science-reviewer`).
+
+## M1 round-2 fix ACCEPT; registration conditions fixed, 2026-10-30 14:00Z (experiments autopilot; nothing counted)
+- `reviews/M1_FIX2_CONFIRM_2026-10-30.md` on e8c36bf0: **ACCEPT** (MUST 1, SHOULD 1-3 fixed; probes pass; 98 tests; code_sha
+  `9cb8aa03…d148`, spec_sha `3afd6ad6…68b0`, design `7982f199…7639`, pins ok). Registration needs no further review if, mechanically:
+  q0750c finishes with peak RSS <= 600 MB and its `j1_runs.jsonl` records code_sha `9cb8aa03…d148`; `seals/M1_pins.json` carries
+  spec_sha, code_sha, design sha and `registration_commit_utc` = the commit's git timestamp; the commit lands by 11-22T23:59Z;
+  no M1 code or pinned module differs from 4d25178e; the section 16 block is applied word for word; q0751 / q0751b promoted
+  unchanged. Note: q0750c's `notes` still name the q0750b store (cosmetic; its argv is correct).
+
+## Three reviews: E009/E010 analysis wrapper, CH276 map code, M3 challenger R1, 2026-10-30 14:20Z (experiments autopilot; nothing counted)
+- **E009/E010 one-shot analysis prep** (`feat/e009-e010-analysis` 4bdadd83: runbook `E009_E010_ANALYSIS_RUNBOOK_2026-10-30.md`,
+  wrapper `run_e009_e010_analysis.py`, drafts q0770-q0777; outcome-blind host checks only): review
+  `reviews/E009_E010_ANALYSIS_WRAPPER_REVIEW_2026-10-30.md` **ACCEPT_WITH_FIXES**: the registered code runs unchanged with the
+  registered START/END/roots/role; the prefix freeze cannot change the analysed records (window filter in the registered code).
+  MUST 1: enforce (not only record) the sha256 of the registered files and record the imported modules. SHOULD 1-6 (failed-merge
+  retry procedure, per-attempt failure records, poller catch-up check in the freeze manifest, `canonical_predictions_in_window`
+  disclosure, rule-doc sha check, map child exit 75 -> 1). **q0777 (off-host inputs archive) does not gate the analyses**
+  (reviewer's ruling, adopted: the inputs are append-only prefixes rebuildable from the host / later archives; the result entry
+  cites q0777's tag or its failure). `--allow-dirty` limited to `trials.jsonl` accepted (rule R9, disclosed).
+- **CH276 map** (`feat/ch276-map` d3795a38, 17 tests): review `reviews/CH276_CODE_CHECK_2026-10-30.md` **PROMOTE_WITH_FIXES**:
+  MUST 1 rule 28 (only bid-only >= 0.90 -> YES and ask-only <= 0.10 -> NO decide a side), MUST 2 rules class read
+  point-in-time from `aux/rules/<cap>.parquet` (the CH269 reader takes the last row: future leakage), MUST 3 the semantics
+  reading rule declared in this ledger before the run, MUST 4 missing monitor days never scored 0, MUST 5-6 dispute counting,
+  MUST 7 q0760 `mem_mb` 900. Line 7's `proposed_before_end_date` share is dropped from CH276 (M3's estimand; M3 is designed
+  without it).
+- **M3** challenger R1 `reviews/M3_CHALLENGER_R1_2026-10-30.md` **GO_WITH_CHANGES**: MUST 1-9 (void scope; six later-caught
+  M1/M2 defects; three follow-up-dependent denominators; receipt-time brackets; CH276 collision; J0 rule (a) at 48 a day; status
+  semantics robustness, S8 = 1 line; `rules_gap`; headline `F_S(7 d)`), SHOULD 1-9, rulings Q1-Q12. Freeze by 11-16 judged
+  realistic if J3 is shared with M2 and optional machinery dropped.
+- All three fix sets delegated.

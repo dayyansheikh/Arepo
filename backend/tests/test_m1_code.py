@@ -856,6 +856,48 @@ def test_r1_a_slot_with_any_chain_status_is_not_reprocessed_for_another_capture_
     assert (store / STATE_FILE).read_bytes() == before and not (store / "status" / "A_dup.json").exists()
 
 
+def test_must1_late_on_time_capture_never_breaks_the_chain_and_is_recorded_late(tmp_path):
+    """Reviewer probe race2: slot k decided with B at grid + 6 h 10 min, then an earlier-start on-time capture A appears."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    hold = tmp_path / "hold"
+    for kk in range(k + 1, ms.L + ms.W):
+        if (snap / ms.cid(kk)).exists():
+            ms.move_capture(snap, hold, kk)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    g = ms.tcap(k).timestamp()
+    run(store, snap, sw, now=g + 6 * 3600 + 600)
+    _dup_capture(snap, k, start_min=-10, fin_min=355)
+    for kk in range(k + 1, ms.L + ms.W):
+        if (hold / ms.cid(kk)).exists():
+            ms.move_capture(hold, snap, kk)
+    run(store, snap, sw)  # must not refuse
+    late = json.loads((store / "status" / "late_A_dup.json").read_text())
+    assert late["kind"] == "late_capture_ignored" and late["reason"] == "on_time_but_delivered_after_slot_decided"
+    assert json.loads((store / "status" / f"{ms.cid(k + 1)}.json").read_text())["prev_capture_id"] == ms.cid(k)
+    assert not list((store / "status").glob("dup_*.json"))
+    assert ex.audit_chain(store, SPEC)["ok"]
+
+
+def test_must1_duplicate_record_names_the_chain_capture_as_kept(tmp_path):
+    """Reviewer probe dup_label: the capture that was processed is the kept one; the later-arriving earlier-start capture is recorded, not lost."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    _dup_capture(snap, k, start_min=-10, fin_min=180)
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "late_A_dup.json").read_text())["reason"] == "on_time_but_delivered_after_slot_decided"
+    _dup_capture(snap, k, name="Z_dup", start_min=5, fin_min=180)  # a later-start duplicate: kept is the chain's capture
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "dup_Z_dup.json").read_text())["kept_capture_id"] == ms.cid(k)
+
+
+def test_should1_downgraded_record_has_no_outcome():
+    out = ro.classify_record({"closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["1", "0"]})
+    assert out["state"] == "pending" and out["parse_reason"] == "not_closed" and out["y"] is None
+
+
 def test_r2_open_record_with_split_prices_is_pending_not_closed():
     rec = {"id": "1", "closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["0.5", "0.5"]}
     out = ro.classify_record(rec)
@@ -904,3 +946,39 @@ def test_s2_s3_survivorship_states_the_dropped_clause_and_m2_overlap_counts_keyl
     (m2 / "units" / "x.jsonl.gz").write_bytes(gzip.compress(("\n".join(lines) + "\n").encode()))
     res2 = an.run_analysis(store, pins, tmp_path / "o2.json", SPEC, now=ms.after_readout(SPEC))
     assert res2["m2_overlap"]["m2_lines_missing_a_key"] == 3 and res2["m2_overlap"]["m2_unit_ids_read"] == 1
+
+
+def _late_capture(snap, k, name, smin, fmin, src):
+    A = snap / name
+    shutil.copytree(src, A)
+    m = json.loads((A / "manifest.json").read_text())
+    m.update(capture_id=name, started_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=smin)), finished_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=fmin)))
+    (A / "manifest.json").write_text(json.dumps(m))
+
+
+def test_must1b_every_on_time_capture_delivered_after_missing_recorded_is_late(tmp_path):
+    """Reviewer probe miss2 (missing): two on-time captures arrive after the slot was recorded missing; both are recorded."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    hold = tmp_path / "hold"
+    ms.move_capture(snap, hold, k)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw, now=ms.tcap(k).timestamp() + 6 * 3600 + 600)
+    _late_capture(snap, k, "X1", 0, 100, hold / ms.cid(k))
+    _late_capture(snap, k, "X2", 5, 120, hold / ms.cid(k))
+    run(store, snap, sw)
+    for n in ("X1", "X2"):
+        assert json.loads((store / "status" / f"late_{n}.json").read_text())["reason"] == "delivered_after_missing_recorded"
+    assert ex.audit_chain(store, SPEC)["ok"]
+
+
+def test_should1b_tie_on_start_uses_the_choosers_key(tmp_path):
+    """Reviewer probe miss2 (tie): same start, smaller id, arrives after the decision: late (would have been chosen), not dup."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    _late_capture(snap, k, "0_tie", 0, 100, snap / ms.cid(k))
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "late_0_tie.json").read_text())["reason"] == "on_time_but_delivered_after_slot_decided"
+    assert not (store / "status" / "dup_0_tie.json").exists()
