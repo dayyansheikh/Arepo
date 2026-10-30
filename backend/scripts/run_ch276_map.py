@@ -1,11 +1,14 @@
 # ruff: noqa: E501
 """CH276 surviving-side census runner (counts only, k = 0, uncounted; docs/research_lab/CREATIVE_HYPOTHESES_2026-11-03.md section 2 E). Research only; no network.
 
-    python scripts/run_ch276_map.py --snapshot-root R --engine-root E --rules-root G --monitor-root M --last-days 8 \\
+    python scripts/run_ch276_map.py --snapshot-root R --engine-root E --monitor-root M --start-utc 2026-10-22T00:00:00Z --end-utc 2026-10-30T00:00:00Z \\
         --out OUT/CH276_map.json --data-dumps-cap-gb 50
 
+The span is explicit (no --last-days) so the run cannot drift into measurement M1's window. The rules class is read from the engine's point-in-time ``aux/rules`` tables
+under --engine-root (there is no --rules-root).
+
 Read-only on every store. Refuses (exit 2) a snapshot root that is not a ``research_lab/snapshots`` directory, an engine root that is not ``research_lab/signal_engine``,
-a rules root that is not ``research_lab/stream_gamma_rules``, a monitor root that is not ``research_lab/live_trades``, any root that does not exist, and an output outside a
+a monitor root that is not ``research_lab/live_trades``, any root that does not exist, and an output outside a
 ``research_lab`` directory; refuses to overwrite ``--out`` (exit 1); exits 75 (the queue's "not now") when the dumps directory is above ``--data-dumps-cap-gb`` or the
 output disk is short of ``--min-free-gb``. Refuses (exit 3) when the reader meets a forbidden field or path (resolution, outcome, payoff, label, wallet).
 """
@@ -56,11 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--snapshot-root", type=Path, action="append", required=True)
     ap.add_argument("--engine-root", type=Path, required=True)
-    ap.add_argument("--rules-root", type=Path, required=True)
     ap.add_argument("--monitor-root", type=Path, default=None, help="research_lab/live_trades (line 5); without it line 5 is reported unavailable")
-    ap.add_argument("--start-utc")
-    ap.add_argument("--end-utc")
-    ap.add_argument("--last-days", type=int, default=None)
+    ap.add_argument("--start-utc", required=True)
+    ap.add_argument("--end-utc", required=True)
     ap.add_argument("--engine-days", type=int, default=8, help="days of quotes / features / predictions counted for lines 3 and 4 (ending at the span end)")
     ap.add_argument("--warmup", type=int, default=12, help="captures fed before the span start (state only, not counted)")
     ap.add_argument("--spread-before", type=_period, default=m.PERIODS_DEFAULT[0])
@@ -74,13 +75,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    roots_ok = all(_root_ok(r, "snapshots") for r in args.snapshot_root) and _root_ok(args.engine_root, "signal_engine") and _root_ok(args.rules_root, "stream_gamma_rules")
+    roots_ok = all(_root_ok(r, "snapshots") for r in args.snapshot_root) and _root_ok(args.engine_root, "signal_engine")
     if args.monitor_root is not None:
         roots_ok = roots_ok and _root_ok(args.monitor_root, "live_trades")
     if not roots_ok or not out_ok(args.out):
-        print("refusing: roots must be research_lab/snapshots, research_lab/signal_engine, research_lab/stream_gamma_rules and research_lab/live_trades, and --out must lie under a research_lab directory")
+        print("refusing: roots must be research_lab/snapshots, research_lab/signal_engine and research_lab/live_trades, and --out must lie under a research_lab directory")
         return 2
-    must = [*args.snapshot_root, args.engine_root, args.rules_root] + ([args.monitor_root] if args.monitor_root else [])
+    must = [*args.snapshot_root, args.engine_root] + ([args.monitor_root] if args.monitor_root else [])
     missing = [str(r) for r in must if not Path(r).is_dir()]
     if missing:
         print(f"refusing: root(s) missing: {missing}")
@@ -97,18 +98,12 @@ def main(argv: list[str] | None = None) -> int:
     if shutil.disk_usage(probe).free < args.min_free_gb * 2**30:
         print(f"less than {args.min_free_gb} GiB free at the output: not now")
         return TEMPFAIL
-    if args.last_days:
-        start, end = m.last_days_span(args.snapshot_root, args.last_days)
-    elif args.start_utc and args.end_utc:
-        start, end = c240.parse_utc(args.start_utc), c240.parse_utc(args.end_utc)
-        if not (start == start and end == end and start < end):
-            print("--start-utc / --end-utc must be ISO UTC times with start < end")
-            return 2
-    else:
-        print("give --start-utc and --end-utc, or --last-days")
+    start, end = c240.parse_utc(args.start_utc), c240.parse_utc(args.end_utc)
+    if not (start == start and end == end and start < end):
+        print("--start-utc / --end-utc must be ISO UTC times with start < end")
         return 2
     try:
-        res = m.run_map(args.snapshot_root, args.engine_root, args.rules_root, args.monitor_root, start, end, args.engine_days, args.warmup, (args.spread_before, args.spread_after), args.champion)
+        res = m.run_map(args.snapshot_root, args.engine_root, args.monitor_root, start, end, args.engine_days, args.warmup, (args.spread_before, args.spread_after), args.champion)
     except m.Refusal as exc:
         print(f"refusing: {exc}")
         return 3

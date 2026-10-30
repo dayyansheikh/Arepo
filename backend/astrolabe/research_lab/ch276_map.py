@@ -7,15 +7,17 @@ and ``stats.jsonl`` (cycle lines). It prints the nine count lines of section E a
 
 Hard limits (enforced here, tested in tests/test_ch276_map.py):
 
-* never opens the engine's ``logs/`` (resolution store), the monitor's alerts / scores / outcomes / wallets files, or any column named like a resolution, outcome,
-  payoff, label or wallet (``guard_columns`` / ``guard_path``);
+* never opens the engine's ``logs/`` (resolution store), the monitor's alerts / scores / outcomes / wallets files, or requests a column named like a resolution, outcome,
+  payoff, label or wallet (``guard_columns`` checks the columns this code ASKS for; it does not inspect a file's full column set; ``guard_path`` checks each path opened);
 * the only price read after a unit's decision capture k is what section E names: (4) the bid / ask of capture k + 1 of a ONE-SIDED eligible row, compared with
   ``mid_k +- 0.005`` as a sign class and discarded; (5) monitor prints inside (t_k, t_exit], counted (their cash notional only against the $1,000 floor, never price or
-  size); (7) the presence of a proposal flag at later captures, as a count;
+  size); (8) the sidecar's own status string at each capture (a state, not a resolution). Line 7 reads NOTHING after k (its proposed-before-end_date share is dropped:
+  measurement M3 owns that estimand);
 * no fitted model, no p-value, no edge or profit language: ``check_output`` refuses an output with such a key.
 
 Reused read-only: ``m1_j0.J0Pass`` (the M1 unit: E1-E7 eligibility, the favoured side, the event key), ``m1_j0`` and ``boundary_map_ch240`` helpers,
-``census_map_ch269`` readers (quotes frame, capture listing, the placeholder rules lexicon). Nothing is edited. Missing captures are listed and never reconstructed.
+``census_map_ch269`` readers (quotes frame, capture listing). The rules class is the engine's point-in-time ``aux/rules/<capture>.parquet`` at k (``signal_engine/rules_text.py``
+columns), read-only; "unavailable" where missing. Nothing is edited. Missing captures are listed and never reconstructed.
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ from . import boundary_map_ch240 as c240
 from . import census_map_ch269 as c269
 from . import m1_j0 as j0
 
-VERSION = "ch276-map-v1"
+VERSION = "ch276-map-v2"
 GRID0 = c269.GRID0
 GRID_S = 7200.0
 SCOPE = "nonsports_excrypto"
@@ -50,7 +52,11 @@ INSURED_MIN, UNINSURED_MAX = 0.010, 0.002  # CH275 classes on ins_k = 1 - bid_k 
 CERTAIN = 0.95  # CH274 population edge
 AGE_MIN_SLOTS = 12
 PRINT_FLOOR = 1000.0  # CH272: monitor prints of $1,000 or more
-MONITOR_GAP_S = 900.0  # a gap between consecutive monitor cycle lines above 3 nominal 5-minute cycles
+MONITOR_GAP_S = 900.0  # a gap between consecutive monitor cycle lines above 3 nominal 5-minute cycles (disclosure only)
+GAP_BINS = ((900.0, 1800.0, "900-1800s"), (1800.0, 3600.0, "1800-3600s"), (3600.0, 14400.0, "3600-14400s"), (14400.0, math.inf, ">14400s"))
+MONITOR_MIN_DAYS = 3  # fewer usable full monitor days than this -> the monitor medians (and ch272) are null
+SEM_EVENT_LEVEL_IDENTICAL_MIN = 0.99  # "about 100%": share of siblings whose status string equals the proposed market's at the first-appearance capture
+SEM_PER_MARKET_GROUP_SHARE = 0.5  # share of first-appearance groups that have an open sibling with no status
 OX_SLOTS = 84
 FULL_DAY_CAPTURES = 12  # captures for a "full" UTC day (as M1-J0)
 PERIODS_DEFAULT = (("2026-10-13", "2026-10-19"), ("2026-10-21", "2026-10-29"))
@@ -69,18 +75,40 @@ LINES = {
     "ch274_if_crossings_a_day_at_least": 30,
     "ch275_census_if_insured_units_scaled_to_21_days_at_least": 100,
     "ch275_census_if_disputes_share_of_proposal_events_at_least": 0.01,
-    "semantics_per_market_if_sibling_carry_share_below": 0.10,
-    "semantics_event_level_if_sibling_carry_share_above": 0.90,
+    "semantics_event_level_if_identical_sibling_share_at_least": SEM_EVENT_LEVEL_IDENTICAL_MIN,
+    "semantics_per_market_if_groups_with_unstatused_open_sibling_share_at_least": SEM_PER_MARKET_GROUP_SHARE,
+    "monitor_medians_need_at_least_full_covered_days": MONITOR_MIN_DAYS,
 }
 
 NOT_MAPPED = {
     "event_neg_risk_augmented": "not a column of the sidecar files read here; the augmented 'Other' member is not separated (CH273 counted class not available)",
     "sweep_1_coverage": "the book sweeps are not opened (CH273 (6) and CH274 (6) capacity coverage is M1-J0's 0.73% and is not re-measured)",
-    "engine_rules_table": "the engine's `rules` aux table is not opened; the class is the PLACEHOLDER lexicon of census_map_ch269 over the keyless stream_gamma_rules day files (CH239's parser is not in the repository)",
+    "line_7_proposed_before_end_date": "dropped: the share of crossings later proposed before end_date reads the proposal flag after k, which is measurement M3's early-settlement estimand (M3's leakage table bars this census from reading it); the crossing counts of line 7 are pre-k only",
     "rule_26_payoffs": "no payoff, resolution or label is read; r_B, r_eff, the dispute outcome and W's absent-vs-settled cross-check are the later measurements' business",
     "mde_f_mde": "no MDE or F-MDE is computed (no variance of a target is read)",
     "within_vs_between_stratum_sd": "CH275's rule-24 identification gate needs a dispute target and is not computed; only the class counts are printed",
 }
+
+SEMANTICS_RULE_TEXT = (
+    "Unit: a GROUP at a capture where at least one open member first shows a proposal (status code 1, empty at the previous capture); A = the lowest market_id among the group's first-seen proposals at that capture, "
+    "the group being the open binary rows sharing a non-empty neg_risk_market_id and having at least one other open member (a sibling). Counts are group-level and "
+    "sibling-level at that capture only (nothing after it). Per sibling: 'identical' = its own status string is non-empty and equal to A's; 'unstatused' = its status is empty. "
+    f"event_level if (siblings identical / siblings) >= {SEM_EVENT_LEVEL_IDENTICAL_MIN} (about 100%) AND the share of groups with at least one unstatused open sibling is below {SEM_PER_MARKET_GROUP_SHARE}; "
+    f"per_market if the share of groups with at least one unstatused open sibling is >= {SEM_PER_MARKET_GROUP_SHARE} AND the identical-sibling share is below {SEM_EVENT_LEVEL_IDENTICAL_MIN}; "
+    "every other case (both or neither condition) is mixed; no group or no sibling at all is null. mixed -> the CH273 decision is null, never False; event_level -> CH273 is False "
+    "(its B population would carry the proposal flag); any null count -> the decision is null. The in-scope (non-sports ex-crypto, by A's category) reading is the one the decisions use; "
+    "the all-category reading is printed beside it (sports dominates the venue). All thresholds are named constants printed in decision_lines; the raw counts are printed."
+)
+
+
+def semantics_reading(c: Counter) -> str | None:
+    g, sib = c.get("groups_total", 0), c.get("siblings_total", 0)
+    if not g or not sib:
+        return None
+    ident = c.get("siblings_identical", 0) / sib >= SEM_EVENT_LEVEL_IDENTICAL_MIN
+    pm = c.get("groups_with_unstatused_sibling", 0) / g >= SEM_PER_MARKET_GROUP_SHARE
+    return "event_level" if ident and not pm else "per_market" if pm and not ident else "mixed"
+
 
 FORBIDDEN_EXACT = frozenset({"y", "closed_time", "closed_ts", "fetched_ts", "fetched_utc", "final_price", "payout", "state_resolved", "res_7d", "dir_2h_y"})
 FORBIDDEN_SUBSTR = ("payoff", "pnl", "profit", "winner", "wallet", "proxy", "label", "outcome_price", "resolution_value", "resolved_value")
@@ -197,6 +225,16 @@ def book_state(bid: float, ask: float) -> str:
     return "no_quote"
 
 
+def surviving_fav(state: str, bid: float, ask: float) -> str:
+    """Rule 28: a bid is only a lower bound and an ask only an upper bound. Only a bid-only book at >= 0.90 favours YES and only an ask-only book at <= 0.10 favours NO;
+    every other one-sided book is bound_indeterminate (crossed / no-quote books are undetermined)."""
+    if state == "bid_only":
+        return "yes" if bid >= j0.FAV else "bound_indeterminate"
+    if state == "ask_only":
+        return "no" if ask <= 1 - j0.FAV + 1e-9 else "bound_indeterminate"  # float slack: 1 - 0.90 is 0.0999..98
+    return "undetermined"
+
+
 def ins_class(ins: float) -> str:
     v = j0.r6(ins)
     return "uninsured" if v <= UNINSURED_MAX else "insured" if v > INSURED_MIN else "middle"
@@ -204,6 +242,25 @@ def ins_class(ins: float) -> str:
 
 def full_day_median(per_day: dict, full_days: list[str]) -> float | None:
     return median([per_day.get(d, 0) for d in full_days])
+
+
+def k1_state(code: int, book: str, side_bid: float, side_ask: float, mid_k: float) -> str:
+    """The k + 1 state of an eligible row from the engine's quotes status code at k + 1 and, for a one-sided code, the sidecar book at k + 1."""
+    if code == 0:
+        return "labelled"
+    if code == 1:
+        return "closed"
+    if code == 2:
+        return "inactive"
+    if code == -1:
+        return "absent"
+    if book == "two_sided":
+        return "one_sided_in_engine_two_sided_in_sidecar"
+    if book == "bid_only":
+        return "one_sided_sign_determinable_up" if side_bid >= mid_k + DELTA - SIGN_EPS else "one_sided_indeterminate"
+    if book == "ask_only":
+        return "one_sided_sign_determinable_down" if side_ask <= mid_k - DELTA + SIGN_EPS else "one_sided_indeterminate"
+    return "one_sided_indeterminate"
 
 
 # --------------------------------------------------------------------------------------------------------------- discovery
@@ -222,22 +279,15 @@ def discover_all(roots: list[Path], start_ts: float, end_ts: float) -> tuple[lis
     return [by_slot[k] for k in sorted(by_slot)], notes
 
 
-def last_days_span(roots: list[Path], days: int) -> tuple[float, float]:
-    caps, _ = discover_all(roots, c240.parse_utc("2000-01-01T00:00:00Z"), c240.parse_utc("2100-01-01T00:00:00Z"))
-    if not caps:
-        raise SystemExit("no complete captures found for --last-days")
-    end = datetime.fromtimestamp(caps[-1]["start"], UTC).replace(minute=0, second=0, microsecond=0).timestamp() + 7200.0
-    end -= (datetime.fromtimestamp(end, UTC).hour % 2) * 3600.0
-    return end - days * DAY_S, end
-
-
 # --------------------------------------------------------------------------------------------------------------- the sidecar pass (lines 1, 2, 5 units, 6, 7, 8)
 
 
 class SidecarPass:
-    def __init__(self, start_ts: float, end_ts: float, rules: dict, n_warm: int) -> None:
+    def __init__(self, start_ts: float, end_ts: float, engine_root: Path | None, n_warm: int) -> None:
         self.start_ts, self.end_ts = start_ts, end_ts
-        self.rules = rules.get("classes", {})
+        self.engine_root = None if engine_root is None else Path(engine_root)
+        self.rules_cache: tuple = (None, None)
+        self.cur_cap: dict = {}
         self.j0 = j0.J0Pass(n_warm)
         self.idx = 0
         self.prev_slot: int | None = None
@@ -249,8 +299,11 @@ class SidecarPass:
         self.sem_len_hist: Counter = Counter()
         self.sem_len_vs_size: Counter = Counter()
         self.sem_len_vs_w: Counter = Counter()
-        self.sem_sib: Counter = Counter()
-        self.sem_sib_scope: Counter = Counter()
+        self.sem_grp: Counter = Counter()  # group-level counts at the first-appearance capture, all categories
+        self.sem_grp_scope: Counter = Counter()  # the same, A in scope
+        self.ev_groups: dict = defaultdict(set)
+        self.ev_multi_group_captures = 0
+        self.ev_with_group_captures = 0
         # line 2
         self.one_sided: Counter = Counter()
         self.first_seen_events: set = set()
@@ -268,13 +321,16 @@ class SidecarPass:
         self.first_obs: dict = {}
         self.ever_certain: set = set()
         self.cross_units: list[dict] = []
-        self.cross_pending: dict = {}
+        self.first_ts: dict = {}
+        self.warm_crossed: set = set()
+        self.window_started = False
         self.cross_classes: Counter = Counter()
         self.near_cert: Counter = Counter()
         # line 8
         self.disp_runs: dict = {}
         self.disp_active: set = set()
         self.disp_reappear = 0
+        self.disp_resumed_after_missing = 0
         self.ever_prop_state: set = set()
 
     # ------------------------------------------------------------------------------- readers
@@ -317,7 +373,7 @@ class SidecarPass:
             except ValueError:
                 continue
             g = str(grp).strip()
-            cur[mid] = (j0.r6(c240._f(bid)), j0.r6(c240._f(ask)), ev if str(ev).strip() else f"market:{mid}", "" if g.lower() in j0.EMPTY else g, str(cond), c240._f(liq), c240.parse_utc(end), c240.parse_utc(rec))
+            cur[mid] = (j0.r6(c240._f(bid)), j0.r6(c240._f(ask)), ev if str(ev).strip() else f"market:{mid}", "" if g.lower() in j0.EMPTY else g, str(cond).strip().lower(), c240._f(liq), c240.parse_utc(end), c240.parse_utc(rec), str(cond).strip())
         return cur
 
     # ------------------------------------------------------------------------------- the feed
@@ -344,9 +400,15 @@ class SidecarPass:
             else:
                 u["t_exit"] = start
         self.pending_exit = still
-        self._disputes(ext, slot, counted, start)
+        self.cur_cap = cap
+        self._disputes(ext, cur, slot, counted, start, missing=(not ext) or (self.prev_slot is not None and not has_prev))
+        if counted and not self.window_started:
+            self.window_started = True
+            for mid in self.warm_crossed:
+                r = cur.get(mid)
+                if r is not None and book_state(r[0], r[1]) == "two_sided" and max(j0.r6(r[1]), j0.r6(1.0 - r[0])) < CERTAIN:
+                    self.near_cert["pre_window_fell_back_below_by_window_start"] += 1
         self._crossings(ext, cur, has_prev, counted, start, day)
-        self._proposal_flags_for_crossings(ext, start)
         # the M1 unit (reused extractor); its state before this call is capture k - 1's
         self.j0.feed(cap, None)
         if counted:
@@ -362,6 +424,14 @@ class SidecarPass:
             e = ext.get(mid)
             if e and e[0]:
                 self.sem_len_hist["1" if e[2] == 1 else "2" if e[2] == 2 else "3-5" if e[2] <= 5 else "6-10" if e[2] <= 10 else "11+"] += 1
+        ev_grp: dict = defaultdict(set)
+        for grp, mids in groups.items():
+            for mid in mids:
+                ev_grp[cur[mid][2]].add(grp)
+        for ev, gs in ev_grp.items():
+            self.ev_groups[ev] |= gs
+            self.ev_with_group_captures += 1
+            self.ev_multi_group_captures += len(gs) > 1
         for mids in groups.values():
             s = len(mids)
             if s < 2:
@@ -386,9 +456,12 @@ class SidecarPass:
                 self.sem_len_vs_w["len_eq_members_with_status" if n == w else "len_lt_members_with_status" if n < w else "len_gt_members_with_status"] += 1
         if not has_prev:
             return
-        for mid, r in cur.items():
+        # group-level reading at the capture where A first shows a proposal (A = the lowest market_id of the group's first-seen proposals; the group counted once per capture)
+        seen_groups: set = set()
+        for mid in sorted(cur):
+            r = cur[mid]
             e = ext.get(mid)
-            if not e or e[0] != 1 or not e[1] or not r[3]:
+            if not e or e[0] != 1 or not e[1] or not r[3] or r[3] in seen_groups:
                 continue
             p = self.prev_state.get(mid)
             if p is None or p[2] != 0:
@@ -396,18 +469,24 @@ class SidecarPass:
             members = [m for m in groups.get(r[3], []) if m != mid]
             if not members:
                 continue
-            scope = e[3] == SCOPE
-            self.sem_sib["proposed_markets_first_seen_in_groups_ge2"] += 1
+            seen_groups.add(r[3])
+            cnt = [self.sem_grp] + ([self.sem_grp_scope] if e[3] == SCOPE else [])
+            n_unst = 0
             for m in members:
                 eb = ext.get(m)
-                kind = "unflagged_empty_status" if (not eb or not eb[0]) else "carries_a_proposal" if eb[1] else "other_status"
-                self.sem_sib["siblings_total"] += 1
-                self.sem_sib[kind] += 1
-                if eb and eb[0] and eb[7] == e[7]:
-                    self.sem_sib["sibling_status_string_identical_to_proposed"] += 1
-                if scope:
-                    self.sem_sib_scope["siblings_total"] += 1
-                    self.sem_sib_scope[kind] += 1
+                unst = not eb or not eb[0]
+                ident = bool(eb and eb[0] and eb[7] == e[7])
+                n_unst += unst
+                for c in cnt:
+                    c["siblings_total"] += 1
+                    c["siblings_unstatused"] += unst
+                    c["siblings_identical"] += ident
+                    c["siblings_other_status"] += (not unst) and (not ident)
+            for c in cnt:
+                c["groups_total"] += 1
+                c["groups_with_unstatused_sibling"] += n_unst > 0
+                c["groups_all_siblings_identical"] += all(ext.get(m) and ext[m][0] and ext[m][7] == e[7] for m in members)
+                c["groups_all_siblings_unstatused"] += n_unst == len(members)
 
     # ------------------------------------------------------------------------------- line 2 (M1's funnel order up to the two-sided test, re-derived and cross-checked)
     def _funnel_one_sided(self, cap: dict, ext: dict, cur: dict) -> None:
@@ -440,30 +519,47 @@ class SidecarPass:
             if st == "two_sided":
                 continue
             self.funnel_not_two_sided += 1
-            p = bid if st == "bid_only" else ask if st == "ask_only" else math.nan
-            fav = "undetermined" if not (p == p) else "yes" if p >= j0.FAV else "no" if p <= 1 - j0.FAV else "mid_zone"
+            fav = surviving_fav(st, bid, ask)
             self.one_sided[(st, fav, j0.TIER_NAMES[j0.tier_of(r[5])])] += 1
 
     # ------------------------------------------------------------------------------- disputes (line 8, sidecar state only)
-    def _disputes(self, ext: dict, slot: int, counted: bool, start: float) -> None:
+    def _disputes(self, ext: dict, cur: dict, slot: int, counted: bool, start: float, missing: bool = False) -> None:
+        """Dispute runs from the sidecar's own status string. A missing capture (a slot gap) or a capture without a sidecar does not end an active run: the run is censored
+        (duration unknown) and, when the market shows up again, it resumes without counting as a re-appearance. A re-appearance after a run ended at a covered capture
+        is counted once, when it re-appears."""
+        if missing:
+            for m in list(self.disp_active):
+                run = self.disp_runs[m]
+                if run["open"]:
+                    run["open"], run["censored"] = False, True
+            self.disp_active.clear()
+        if not ext:
+            return
         now = {m for m, e in ext.items() if e[0] == 2 and "disput" in e[7]}
         for m in list(self.disp_active):
             if m not in now:
                 self.disp_active.discard(m)
-                self.disp_runs[m]["ended"] = True
+                run = self.disp_runs[m]
+                if run["open"]:
+                    run["open"], run["ended"] = False, True
         for m in now:
             run = self.disp_runs.get(m)
+            ev = cur[m][2] if m in cur else f"market:{m}"
             if run is None:
-                self.disp_runs[m] = {"first_slot": slot, "last_slot": slot, "len": 1, "ended": False, "counted": counted, "day": c240.day_of(start), "cat": ext[m][3],
-                                     "after_proposal": m in self.ever_prop_state, "pre_existing": self.idx == 0}
+                self.disp_runs[m] = {"first_slot": slot, "last_slot": slot, "len": 1, "ended": False, "censored": False, "open": True, "gap_resumed": False, "counted": counted,
+                                     "day": c240.day_of(start), "cat": ext[m][3], "event": ev, "after_proposal": m in self.ever_prop_state, "pre_existing": self.idx == 0}
                 self.disp_active.add(m)
-            elif m in self.disp_active and run["last_slot"] == slot - 1:
-                run["last_slot"] = slot
-                run["len"] += 1
+            elif m in self.disp_active:
+                if run["open"] and run["last_slot"] == slot - 1:
+                    run["last_slot"] = slot
+                    run["len"] += 1
             else:
-                self.disp_reappear += 1
-                self.disp_active.discard(m)
-                run["ended"] = True
+                if run["censored"] and not run["gap_resumed"]:
+                    run["gap_resumed"] = True
+                    self.disp_resumed_after_missing += 1
+                else:
+                    self.disp_reappear += 1
+                self.disp_active.add(m)
         for m, e in ext.items():
             if e[1]:
                 self.ever_prop_state.add(m)
@@ -483,10 +579,12 @@ class SidecarPass:
             age_slots = (start - created) / GRID_S if math.isfinite(created) else math.nan
             if mid not in self.first_obs:
                 self.first_obs[mid] = self.idx
+                self.first_ts[mid] = start
                 if cert:
                     self.ever_certain.add(mid)
                     if self.idx == 0 or not counted:
                         self.near_cert["pre_window_certain_by_window_start"] += 1
+                        self.warm_crossed.add(mid)
                     elif math.isfinite(age_slots) and age_slots < AGE_MIN_SLOTS:
                         self.near_cert["born_certain"] += 1
                     else:
@@ -497,6 +595,7 @@ class SidecarPass:
             self.ever_certain.add(mid)
             if not counted:
                 self.near_cert["pre_window_certain_by_window_start"] += 1
+                self.warm_crossed.add(mid)
                 continue
             p = self.prev_state.get(mid) if has_prev else None
             if p is None or book_state(p[0], p[1]) != "two_sided":
@@ -519,21 +618,41 @@ class SidecarPass:
             if not (math.isfinite(age_slots) and age_slots >= AGE_MIN_SLOTS):
                 self.cross_classes["market_younger_than_12_slots_or_age_unknown"] += 1
                 continue
-            u = {"mid": mid, "day": day, "cls": self.rules.get(mid, "no_rules"), "tier": j0.TIER_NAMES[j0.tier_of(r[5])], "hte": hte_bin((end_ts - start) / 3600.0), "end_ts": end_ts,
-                 "start": start, "first_prop": None}
+            feed_age = (start - self.first_ts.get(mid, start)) / GRID_S
+            u = {"mid": mid, "day": day, "cls": self._rules_class(mid), "tier": j0.TIER_NAMES[j0.tier_of(r[5])], "hte": hte_bin((end_ts - start) / 3600.0), "end_ts": end_ts,
+                 "start": start, "feed_age_ge12": feed_age >= AGE_MIN_SLOTS}
             self.cross_classes["unit"] += 1
             self.cross_units.append(u)
-            self.cross_pending[mid] = u
 
-    def _proposal_flags_for_crossings(self, ext: dict, start: float) -> None:
-        for mid in list(self.cross_pending):
-            u = self.cross_pending[mid]
-            if start <= u["start"]:
-                continue
-            e = ext.get(mid)
-            if e and e[1]:
-                u["first_prop"] = start
-                del self.cross_pending[mid]
+    def _rules_class(self, mid: int) -> str:
+        """The engine's point-in-time rules table at k: aux/rules/<capture>.parquet (rc_has, cl_sched, cl_barrier). 'unavailable' when the table, the market or the rule text is missing."""
+        cid = str(self.cur_cap.get("capture_id") or self.cur_cap.get("id"))
+        if self.rules_cache[0] != cid:
+            tab = None
+            p = None if self.engine_root is None else self.engine_root / "aux" / "rules" / f"{cid}.parquet"
+            if p is None or not p.exists():
+                self.notes["rules_aux_table_missing_at_k"] += 1
+            else:
+                try:
+                    tb = pq.read_table(guard_path(p), columns=list(guard_columns(("market_id", "rc_has", "cl_sched", "cl_barrier"))))
+                    ids = tb.column("market_id").to_numpy().astype(np.int64)
+                    has, sc, ba = (tb.column(c).to_numpy(zero_copy_only=False).astype(np.float64) for c in ("rc_has", "cl_sched", "cl_barrier"))
+                    tab = {}
+                    for i, h, a, b in zip(ids.tolist(), has.tolist(), sc.tolist(), ba.tolist(), strict=True):
+                        if h == 1.0 and a == a and b == b:
+                            tab[i] = "both" if a > 0.5 and b > 0.5 else "scheduled" if a > 0.5 else "barrier" if b > 0.5 else "other"
+                except Exception:  # noqa: BLE001
+                    self.notes["rules_aux_table_unreadable_at_k"] += 1
+            self.rules_cache = (cid, tab)
+        tab = self.rules_cache[1]
+        if tab is None:
+            self.notes["rules_class_unavailable:no_table"] += 1
+            return "unavailable"
+        c = tab.get(int(mid))
+        if c is None:
+            self.notes["rules_class_unavailable:market_not_in_table_or_no_text"] += 1
+            return "unavailable"
+        return c
 
     # ------------------------------------------------------------------------------- units (lines 5, 6, 8)
     def _new_unit(self, u: dict, cur: dict, ext: dict, groups: dict, has_prev: bool, start: float) -> None:
@@ -542,7 +661,7 @@ class SidecarPass:
         bid, ask = r[0], r[1]
         ins = j0.r6(1.0 - bid) if u["side"] == "YES" else j0.r6(ask)
         t_k = max((x for x in (u["row_rec"], u["ext_rec"]) if math.isfinite(x)), default=start)
-        rec = {"mid": mid, "day": u["day"], "side": u["side"], "ins": ins, "ins_class": ins_class(ins), "zone": j0.zone_of(ins), "tier": u["tier"], "t_k": t_k, "cond": r[4], "t_exit": None,
+        rec = {"mid": mid, "day": u["day"], "side": u["side"], "ins": ins, "ins_class": ins_class(ins), "zone": j0.zone_of(ins), "tier": u["tier"], "t_k": t_k, "cond": r[4], "cond_raw": r[8], "t_exit": None,
                "event": u["event"], "start": start}
         self.units.append(rec)
         self.pending_exit.append(rec)
@@ -584,7 +703,7 @@ class SidecarPass:
 
 
 def read_monitor(root: Path | None, lo: float, hi: float) -> dict:
-    out = {"prints": defaultdict(list), "cycles": [], "forms": Counter(), "files": [], "missing_days": [], "available": False}
+    out = {"prints": defaultdict(list), "cycles": [], "cycle_status": Counter(), "forms": Counter(), "files": [], "missing_days": [], "available": False, "conds_seen_exact": set(), "conds_seen_lower": set()}
     if root is None or not Path(root).is_dir():
         return out
     out["available"] = True
@@ -602,24 +721,28 @@ def read_monitor(root: Path | None, lo: float, hi: float) -> dict:
                     try:
                         d = json.loads(line)
                         vals = {k: d.get(k) for k in keys}
-                        ts, cond, side, oi, cash = float(vals["ts"]), str(vals["condition_id"]), str(vals["side"]).upper(), int(vals["outcome_index"]), float(vals["cash"])
+                        ts, cond, side, oi, cash = float(vals["ts"]), str(vals["condition_id"]).strip(), str(vals["side"]).upper(), int(vals["outcome_index"]), float(vals["cash"])
                     except (ValueError, TypeError, KeyError, AttributeError):
                         continue
+                    out["conds_seen_exact"].add(cond)
+                    out["conds_seen_lower"].add(cond.lower())
                     if cash < PRINT_FLOOR:
                         continue
                     out["forms"][f"{side}|outcome_index={oi}"] += 1
-                    out["prints"][cond].append((ts, side, oi))
+                    out["prints"][cond.lower()].append((ts, side, oi))
         day = day.fromordinal(day.toordinal() + 1)
     sp = guard_path(Path(root) / "stats.jsonl")
     if sp.exists():
         with open(sp, encoding="utf-8") as fh:
             for line in fh:
                 try:
-                    t = c240.parse_utc(json.loads(line).get("cycle_start_utc"))
+                    cd = json.loads(line)
+                    t = c240.parse_utc(cd.get("cycle_start_utc"))
                 except (ValueError, AttributeError):
                     continue
                 if math.isfinite(t):
                     out["cycles"].append(t)
+                    out["cycle_status"][str(cd.get("status"))] += 1
         out["cycles"].sort()
         out["files"].append("stats.jsonl")
     return out
@@ -636,6 +759,7 @@ def monitor_line(units: list[dict], mon: dict, last_cap_start: float, full_days:
         return {"available": False, "note": "no --monitor-root given or it is missing: line (5) is unavailable, not a pass"}
     cyc = mon["cycles"]
     gaps = [(a, b) for a, b in zip(cyc, cyc[1:], strict=False) if b - a > MONITOR_GAP_S]
+    gap_hist = {name: sum(1 for a, b in gaps if lo < b - a <= hi) for lo, hi, name in GAP_BINS}
     first, last = (cyc[0], cyc[-1]) if cyc else (math.nan, math.nan)
     rows = []
     for u in units:
@@ -650,6 +774,15 @@ def monitor_line(units: list[dict], mon: dict, last_cap_start: float, full_days:
         rows.append({"u": u, "covered": covered, "pre_cov": pre_cov, "n_post": len(post), "n_post_fill": sum(1 for p in post if fill_flow(p[1], u["side"], p[2])),
                      "n_pre": len(pre), "n_pre_fill": sum(1 for p in pre if fill_flow(p[1], u["side"], p[2])), "in_gap": in_gap, "exited": u["t_exit"] is not None})
     cov = [r for r in rows if r["covered"]]
+    # a day is usable for a per-day median only if it is a full sidecar day, lies inside the monitor's cycle lines, and every unit of that day has its whole window covered
+    usable = []
+    for d in full_days:
+        d0 = c240.parse_utc(d + "T00:00:00Z")
+        if cyc and d0 >= first and d0 + DAY_S <= last and all(r["covered"] for r in rows if r["u"]["day"] == d):
+            usable.append(d)
+    enough = len(usable) >= MONITOR_MIN_DAYS
+    exact_hit = sum(1 for u in units if u["cond_raw"] in mon["conds_seen_exact"])
+    lower_hit = sum(1 for u in units if u["cond"] in mon["conds_seen_lower"])
     cov_ex = [r for r in cov if r["exited"]]
     by_day_any, by_day_fill, by_day_prints = Counter(), Counter(), Counter()
     for r in cov:
@@ -672,14 +805,19 @@ def monitor_line(units: list[dict], mon: dict, last_cap_start: float, full_days:
         "units_with_any_print_in_window_a_day": dict(sorted(by_day_any.items())),
         "units_with_fill_flow_print_in_window_a_day": dict(sorted(by_day_fill.items())),
         "prints_in_unit_windows_a_day": dict(sorted(by_day_prints.items())),
-        "median_units_with_any_print_per_full_day": full_day_median(by_day_any, full_days),
-        "median_units_with_fill_flow_print_per_full_day": full_day_median(by_day_fill, full_days),
+        "monitor_full_days_used": usable, "monitor_full_days_used_n": len(usable), "monitor_full_days_candidates": list(full_days),
+        "median_units_with_any_print_per_full_day": full_day_median(by_day_any, usable) if enough else None,
+        "median_units_with_fill_flow_print_per_full_day": full_day_median(by_day_fill, usable) if enough else None,
+        "median_note": f"medians use only full UTC days inside the monitor's cycle lines whose unit windows are ALL covered; null if fewer than {MONITOR_MIN_DAYS} such days (a missing day is never a measured zero)",
+        "condition_id_join": {"units": len(units), "units_with_condition_id_in_monitor_files_exact_case": exact_hit, "units_with_condition_id_in_monitor_files_lowercased": lower_hit,
+                              "join_rate_lowercased": safe_div(lower_hit, len(units)), "note": "any monitor print of the condition_id counts, whatever its cash; both sides are lower-cased before the join"},
         "units_with_any_print_in_window": sum(1 for r in cov if r["n_post"]), "units_with_fill_flow_print_in_window": sum(1 for r in cov if r["n_post_fill"]),
         "units_with_any_print_in_window_exited_only": sum(1 for r in cov_ex if r["n_post"]), "prints_in_unit_windows": sum(r["n_post"] for r in cov),
         "pre_k_24h": {"units_covered": len(pre_cov), "units_with_any_print": sum(1 for r in pre_cov if r["n_pre"]), "units_with_fill_flow_print": sum(1 for r in pre_cov if r["n_pre_fill"]),
                       "prints": sum(r["n_pre"] for r in pre_cov), "pre_x_post_units": {f"{a}|{b}": n for (a, b), n in sorted(split.items())}},
         "monitor_cycles": {"cycle_lines": len(cyc), "first_utc": iso(first) if cyc else None, "last_utc": iso(last) if cyc else None,
-                           "gap_threshold_s": MONITOR_GAP_S, "gaps": len(gaps), "gap_seconds": round(sum(b - a for a, b in gaps), 1)},
+                           "gap_threshold_s": MONITOR_GAP_S, "gaps": len(gaps), "gap_seconds": round(sum(b - a for a, b in gaps), 1), "gap_length_histogram": gap_hist,
+                           "cycles_by_status": dict(sorted(mon["cycle_status"].items())), "cycles_status_not_ok": sum(v for k, v in mon["cycle_status"].items() if k != "ok")},
         "share_of_covered_unit_windows_overlapping_a_cycle_gap": safe_div(sum(1 for r in cov if r["in_gap"]), len(cov)),
         "side_outcome_forms_seen_all_prints_ge_1000": dict(sorted(mon["forms"].items())),
         "fill_flow_mapping_used": "favoured YES: SELL with outcome_index 0 or BUY with outcome_index 1; favoured NO: SELL with outcome_index 1 or BUY with outcome_index 0 (outcome 0 = the YES token); the any-print counts do not depend on this mapping",
@@ -751,14 +889,16 @@ def _read_feat(p: Path, notes: Counter) -> dict | None:
             "hte": col("ms_hours_to_end"), "end_ts": col("end_ts"), "n": n}
 
 
-def _read_champion(p: Path | None, n: int, notes: Counter) -> np.ndarray | None:
+def _read_champion(p: Path | None, n: int, notes: Counter) -> tuple | None:
+    """(s_2h, elig bit 1) of the champion's predictions file, aligned row for row with the features file (only the row count is checkable)."""
     if p is None or not Path(p).exists():
         return None
-    tb = pq.read_table(guard_path(p), columns=list(guard_columns(["dir_2h_dn", "dir_2h_up"])))
+    tb = pq.read_table(guard_path(p), columns=list(guard_columns(["elig", "dir_2h_dn", "dir_2h_up"])))
     if tb.num_rows != n:
         notes["predictions_not_aligned_with_features"] += 1
         return None
-    return (tb.column("dir_2h_up").to_numpy().astype(np.float64) - tb.column("dir_2h_dn").to_numpy().astype(np.float64)) / c269.Q16
+    s = (tb.column("dir_2h_up").to_numpy().astype(np.float64) - tb.column("dir_2h_dn").to_numpy().astype(np.float64)) / c269.Q16
+    return s, (tb.column("elig").to_numpy().astype(np.uint8) & 1) > 0
 
 
 def _day_in(t: float, period: tuple[str, str]) -> bool:
@@ -784,6 +924,7 @@ class EnginePass:
         # line 3
         self.l3: Counter = Counter()
         self.l3_event_sd: list[float] = []
+        self.l3_event_sd_by_event: dict = defaultdict(list)
         self.l3_between: list[float] = []
         self.l3_caps_with_pred = 0
         # line 4
@@ -851,7 +992,12 @@ class EnginePass:
         # line 3
         neg = elig & (feats["neg"] > 0.5)
         ev = np.array([str(e) for e in np.array(feats["event"], dtype=object)[neg]], dtype=object)
-        s = _read_champion(ppath, feats["n"], self.notes)
+        pr = _read_champion(ppath, feats["n"], self.notes)
+        s = None if pr is None else pr[0]
+        if pr is not None:
+            self.l3["elig_ours_and_pred_bit1"] += int((elig & pr[1]).sum())
+            self.l3["elig_ours_not_pred_bit1"] += int((elig & ~pr[1]).sum())
+            self.l3["pred_bit1_not_ours_not_two_sided_or_category"] += int((~elig & pr[1]).sum())
         if ppath is None or not Path(ppath).exists():
             self.notes["captures_without_champion_prediction_file"] += 1
         if len(ev):
@@ -872,7 +1018,10 @@ class EnginePass:
                 ok = nf >= 3
                 with np.errstate(invalid="ignore", divide="ignore"):
                     var = (s2 - s1 * s1 / nf) / (nf - 1)
-                self.l3_event_sd.extend(float(x) for x in np.sqrt(np.clip(var[ok], 0.0, None)))
+                sd_ev = np.sqrt(np.clip(var[ok], 0.0, None))
+                self.l3_event_sd.extend(float(x) for x in sd_ev)
+                for name, x in zip(u[ok].tolist(), sd_ev.tolist(), strict=True):
+                    self.l3_event_sd_by_event[name].append(float(x))
                 self.l3["events_ge3_scored"] += int(ok.sum())
                 if ok.sum() >= 2:
                     self.l3_between.append(float(np.std(s1[ok] / nf[ok], ddof=1)))
@@ -907,22 +1056,7 @@ class EnginePass:
                         side_bid[j], side_ask[j] = j0.r6(c240._f(b)), j0.r6(c240._f(a))
         for j in range(len(ids)):
             code = int(st[j])
-            if code == 0:
-                state = "labelled"
-            elif code == 1:
-                state = "closed"
-            elif code == 2:
-                state = "inactive"
-            elif code == -1:
-                state = "absent"
-            else:
-                bs = book_state(side_bid[j], side_ask[j])
-                if bs == "bid_only":
-                    state = "one_sided_sign_determinable_up" if side_bid[j] >= mid_k[j] + DELTA - SIGN_EPS else "one_sided_indeterminate"
-                elif bs == "ask_only":
-                    state = "one_sided_sign_determinable_down" if side_ask[j] <= mid_k[j] - DELTA + SIGN_EPS else "one_sided_indeterminate"
-                else:
-                    state = "one_sided_indeterminate"
+            state = k1_state(code, book_state(side_bid[j], side_ask[j]) if code == 3 else "", side_bid[j], side_ask[j], mid_k[j])
             self.k1[state] += 1
             self.k1_by_mid[(state, c240.price_bin(float(mid_k[j])))] += 1
             self.k1_by_hte[(state, pend["hte"][j])] += 1
@@ -953,7 +1087,7 @@ class EnginePass:
         k1 = self.k1
         n_k1 = sum(k1.values())
         det = k1.get("one_sided_sign_determinable_up", 0) + k1.get("one_sided_sign_determinable_down", 0)
-        states = ("labelled", "one_sided_sign_determinable_up", "one_sided_sign_determinable_down", "one_sided_indeterminate", "absent", "closed", "inactive")
+        states = ("labelled", "one_sided_sign_determinable_up", "one_sided_sign_determinable_down", "one_sided_indeterminate", "one_sided_in_engine_two_sided_in_sidecar", "absent", "closed", "inactive")
 
         def by(counter, dim_values):
             return {st: {v: counter.get((st, v), 0) for v in dim_values} for st in states}
@@ -966,13 +1100,17 @@ class EnginePass:
                                          **{key: {"rows": int(h.sum()), "p50_spread_all_tiers": hist_median(h.sum(axis=0)), **{f"p50_{tier_names[t]}": hist_median(h[t]) for t in range(5)},
                                                   **{f"rows_{tier_names[t]}": int(h[t].sum()) for t in range(5)}} for key, h in self.spread[pi].items()}}
         sds = self.l3_event_sd
+        per_ev = [median(v) for v in self.l3_event_sd_by_event.values()]
         return {
             "line_3_negrisk_events_ge3": {
                 "captures_with_features": l3.get("captures_with_features", 0), "captures_with_champion_predictions_aligned": self.l3_caps_with_pred,
                 "eligible_rows": el, "negrisk_eligible_rows": l3.get("negrisk_eligible_rows", 0), "negrisk_events_with_eligible_members": l3.get("negrisk_events", 0),
                 "negrisk_events_with_co_n_ge_3": l3.get("negrisk_events_with_co_n_ge_3", 0), "eligible_rows_in_negrisk_events_with_co_n_ge_3": in3,
                 "share_eligible_rows_in_negrisk_events_with_co_n_ge_3": safe_div(in3, el), "events_ge3_with_3_scored_members": l3.get("events_ge3_scored", 0),
-                "within_event_sd_of_s_2h": {"n_event_captures": len(sds), "median": median(sds), "p25": quant(sds, 0.25), "p75": quant(sds, 0.75)},
+                                "within_event_sd_of_s_2h": {"n_event_captures": len(sds), "median": median(sds), "p25": quant(sds, 0.25), "p75": quant(sds, 0.75),
+                                            "n_distinct_events": len(per_ev), "median_over_distinct_events_of_each_events_median_sd": median(per_ev), "p25_distinct_events": quant(per_ev, 0.25), "p75_distinct_events": quant(per_ev, 0.75),
+                                            "note": "the event-capture median counts an event once per capture; the distinct-event median takes each event's own median SD over its captures first"},
+                "eligibility_cross_check_with_predictions_elig_bit_1": {k: l3.get(k, 0) for k in ("elig_ours_and_pred_bit1", "elig_ours_not_pred_bit1", "pred_bit1_not_ours_not_two_sided_or_category")},
                 "between_event_sd_of_event_mean_s_2h": {"n_captures": len(self.l3_between), "median_over_captures": median(self.l3_between)},
                 "unit": "eligible = engine category not in sports / crypto / unknown, dir_2h-eligible by end_ts (the elig bit 1 rule, restated), two-sided in quotes/ at k; neg-risk = ms_neg_risk > 0.5; event = event_id; the champion's s_2h = P(up) - P(down) read as a distribution, no label"},
             "line_4_k_plus_1_state": {
@@ -993,15 +1131,14 @@ class EnginePass:
 # --------------------------------------------------------------------------------------------------------------- run
 
 
-def run_map(snapshot_roots: list[Path], engine_root: Path, rules_root: Path, monitor_root: Path | None, start_ts: float, end_ts: float, engine_days: int = 8, warmup: int = 12,
+def run_map(snapshot_roots: list[Path], engine_root: Path, monitor_root: Path | None, start_ts: float, end_ts: float, engine_days: int = 8, warmup: int = 12,
             periods: tuple = PERIODS_DEFAULT, champion: str = CHAMPION) -> dict:
     span_days = (end_ts - start_ts) / DAY_S
     feed_lo = start_ts - warmup * GRID_S
     caps_ext, dnotes = discover_all(snapshot_roots, feed_lo, end_ts + 1.5 * GRID_S)
     caps = [c for c in caps_ext if c["start"] < end_ts]
-    rules = c269.read_rules(rules_root)
     n_warm = sum(1 for c in caps if c["start"] < start_ts)
-    sp = SidecarPass(start_ts, end_ts, rules, n_warm)
+    sp = SidecarPass(start_ts, end_ts, engine_root, n_warm)
     for c in caps:
         sp.feed(c, c["start"] >= start_ts)
     sp.notes.update({f"discover:{k}": v for k, v in dnotes.items()})
@@ -1058,7 +1195,8 @@ def run_map(snapshot_roots: list[Path], engine_root: Path, rules_root: Path, mon
                  "counted_with_previous": sum(1 for c in sp.counted if c["with_prev"]), "full_days": full_days, "captures_per_day": dict(sorted(days_n.items())),
                  "missing_engine_quote_slot_count": len(miss_q), "missing_engine_quote_slots_in_engine_window": [iso(GRID0 + s * GRID_S) for s in miss_q][:200],
                  "engine_prediction_files_in_window": n_pred},
-        "rules_stream": {"info": rules["info"], "classifier": "PLACEHOLDER lexicon of census_map_ch269 (not CH239's parser, not the engine's rules table)", "classes_n": dict(Counter(rules["classes"].values()))},
+        "rules_source": {"table": "the engine's point-in-time aux/rules/<capture>.parquet at each crossing's k (rc_has, cl_sched, cl_barrier; signal_engine/rules_text.py); 'unavailable' where the table, the market or its text is missing; the CH269 last-row reader is not used",
+                         "crossings_by_class": l7["by_rules_class"]},
         "notes": {"sidecar": dict(sorted(sp.notes.items())), "engine": dict(sorted(ep.notes.items()))},
         "not_mapped": NOT_MAPPED,
         "decision_lines": LINES,
@@ -1075,22 +1213,29 @@ def run_map(snapshot_roots: list[Path], engine_root: Path, rules_root: Path, mon
 
 
 def line_1(sp: SidecarPass) -> dict:
-    s, sib, sibs = sp.sem, sp.sem_sib, sp.sem_sib_scope
-    share = safe_div(sib.get("carries_a_proposal", 0), sib.get("siblings_total", 0))
-    lo, hi = LINES["semantics_per_market_if_sibling_carry_share_below"], LINES["semantics_event_level_if_sibling_carry_share_above"]
-    reading = None if share is None else "per_market" if share < lo else "event_level" if share > hi else "mixed"
+    s = sp.sem
+    keys = ("groups_total", "siblings_total", "siblings_identical", "siblings_unstatused", "siblings_other_status", "groups_with_unstatused_sibling", "groups_all_siblings_identical", "groups_all_siblings_unstatused")
+    r_all, r_scope = semantics_reading(sp.sem_grp), semantics_reading(sp.sem_grp_scope)
+    sg, sgs = sp.sem_grp, sp.sem_grp_scope
+    multi = sum(1 for g in sp.ev_groups.values() if len(g) > 1)
     return {
-        "semantics_reading": reading,
-        "reading_rule": f"share of siblings (other open members of a neg-risk group at the capture where one member first shows a proposal) whose own status carries a proposal: below {lo} = per_market, above {hi} = event_level, else mixed; a reading aid for CH273 / CH275, not a gate",
-        "sibling_carry_share": share,
-        "siblings_of_first_seen_proposals": {k: sib.get(k, 0) for k in ("proposed_markets_first_seen_in_groups_ge2", "siblings_total", "unflagged_empty_status", "carries_a_proposal", "other_status", "sibling_status_string_identical_to_proposed")},
-        "siblings_of_first_seen_proposals_in_scope_nonsports_excrypto": {k: sibs.get(k, 0) for k in ("siblings_total", "unflagged_empty_status", "carries_a_proposal", "other_status")},
+        "semantics_reading": r_scope,
+        "semantics_reading_all_categories": r_all,
+        "reading_used_by_decisions": "in_scope (non-sports ex-crypto, by A's category); the all-category reading is printed beside it",
+        "reading_rule": SEMANTICS_RULE_TEXT,
+        "first_appearance_group_counts_in_scope": {k: sgs.get(k, 0) for k in keys},
+        "first_appearance_group_counts_all_categories": {k: sg.get(k, 0) for k in keys},
+        "identical_sibling_share_in_scope": safe_div(sgs.get("siblings_identical", 0), sgs.get("siblings_total", 0)), "identical_sibling_share_all_categories": safe_div(sg.get("siblings_identical", 0), sg.get("siblings_total", 0)),
+        "groups_with_unstatused_sibling_share_in_scope": safe_div(sgs.get("groups_with_unstatused_sibling", 0), sgs.get("groups_total", 0)),
+        "groups_with_unstatused_sibling_share_all_categories": safe_div(sg.get("groups_with_unstatused_sibling", 0), sg.get("groups_total", 0)),
+        "events_spanning_more_than_one_neg_risk_group": {"distinct_events_with_a_group": len(sp.ev_groups), "distinct_events_spanning_gt_1_group": multi,
+                                                         "event_captures_with_a_group": sp.ev_with_group_captures, "event_captures_spanning_gt_1_group": sp.ev_multi_group_captures},
         "status_list_length_vs_neg_risk_group_size": {k: sp.sem_len_vs_size.get(k, 0) for k in ("len_lt_group_size", "len_eq_group_size", "len_gt_group_size")},
         "status_list_length_vs_members_with_any_status": {k: sp.sem_len_vs_w.get(k, 0) for k in ("len_lt_members_with_status", "len_eq_members_with_status", "len_gt_members_with_status")},
         "status_list_length_histogram_statused_open_rows": {k: sp.sem_len_hist.get(k, 0) for k in ("1", "2", "3-5", "6-10", "11+")},
         "group_captures": {k: s.get(k, 0) for k in ("group_captures_size_ge2", "groups_of_size_1", "group_captures_with_any_status", "all_members_have_status", "some_members_have_status",
                                                     "groups_with_2plus_statused_members", "groups_all_statused_members_identical_string")},
-        "definitions": "group = open binary rows sharing a non-empty neg_risk_market_id at the capture; status 'carries a proposal' = the sidecar list contains 'propos'; list length parsed as a JSON / Python list (comma count otherwise); all categories (a venue field), the in-scope subset beside it",
+        "definitions": "group = open binary rows sharing a non-empty neg_risk_market_id at the capture; identical = a sibling's own status string non-empty and equal to A's; list length parsed as a JSON / Python list (comma count otherwise); all categories (a venue field), the in-scope subset beside it",
     }
 
 
@@ -1110,7 +1255,7 @@ def line_2(sp: SidecarPass) -> dict:
         "by_surviving_side_x_favoured_side": {f"{a}|{b}": n for (a, b), n in sorted(by_fav.items())}, "by_surviving_side_x_tier": {f"{a}|{b}": n for (a, b), n in sorted(by_tier.items())},
         "by_surviving_side_x_favoured_side_x_tier": dict(sorted(cube.items())),
         "consistency_with_m1_j0_funnel_not_two_sided": {"this_map": sp.funnel_not_two_sided, "j0_pass": check, "equal": sp.funnel_not_two_sided == check},
-        "favoured_side_rule": "from the surviving price p: p >= 0.90 favours YES, p <= 0.10 favours NO, otherwise mid_zone; both sides missing = undetermined; the surviving price is the sidecar best_bid / best_ask at k (quotes/ keeps no price for a one-sided row)",
+        "favoured_side_rule": "rule 28: a bid is only a lower bound and an ask only an upper bound, so only a bid-only book at >= 0.90 favours YES and only an ask-only book at <= 0.10 favours NO; every other one-sided book is bound_indeterminate; crossed / no-quote books are undetermined; the surviving price is the sidecar best_bid / best_ask at k (quotes/ keeps no price for a one-sided row)",
         "definitions": "rows = M1's E1-E7 funnel at the first capture showing a proposal, up to and including the scope test, whose book is not two-sided; bid_only = best_bid > 0 with no valid ask; ask_only = valid ask with no bid; crossed_or_locked and no_quote counted apart",
     }
 
@@ -1138,8 +1283,6 @@ def line_6(sp: SidecarPass, full_days: list[str]) -> dict:
 def line_7(sp: SidecarPass, full_days: list[str]) -> dict:
     U = sp.cross_units
     per_day = Counter(u["day"] for u in U)
-    withp = [u for u in U if u["first_prop"] is not None]
-    before = sum(1 for u in withp if u["first_prop"] < u["end_ts"])
     nc = sp.near_cert
     pop = len(U) + sum(nc.values())
 
@@ -1150,14 +1293,17 @@ def line_7(sp: SidecarPass, full_days: list[str]) -> dict:
         "crossings_total": len(U), "crossings_a_day": dict(sorted(per_day.items())), "median_crossings_per_full_day": full_day_median(per_day, full_days),
         "by_rules_class": cnt("cls"), "by_tier": cnt("tier"), "by_hours_to_end_bin": cnt("hte"),
         "by_rules_class_x_tier_x_hours_to_end": dict(sorted(Counter(f"{u['cls']}|{u['tier']}|{u['hte']}" for u in U).items())),
-        "classed_share": safe_div(sum(1 for u in U if u["cls"] != "no_rules"), len(U)),
+        "classed_share": safe_div(sum(1 for u in U if u["cls"] != "unavailable"), len(U)),
         "near_certain_markets_seen": pop, "born_certain": nc.get("born_certain", 0), "pre_window_certain_by_window_start": nc.get("pre_window_certain_by_window_start", 0),
         "first_sight_certain_old_market": nc.get("first_sight_certain_old_market", 0),
         "born_certain_share": safe_div(nc.get("born_certain", 0), pop), "pre_window_share": safe_div(nc.get("pre_window_certain_by_window_start", 0), pop),
         "crossing_candidates_excluded": dict(sorted((k, v) for k, v in sp.cross_classes.items() if k != "unit")),
-        "proposed_before_end_date": {"units_with_a_proposal_in_span": len(withp), "proposed_before_end_date": before, "share": safe_div(before, len(withp)),
-                                     "note": "a lagged count: the first later capture whose sidecar status carries 'propos', compared with the unit's end_date; units with no proposal in the span are not in the denominator"},
-        "definitions": "non-sports ex-crypto, two-sided at k and k - 1, favoured ask >= 0.95 at k (YES ask, or NO ask = 1 - YES bid) and < 0.95 at k - 1, never certain at an earlier fed capture, no status at k, end_date > k + 24 h, market age (created_at) >= 12 slots; the rules class is the placeholder lexicon (no_rules = market absent from the stream)",
+        "split_pre_window": {"certain_at_first_fed_capture_or_first_seen_in_warm_up": nc.get("pre_window_certain_by_window_start", 0), "of_which_fell_back_below_0_95_by_window_start": nc.get("pre_window_fell_back_below_by_window_start", 0),
+                             "note": "pre_window_certain_by_window_start also counts markets that were certain during the warm-up and had fallen back below 0.95 by the window start (their later re-crossing is not a first crossing)"},
+        "crossings_by_feed_first_seen_age": {"feed_age_ge_12_slots": sum(1 for u in U if u["feed_age_ge12"]), "feed_age_lt_12_slots": sum(1 for u in U if not u["feed_age_ge12"]),
+                                             "note": "beside the created_at age (the eligibility test): the age since the market was first seen in the feed (the feed starts at warm-up, so it is capped at the feed length)"},
+        "not_read": "nothing after k is read by line 7; the share of crossings later proposed before end_date is dropped (measurement M3's estimand)",
+        "definitions": "non-sports ex-crypto, two-sided at k and k - 1, favoured ask >= 0.95 at k (YES ask, or NO ask = 1 - YES bid) and < 0.95 at k - 1, never certain at an earlier fed capture, no status at k, end_date > k + 24 h, market age (created_at) >= 12 slots; the rules class is the engine's point-in-time aux/rules table at k (unavailable where missing)",
     }
 
 
@@ -1177,6 +1323,7 @@ def line_8(sp: SidecarPass, full_days: list[str], span_days: float) -> dict:
 
     n_events = len(sp.first_seen_events)
     unit_events = len({u["event"] for u in U})
+    disp_events = len({r["event"] for r in runs_scope})
     return {
         "proposal_units_total": len(U), "by_insurance_class": {c: n_cls.get(c, 0) for c in cls}, "units_a_day_by_insurance_class": {c: dict(sorted(per_day[c].items())) for c in cls},
         "median_per_full_day_by_insurance_class": {c: full_day_median(per_day[c], full_days) for c in cls},
@@ -1188,9 +1335,12 @@ def line_8(sp: SidecarPass, full_days: list[str], span_days: float) -> dict:
         "of_which_preceded_by_a_proposal_state_in_the_feed": sum(1 for r in runs_scope if r["after_proposal"]),
         "duration_in_captures_in_scope": dur(runs_scope), "duration_in_captures_all_categories": dur(runs),
         "disputed_already_present_at_feed_start_excluded": sum(1 for r in sp.disp_runs.values() if r["pre_existing"]), "disputed_runs_not_counted_started_in_warmup": sum(1 for r in sp.disp_runs.values() if not r["counted"] and not r["pre_existing"]),
-        "disputed_reappearances_after_a_run_ended_not_counted_as_first": sp.disp_reappear,
+        "disputed_reappearances_after_a_run_ended_not_counted_as_first": sp.disp_reappear, "disputed_runs_censored_by_a_missing_capture_or_sidecar": sum(1 for r in sp.disp_runs.values() if r["censored"]),
+        "disputed_runs_resumed_after_a_missing_capture": sp.disp_resumed_after_missing,
         "proposal_events_in_scope_first_seen_rows": n_events, "proposal_events_of_m1_units": unit_events,
-        "disputes_share_of_proposal_events_first_seen_rows": safe_div(len(runs_scope), n_events), "disputes_share_of_proposal_events_of_m1_units": safe_div(len(runs_scope), unit_events),
+        "disputed_distinct_events_in_scope": disp_events,
+        "disputes_share_of_proposal_events_first_seen_rows": safe_div(disp_events, n_events), "disputes_share_of_proposal_events_of_m1_units": safe_div(disp_events, unit_events),
+        "share_numerator": "distinct events with a disputed first appearance in scope (not markets), over distinct proposal events",
         "lingering_and_absent_at_k_plus_1_shares": "not computed: they need the dispute target and the listing after k for a unit (a post-k state), which section E (8) does not name; the first-appearance and duration counts above are the whole of (8)'s state reads",
         "definitions": "units = M1's (J0Pass) first capture showing a proposal, two-sided, favoured side >= 0.90; disputed state = the sidecar status list contains 'disput'; first appearance = first capture of a market's first contiguous run; duration = captures in that run",
     }
@@ -1206,7 +1356,8 @@ def decisions(er: dict, l1: dict, l5: dict, l6: dict, l7: dict, l8: dict) -> dic
     m5 = l5.get("median_units_with_any_print_per_full_day") if l5.get("available") else None
     b6 = l6["median_two_sided_b_units_per_full_day"]
     sem = l1["semantics_reading"]
-    c273 = None if b6 is None or sem is None else bool(b6 >= LINES["ch273_drafted_if_two_sided_b_units_a_day_at_least"] and sem == "per_market")
+    # mixed -> null (never False); event_level -> False; any null count -> null
+    c273 = None if b6 is None or sem is None or sem == "mixed" else bool(b6 >= LINES["ch273_drafted_if_two_sided_b_units_a_day_at_least"] and sem == "per_market")
     ins_s = l8["insured_units_scaled_to_21_days"]
     dis = l8["disputes_share_of_proposal_events_first_seen_rows"]
     c275 = None if ins_s is None or dis is None else bool(ins_s >= LINES["ch275_census_if_insured_units_scaled_to_21_days_at_least"] and dis >= LINES["ch275_census_if_disputes_share_of_proposal_events_at_least"])
@@ -1216,7 +1367,7 @@ def decisions(er: dict, l1: dict, l5: dict, l6: dict, l7: dict, l8: dict) -> dic
         "ch271_c": {"share_ox_1s_84_gt_0": l4["ox_1s_84"]["share_gt_0"], "built": ge(l4["ox_1s_84"]["share_gt_0"], LINES["ch271_c_if_share_of_eligible_rows_with_ox_1s_84_gt_0_at_least"])},
         "ch272": {"median_proposal_units_with_a_print_per_full_day": m5, "filed_as_m1_amendment": ge(m5, LINES["ch272_amendment_if_proposal_units_a_day_with_a_print_at_least"]),
                   "else": "share-only line" if m5 is not None and m5 < LINES["ch272_amendment_if_proposal_units_a_day_with_a_print_at_least"] else None},
-        "ch273": {"median_two_sided_b_units_per_full_day": b6, "status_field": sem, "drafted": c273},
+        "ch273": {"median_two_sided_b_units_per_full_day": b6, "status_field": sem, "status_field_all_categories": l1["semantics_reading_all_categories"], "drafted": c273},
         "ch274": {"median_crossings_per_full_day": l7["median_crossings_per_full_day"], "built": ge(l7["median_crossings_per_full_day"], LINES["ch274_if_crossings_a_day_at_least"])},
         "ch275": {"insured_units_scaled_to_21_days": ins_s, "disputes_share_of_proposal_events": dis, "goes_to_census": c275},
         "a_decision_is_none_when_its_count_is_unavailable": True,
