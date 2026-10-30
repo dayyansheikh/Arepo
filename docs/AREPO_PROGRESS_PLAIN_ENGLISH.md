@@ -1,31 +1,34 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 03:13 UTC+1
+**Last updated:** 2026-10-30 04:09 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **New ideas (round 19):** eight original ideas are written up. The lead one: after someone formally proposes how a
-  market resolved, does the winning side still trade at a discount worth more than the small risk the proposal is
-  overturned? A reviewer agreed that such questions can be run as pre-registered *measurements* (a number with an error
-  bar, frozen in advance, never called a finding). One of the eight needs redesign because it accidentally used
-  information from the future. A light counting job is being built to decide which ideas go forward.
-- **Batch 9 unblocked:** the size limit that stopped one data step was reviewed. The reviewer confirmed it limits disk space
-  only, was set before any results were seen, and that raising it changes nothing scientific. The step is queued again
-  from scratch.
-- **LT13 (new live test):** a full independent re-check said "go, with changes". The changes are made, and a final check
-  before freezing the design is running.
+- **LT13 (new live test) is designed, frozen and coded.** Its counting-check code passed an independent check. That check
+  found a real flaw in the frozen text: three controls that always add up exactly, which would have made every fit fail and
+  the test drop out by construction. A small reviewed amendment removed the redundant one. The maths shows this changes no
+  result, threshold or date, and the amendment is recorded openly. The counting check starts after 17 Nov.
+- **New ideas (round 19):** eight original ideas are written up. The lead one: after someone formally proposes how a market
+  resolved, does the winning side still trade at a discount worth more than the small risk the proposal is overturned? A
+  reviewer agreed such questions can run as pre-registered *measurements* (a number with an error bar, frozen in advance,
+  never called a finding). A light counting job (queued) decides which ideas go forward.
+- **Three stuck batches unblocked, each after an independent review:**
+  - Batch 9: a disk-size limit set far too small was raised. The reviewer confirmed it was a size limit only, decided
+    without seeing any result. The step is queued from scratch.
+  - Batch 10: the review caught a wrong file in the next step's settings (the whole data frame instead of the 1,000-market
+    sample the design names). Fixed before it ever ran.
+  - Batch 5: one idea found zero usable market groups. The code now records the declared result, "not testable (too rare)",
+    and counts it. The next data fetch is queued.
+- **Batch 3:** its new data step ran for the first time tonight, so its development window ends on 3 Nov (by its own rule).
 - **LT12 (frozen live test):** Polymarket's 20 Oct fee change moved about 1,800 markets from "sports" to "non-sports" under
-  LT12's fixed rule. The review says this is a disclosure, not a breach: the whole LT12 window comes after the change, so
-  the rule applies the same way throughout.
-- **Batch 3:** its new data step ran for the first time at 00:31 tonight, so its development window now ends on 3 Nov
-  (by its own rule).
-- **Batch 5:** the code re-check passed with one item. With zero usable families found, the count must record the declared
-  result "too rare to test", not "data missing". That fix is being made.
-- **Server:** the long model run (MC1) is working through its folds. When it pauses (about 06:00 UTC+1), the batch 7 count
-  (due before 3 Nov) and the batch 4 trade fetch get their turn.
+  LT12's fixed rule. This is recorded as a disclosure, not a breach, because LT12's whole window comes after the change.
+- **Housekeeping:** five out-of-date tests fixed (two of them wrote stray rows into the real trial log; none of the stray
+  rows were kept).
+- **Server:** the long model run (MC1) is working through its folds. When it pauses (about 05:50 UTC+1), the queued jobs
+  get their turn (the batch 7 count is due before 3 Nov).
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec).
 
