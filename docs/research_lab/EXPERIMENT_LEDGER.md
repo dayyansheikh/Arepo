@@ -5530,6 +5530,32 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `~/crontab.bak.*`). It is guarded to start only after q0751 (the queue's first J1 pass) is recorded `done` in
   `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
   if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
+
+## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:45Z (experiments autopilot; counts only, k = 0, nothing counted)
+- 97d44e5b (merged 4dd7d896): MUST A, a sibling with no `rows_ext` row is `siblings_ext_missing` (out of U and I, printed);
+  line 6 gets an `ext_missing` class. MUST B, the dispute share denominator is first-seen proposal events ∪ disputed events
+  (numerator ⊆ denominator; the old first-seen-only share and the missing count are printed beside it). The reading rule
+  and its constants (0.01, 0.05, 0.99, 20) match the 15:30Z declaration exactly. SHOULDs: gap seconds per usable monitor
+  day, no re-appearance on a second-gap resume, the no-post-k test alters market 61 from k = 26, a line-7-only assertion.
+  28 tests, ruff clean. The diff is limited to `ch276_map.py`, its test and the code note, so per
+  `reviews/CH276_CODE_RECHECK_2026-10-30.md` no further round is needed.
+- **q0760 promoted** (priority 90, mem 900, unchanged otherwise) so it starts before the 2026-11-01T02:45Z blackout and
+  rotation. M3's R1 response was committed (ba1c9841) before this run, as required.
+
+## CB7 census q0147c: GS fail, GG / GX pass, 2026-10-30 (experiments autopilot; counts only)
+- q0147c done 2026-10-30T15:33Z on the host; `census.json` (git_commit 7e9958c1, `cb7_descriptive`, EXCLUDE, uncounted; counts only,
+  no outcome read). Counts and gates inserted into `CREATIVE_BATCH_7.md` section 2.7a. No threshold, floor, window or formula changed.
+- **GS FALSE:** units 787 (need 3,000), event x week clusters 329 (need 1,000); series/event clusters 319 (need 300) and
+  within-cell SD of C 0.971 (need 0.5) met. Text-only deff 2.38; S1 MDE 7.0c per marker (design assumed 2.5c).
+- **GG TRUE:** units 1,756, event clusters 663, theme clusters 177, sum m 86.2, h_geo measured 0.012. **GX TRUE:** S prints 23,760,
+  skip windows 4,915, event clusters 70, UTC dates 295 (non-sports).
+- **Pre-declared consequence for S:** S1 "not testable", p = 1, counted; no rescue, no re-screen (section 2.8). S1-rep is not run
+  (section 8 item 5: q0152 only if S1 advanced). Open for the freeze check: whether the `textorig` step / q0151 and S2 still run.
+- **Holm:** Stage-1 k1 stays 3 (S1 counted at p = 1); Stage-2 k can only fall (at most 2 if S1-rep and S2 do not run). Cumulative
+  denominator still includes S1.
+- Ops: CB7 no longer needs the 12-day snapshot hold, but LT14's census (q0742, 11-17) still does; keep 12 days until then.
+- Next: science-reviewer freeze check for G and X (and the S questions above); then freeze `model_specs/cb7_v1.json`, pin
+  `T7_S_rep_start` (only if S2/S1-rep survive the check), deploy the `textorig` step and q0151 as the check decides. Nothing frozen or queued by this entry.
 - **2026-10-30 ~17:30Z signal engine (ops, DESIGN_V1 §46; no model, window, row cap or target change):** the 10-30 refit
   (31 models) peaked at RSS 3,870 MB in 6,295 s, above q0512's 3,400 MB reservation and an estimated ~5.6 GB VmPeak under
   the 6,000 MB address-space cap. q0512 mem_mb 3400 -> 4300, as_cap_mb 6000 -> 8000, timeout_s 10800 -> 14400; the engine
