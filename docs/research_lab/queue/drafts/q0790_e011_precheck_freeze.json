@@ -1,0 +1,36 @@
+{
+ "id": "q0790_e011_precheck_freeze",
+ "title": "E011 pre-run counts and freeze: byte copies (cut at the last newline) of surprise_live alerts.jsonl, outcomes.jsonl, passes.jsonl into e011_analysis/inputs/; PRE_RUN.json (outcome-blind counts) and FREEZE_MANIFEST.json; enforces the 7 sha256 pins; refuses (exit 75) before 2026-11-11T13:00Z",
+ "family": "e011_analysis",
+ "priority": 98,
+ "expected_value": "the frozen, sha-recorded inputs the single registered E011 analysis reads (the collector keeps appending to the live files), plus the outcome-blind pre-run counts the code-version ruling requires",
+ "data": [
+  "data-dumps/research_lab/surprise_live/{alerts,outcomes,passes}.jsonl (live, read-only)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none",
+  "disk_mb": 500
+ },
+ "depends_on": [],
+ "not_before": "2026-11-11T13:00:00Z",
+ "argv": [
+  "scripts/run_e011_analysis.py",
+  "freeze",
+  "--run-dir",
+  "../data-dumps/research_lab/e011_analysis",
+  "--src",
+  "../data-dumps/research_lab/surprise_live"
+ ],
+ "timeout_s": 1800,
+ "max_retries": 2,
+ "outputs": [
+  "data-dumps/research_lab/e011_analysis/inputs/{alerts,outcomes,passes}.jsonl",
+  "data-dumps/research_lab/e011_analysis/inputs/PRE_RUN.json",
+  "data-dumps/research_lab/e011_analysis/inputs/FREEZE_MANIFEST.json"
+ ],
+ "next_action": "q0791 and q0792 start; nothing to commit yet",
+ "notes": "Light (< 500 MB; surprise_live was 47 MB on 2026-10-19). The wrapper builds inputs.partial-<UTC> and renames it to inputs/ only when complete, so a failed attempt leaves no inputs/ (a stray inputs.partial-* is moved aside, never removed, before a retry). It exits 75 before 13:00Z (retry later) and 2 on a pin mismatch, a modified tracked file other than docs/research_lab/trials.jsonl, or an existing inputs/. Pre-run counts (PRE_RUN.json) read only: line counts; passes.jsonl status and written_utc; alert lines' type, capture_t, evidence_role and fee_category. No outcome line is parsed; the window alert lines with fee_category 'unknown' and the non-ok passes are counted, not interpreted. DRAFT, not in queue/jobs. Promote (git mv to jobs/, commit, scripts/oracle/deploy.sh) only after feat/e011-analysis is merged into the branch the host runs and deployed, so the host HEAD contains scripts/run_e011_analysis.py and the 7 pinned files equal their pins. Runbook: docs/research_lab/E011_ANALYSIS_RUNBOOK_2026-10-30.md. Blinding: until the result exists nobody opens an alert/outcome line, result or log value; counts and sha256s only."
+}
