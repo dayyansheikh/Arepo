@@ -5404,3 +5404,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **13:40Z addendum:** fix merged (e8c36bf0; 98 M1 tests; both new tests fail on the old code). **M1 code_sha
   `9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148`**, spec_sha `3afd6ad6…68b0` unchanged, pins ok. J2's
   manifest carries a notes line on the after-last-pass gap. **q0750c** (dry run on this code, fresh store) queued.
+
+## M3 (CH274, "the wait") design DRAFT, 2026-10-30 13:50Z (experiments autopilot; design only, nothing counted)
+- `MEASUREMENT_M3_CH274.md` (69c32cff, 925 lines, merged): registered prospective measurement under rule 26, k = 0, no Holm
+  family. Unit: a non-sports ex-crypto market at its first 2-hourly capture with a two-sided row, favoured ask >= 0.95 and mid
+  >= 0.90, previous capture two-sided below 0.95, empty UMA status, > 24 h from `end_date`; one unit per market. Headline:
+  unit-weighted Kaplan-Meier median wait (crossing -> proposal seen or listing exit) with an event bootstrap; early share,
+  0.99 ask path, yield `g` quantiles, `T_U`. Disjoint from M1 / M2 by construction (proposed / overdue / neither), overlap
+  counted at read-out from unit ids. Window 11-24..12-14 (J0 may extend to 42 days below 25 crossings a day); freeze by
+  11-16, registration by 11-22, read-out on or after 2027-01-29. Eleven open questions in section 18 for the challenger.
+- Next: challenger review R1 (`science-reviewer`).
