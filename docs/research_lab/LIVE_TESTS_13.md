@@ -102,11 +102,12 @@ conventions (`LIVE_TESTS_12.md`, frozen at sha256 `a543db63…2d62d`) unless a l
   fixes; CH252 `withdrawn_pre_census (fee reading unresolved)` (1.4.3)** (secondary reason, not the basis: CH252 is infeasible under any reading, since after the step q0717 counts 96 fee-on unrewarded non-sports ex-crypto complete units a capture (mean; median 89), about 15 widenings at CH261's widening share 0.153 and about 8 at retention 0.5, against the count gate 77, and the post-step fee-on arm is a different population; re-check 2026-10-29).
   **CH253 0.10 [0.15]:**
   the map cleared the round's three named killers (coverage 0.873, VIF 1.001, same-slot correlation 0.059) and the count has
-  margin, but the rule-21 placebo coverage gate is expected to fail (0.755 on a coarser reading than the design's). **Expected k
-  at census about 0.18; P(no LT13 test) about 0.83** (0.92 x 0.90, treating the fates as independent, which they are not: both
-  read the same captures). **Expected valid verdicts about 0.09** (0.08 x 0.5 x 0.9 + 0.10 x 0.6 x 0.9 = 0.036 + 0.054; a valid
-  verdict = registered, size check passed, not Unavailable; P(size passes | registered) 0.5 for CH252 (worlds 1, 3, 4 are the
-  expected risks) and 0.6 for CH253 (worlds 8, 10)). Every taker cell is expected "not shown".
+  margin, but the rule-21 placebo coverage gate is expected to fail (0.755 on a coarser reading than the design's). **Recomputed
+  2026-10-30 for CH253 alone (R1-full SHOULD 1; CH252 is withdrawn, so its 0.08 terms drop out; no fate is treated as independent
+  of another any more because only one test remains): expected k at census 0.10; P(no LT13 test) = 1 - 0.10 = 0.90; expected
+  valid verdicts 0.10 x 0.6 x 0.9 = 0.054** (a valid verdict = registered, size check passed, not Unavailable; P(size passes |
+  registered) 0.6 for CH253 (worlds 8, 10); the final 0.9 is P(not Unavailable)). The earlier two-test figures (k 0.18, P(no test)
+  0.83 = 0.92 x 0.90, valid verdicts 0.09 = 0.036 + 0.054) are superseded; the 0.036 was CH252's term. Every taker cell is expected "not shown".
 - **No LT13 result can satisfy the programme's economic check** (1.10). CH252's mechanism is paid about **0.05-0.13c a filled
   share**; a Supported CH252 is a behavioural fact about quote timing, never a rebate return. A Supported primary is an
   exploratory prospective finding, never an edge.
@@ -464,7 +465,10 @@ at random unless the world says otherwise; the model is the test's primary with 
   6. **Differential attrition:** world 2's markets without `W_t`; a fee-free unit is two-sided at k + 1 with probability 0.9
      if `x_{k+1} - x_k <= 1` tick and 0.6 otherwise; fee-on units 0.9 always.
 - **CH253 common (worlds 7-12):** 300 batches of 3..31 markets (uniform), members spread over 2..min(members, 10) events, 4
-  categories (70% of a batch's members in its modal category), 50 non-batch markets per category feeding the category x slot
+  categories (70% of a batch's members in its modal category; **disclosed, R1-full MUST 1: this four-category structure no longer
+  matches the post-step data, where about 0.90-0.95 of rows are one verbatim `fee_category` level, `other:zero_fees`; world 7's
+  category factor `C_{c,t}` is therefore closer to a venue-wide factor in the data than in the world, a limit of the world, not of
+  the rule; no world parameter is changed**), 50 non-batch markets per category feeding the category x slot
   control; ages: each batch's `created_at` uniform over 300 days, members within 120 s; pseudo-mates drawn by 1.4.4's rule from a
   pool of 2,000 non-batch markets with their own batches and drifts; spreads in cents on a 1c grid, floor 1c.
   7. **S41:** a category factor `C_{c,t}` AR(0.8), SD 1c, loading 1 on every market of category c; own `u` AR(0.5); no lag.
@@ -726,8 +730,21 @@ names carries spread information across events, beyond the category's own moveme
   standardisation is impossible for batches born in the window, so one scalar is used, as LT12's `s_D`).
 - **Controls:** the own innovation `spread_{i,k} - spread_{i,k-1}`; **the category x slot factor** `cbar_{c,k}` = the mean spread
   innovation over (k - 1, k] of capture k's eligible complete units of the unit's category outside the unit's batch (all of them
-  known at the decision time); `d_i`, `|d_i|`; `spread_{i,k-1}`; `thin_i = 1[spread_{i,k-1} > median of the mates' spread_{k-1}]`;
+  known at the decision time; **the unit's category is the verbatim sidecar `fee_category` string, with `other:zero_fees` and
+  `unknown` as literal levels and no reconstruction, the same reading as rule 21 (i) and the dummies (1.4.4, 1.7), declared now
+  (R1-full MUST 1)**; **disclosed:** since the 2026-10-20 venue fee step (q0717) about 0.90-0.95 of non-sports ex-crypto rows carry
+  `other:zero_fees`, so `cbar` is now close to one venue-wide slot factor rather than a topic factor, and the census
+  `VIF_w(zs_bt)` gate against `cbar` (6) is read on that population; the cell is not split further); `d_i`, `|d_i|`; `spread_{i,k-1}`; `thin_i = 1[spread_{i,k-1} > median of the mates' spread_{k-1}]`;
   `thin_i x zs_bt` (M1's term, a control in the primary); fee class; K (with `rewarded_k`).
+- **Aliased or collinear controls (R1-full SHOULD 4; rule declared now, before any data).** After the 2026-10-20 step, being fee-on
+  roughly coincides with having a topic `fee_category`, so the fee-class control and the `fee_category` dummies (1.7) may be
+  collinear or aliased in the demeaned design. Deterministic rule: before each fit, compute the rank of the demeaned control
+  matrix (column-pivoted QR, tolerance `max(n, p) x eps x the largest singular value`); if it is below the number of columns,
+  drop columns, never `zs_bt` and never the intercept-equivalent, in this fixed order until full rank: (1) the `fee_category`
+  dummies, last level first in lexicographic order of the verbatim string; (2) the fee-class dummy; (3) the slot-of-day dummies, latest
+  slot first. Pseudo-inverse or minimum-norm solutions are not used. The census prints the rank, the number of columns and the
+  dropped columns; the analysis reports them per fit and per gate draw. A dropped control is a disclosed loss of adjustment, not a
+  change of estimand, threshold or window. If `zs_bt` itself is aliased, the fit is `NaN`, counted as `unavailable`.
 - **Primary:** expanding-past batch x UTC-day demeaned OLS of `ds_i` on `zs_bt` with the controls; **one-sided H1: b_bt > 0** (the
   coefficient of `zs_bt`, read at `thin_i = 0` and scaled to the census tercile gap for the *material* label); inference 1.7 (cluster
   batch); gate 1.8 (batch-phase state shift); **F binding**; the placebo point condition binding.
@@ -754,8 +771,11 @@ names carries spread information across events, beyond the category's own moveme
   862 a capture** (217,224 projected; twice the line at DE 51). Map: 2,965 x 0.5 = 1,482, margin about 1.7.
 - **Against the map (said plainly):** power is not the question. The **placebo coverage gate (0.90)** is: the map's 0.755 used
   the age decile over the capture's complete eligible units and no category match (`population_map_ch261.py` l. 474-480), and rule
-  21's pseudo-batch adds the category match, which is **expected to lower** coverage. This is not proven (R1 MUST 6): the design's
-  tight rule changes both the decile base and the mate count m, which can move coverage either way. The structural reason is
+  21's pseudo-batch adds the category match, which was **expected to lower** coverage (R1 MUST 6: not proven; the design's tight
+  rule changes both the decile base and the mate count m, which can move coverage either way). **Superseded in part (R1-full SHOULD
+  2, 2026-10-30):** rule 21 (i) now reads the verbatim `fee_category`, and since the 2026-10-20 fee step about 0.90-0.95 of
+  non-sports ex-crypto rows share `other:zero_fees`, so the category match is almost empty and no longer the reason for a low
+  coverage. The "expected fail" rests on the map's 0.755 (a coarser reading) and on the young-batch structure alone. The structural reason is
   visible in advance: in the youngest age decile few markets were created >= 7 days apart from a young unit, and batches are
   young. **This is the census line expected to drop CH253.** It is not changed (R1 MUST 5): no nearby-batch placebo, and the cap
   stays 30 cross-event mates; a cap of 10 would raise placebo coverage by lowering m, a loosening made after the map.
@@ -819,8 +839,8 @@ Items marked **[map]** were made after reading the CH261 map.
    effect" (1.9); M6 (geopolitics-young against fee-on-young) added as a reported secondary (2.3).
 5. **CH252: the event-level label-permutation gate (new); the within-market Freedman-Lane gate printed only.** Rule 20 says the
    within-market null tests only the within-market term; LT13 adds a gate on the term actually tested, for the reason in 1.8.
-6. **CH252: fee class day-fixed with a switch gate, and the doc rule printed [map].** 1.4.3: the unexplained CH251 / CH261 fee panel
-   shift.
+6. **CH252: fee class day-fixed with a switch gate, and the doc rule printed [map].** 1.4.3: the CH251 / CH261 fee panel
+   shift (explained by q0717 as a change in served values on 2026-10-20, 1.4.3; at the time of drafting unexplained).
 7. **CH253: the identification gate replaced (LT12 R1 MUST 4's lesson).** Round 18's "within-batch-day SD of `zs_bt` >= 1 tick"
    applies a tick unit to a standardised state; replaced by LT12's form (6), before any count of either form.
 8. **CH253: one census scalar `s_bt`; decision time capture k's last receipt; the category x slot factor over the whole capture.**
@@ -848,12 +868,26 @@ unless every input file is named in the LT13 seal with an equal sha256; slots an
 slots; the 12 slots `[2026-11-06T00:00Z, 11-07T00:00Z)` as look-back only (inside LT11's census seal span; raw rows only, no LT11 or
 LT12 object computed); the 3 slots after the span (to 2026-11-17T04:31Z, before LT11's window opens on 11-18) for twins only.
 Complete captures (rows, sidecar, manifest), 135 captures x 3 files, planning 1.0-1.4 GB; CLOB reward feed captures with start in
-`[2026-11-06T00:00Z, 2026-11-17T00:00Z)` (CH252's feed gate). Byte-identical copies already restored for LT12 (q0710) are accepted
+`[2026-11-06T00:00Z, 2026-11-17T00:00Z)` (CH252's feed gate; **withdrawn with CH252, R1-full SHOULD 1: no feed capture is restored
+or read by the census; this clause is kept for the record**). Byte-identical copies already restored for LT12 (q0710) are accepted
 after a sha256 check against the archive catalogue; the rest are restored from the releases.
 - **Restore, seal, census: each once** (LT12 7's rules: bytes measured first and the owner asked if the restore would exceed free
   disk; a file in neither place is missing, counted, never substituted; the restore refuses only while a lag-slot capture is in
   progress; a capture in a final non-complete state is missing; the seal records files, sha256s, slot assignment and the frozen LT13
   design-text sha256). Never run while LT12's census, size check or any other memory-heavy job runs.
+- **What the census code must refuse (R1-full).** Any input not named in the seal with an equal sha256; a seal whose design-text
+  sha256 is not the ledger's freeze hash; a batch-join code sha256 not pinned in the seal; any later-slot price or spread outside
+  the twin term; computing any k + 1 target, any CH252 block, or any LT11 or LT12 object; a second run.
+- **What it must print (R1-full).** Covered days first (>= 7.0, >= 5.0 for twin pairs); if that fails, `census_unavailable
+  (coverage)` and nothing else. Then every gate value of the CH253 row below with its pass or fail; the census-fixed values (4)-(9);
+  the CH253 prints below, including `fee_type` x `fee_category`, `fee_type` x sports-slug and the per-capture fee-class and
+  category-class changes; the rank, column count and dropped columns of the controls (the aliasing rule, 3.3); and the four
+  mutually exclusive lists, with CH252 under `withdrawn_pre_census`.
+- **Twin-state detail (R1-full SHOULD 5).** CH253's census twin `zs_bt` over (k + 2, k + 3] is the mean over the unit's mates of
+  their spread changes between origins k + 2 and k + 3, divided by `s_bt`, and is the only later-slot quantity the census reads. It
+  uses the mates' later spreads: it is the mean of the mates' targets at origin k + 2, which are targets of other units. "No target read" in this section's title therefore means
+  **no own target**: no `ds_i` of any unit, no k + 1 target of any unit as an outcome; the twin term is a state, returned by the
+  lag-slot loader as a single number per unit and capture.
 - **Minimum covered days, checked first** (covered origins / 12): >= 7.0 (>= 5.0 for twin pairs); else the test is
   `census_unavailable (coverage)` and nothing else of it is printed. CH252's **feed coverage** is its second coverage check (LT12
   re-check fix 3): under 50% of tested units -> `census_unavailable (coverage)` at once.
@@ -897,7 +931,7 @@ captures with a previous capture, zeros included.
   under 1.4.3 rule (a), print only: CH253 units and pseudo-mate candidates by verbatim `fee_type` and `fee_category` (with the
   `zero_fees` / `other:zero_fees` and `unknown` cells), and `placebo_none` by those cells; units by verbatim `fee_type` x
   sports-slug cell (1.4); per capture, the fee-class and category-class changes against k - 1 (1.13).
-- **Order:** one census job (CC13) streams the captures once and evaluates the two blocks independently.
+- **Order:** one census job (CC13) streams the captures once and evaluates the two blocks independently (**CH252's block is withdrawn and is never run; only CH253's block runs, R1-full SHOULD 1**).
 - **Expected fates (declared now).** CH252: under 1.4.3 rule (b), verbatim: "If q0717 does not explain the CH251/CH261 shift with a field-semantics cause that a declared reading rule fixes, CH252 is `withdrawn_pre_census (fee reading unresolved)`." Otherwise the non-stationarity line and the fee-on count decide; then support coverage, the fee switch share and fee-on events.
   **Recorded 2026-10-29: CH252 `withdrawn_pre_census (fee reading unresolved)`** (q0717; 1.4.3 rule (b): the shift is a venue-side
   value change on 2026-10-20 that no declared reading rule fixes). CH252's gates and prints in this section are not run.
@@ -907,7 +941,10 @@ captures with a previous capture, zeros included.
 
 **Build order (R1 MUST 2).** Stage A, before the census: `live_tests13_base.py` (the vendored pieces the census uses),
 the census, seal and restore paths of `live_tests13.py` and `run_live_tests13.py` (`seal`, `census`), their tests, and a
-code-freeze check of that code alone. Stage B, only for the tests in `k_tests` after the census: the unit builders and reader,
+code-freeze check of that code alone. **Stage A includes the origin-side unit builders (the census needs them for `s_bt`, `s_w`,
+the terciles, `rho_census`, `VIF_w`, the design MDE, `r_gate`, the identification gate and placebo coverage), the batch join (1.4.4),
+the pseudo-batch rule and the twin-state loader (states only, no target; R1-full MUST 2).** Stage B, only for the tests in `k_tests`
+after the census: the **target reader** (every k + 1 target and outcome line) and the remainder of the unit machinery,
 `live_tests13_worlds.py`, `live_tests13_analysis.py`, `size-check`, `reader`, `backfill-series`, `ops-stats`, `analyze`, their tests,
 and a second code-freeze check that verifies the code against the frozen text (1.7-1.10, 1.8.1); a world or gate for a dropped or
 withdrawn test is never written. If no test survives, stage B is not written.
@@ -930,7 +967,7 @@ withdrawn test is never written. If no test survives, stage B is not written.
 - **Memory (planning, then a ladder):** per market the previous capture's row, the 12-slot carry texts, the day-fixed statuses and
   fee class; the `created_at` registry; per batch its member list: **steady 300-450 MB, peak 500-700 MB** (CH261's streaming map
   peaked at 642 MB computing more families). Ladder measured by a host dry run with the exact install command: (1) one reader under
-  `ulimit -v 1572864`, accepted at peak RSS <= 750 MB; (2) else two readers (CH252; CH253) under one shared `flock`, each <= 750 MB;
+  `ulimit -v 1572864`, accepted at peak RSS <= 750 MB; (2) else two readers (CH252; CH253) under one shared `flock`, each <= 750 MB (**CH252 withdrawn, R1-full SHOULD 1: the ladder is CH253's alone; step (2) is moot and kept for the record**);
   (3) else no pin (recorded).
 - **Install: host cron** `45 */2 * * *` (a minute no other reader uses at install time; LT12's reader ends 12-31 and LT9's 01-20),
   own `flock`, `nice -n 19`, `oom_score_adj 1000`; q0724 is the fallback, never both.
@@ -1045,7 +1082,7 @@ analysis commit). Filed in `CANDIDATES.md` at the freeze, applied before the reg
 | CH252 count gate 77 a capture on the fee-on arm; fee-free >= 5x | 2.4, 6 | 2 x the F line at DE 11 | **yes** (the arms' sizes) |
 | CH252 non-stationarity median >= 0.25 x mean, both arms | 6 | round 18, unchanged | values unchanged; the map's 0.108 seen |
 | CH252 support cells (tier x tick x category; >= 20 fee-free and >= 5 fee-on); coverage 60% of fee-on units | 2.2, 6 | round 18's 60% and 20, direction changed (5 item 2); 5 fee-on a convention | **yes** |
-| CH252 fee switch share <= 5%; finite fee class >= 95% | 6 | conventions (the 95% matches the carry status line) | **yes** (the unexplained fee shift) |
+| CH252 fee switch share <= 5%; finite fee class >= 95% | 6 | conventions (the 95% matches the carry status line) | **yes** (the fee shift, since explained by q0717 as a venue-side value change) |
 | CH252 fee-on events >= 150, `G_eff` on fee-on >= 15; Unavailable 5,000 / 100 / 2,500 | 1.9, 6 | 1.5 x the Unavailable event floor; the F-MDE floor arithmetic | partly |
 | CH252 permutable share 50%; label-permutation gate | 1.8, 6 | new (5 item 5); 50% as LT designs' block-gate share | no |
 | CH252 age condition at half | 1.9 | new (5 item 4); "half" as every LT point condition | no |
@@ -1179,3 +1216,18 @@ fix 5, CH253 *informed (q0717)* (0). No threshold changed.
 is frozen, uses the same `cb17_census.is_sports_sidecar` rule, and its census span [2026-11-07, 2026-11-17) lies wholly after the
 2026-10-20 step, so the 1,800-market sports -> non-sports move (and the `other:zero_fees` category values) apply there too. LT13
 edits nothing of LT12; whether LT12 needs a disclosure or a deviation record is the orchestrator's decision.
+
+**R1 full re-check applied (2026-10-30; `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md`, GO_WITH_CHANGES).** No threshold, alpha, window,
+MDE target, placebo or estimand changed.
+
+| R1-full item | Applied where |
+|---|---|
+| MUST 1: verbatim `fee_category` reading for `cbar`; near-venue-wide factor disclosed; world 7's four categories no longer match | 3.3 (controls); worlds list (CH253 common, world 7 note) |
+| MUST 2: stage A includes origin-side unit builders, batch join, pseudo-batch rule, twin-state loader (states only); stage B keeps the target reader | 7 (build order) |
+| SHOULD 1: stale CH252 material annotated as withdrawn; priors recomputed for CH253 alone (0.90; 0.10 x 0.6 x 0.9 = 0.054) | 0 (survival priors), 6 (inputs, order), 7.2 (ladder) |
+| SHOULD 2: category-match reasoning rewritten (almost empty after the fee step; "expected fail" rests on 0.755 and young batches) | 3.4 (against the map) |
+| SHOULD 3: "unexplained" replaced by the q0717 explanation | 5 item 6, 9.1 |
+| SHOULD 4: deterministic rule for aliased or collinear controls (rank, drop order, printed) | 3.3 (new bullet), 6 (prints) |
+| SHOULD 5: twin-state detail ("no target read" means no own target) | 6 (new bullet) |
+| Census code must refuse / must print lists | 6 (two new bullets) |
+| LT12 disclosure (sports classifier shift, crypto unaffected, not a deviation) | proposed ledger line in the review; not an LT13 edit (LT12 is frozen) |
