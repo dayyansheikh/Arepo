@@ -4822,3 +4822,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   so the rule applies verbatim and consistently. The "non-sports" population includes these former sports markets, and
   the K category dummies carry little topic content. Crypto is unaffected. Any further venue step inside LT12's window is
   recorded as an operational deviation.
+
+## Signal engine: `stress` (CH258) census passed; families `stress` + `slotfac` built, challenger `se27_lgbm_stress` registered, 2026-10-30 ~03:00Z (signal-engine autopilot session 31; development, nothing counted)
+- **Census (DESIGN_V1 §35, counts only, no outcome read):** 132 slots over 11.0 days (10-18 20:31Z .. 10-30 00:31Z),
+  **6 stress slots** (four at 14:31Z, two probably one episode), Pearson(`st_btc_rv_1h`, slot common factor) **0.294**:
+  passes as written (>= 5 slots, |r| <= 0.8). Script and output committed as `signal_engine/census/se_stress_census_2026-10-30.*`
+  (sha256 `9865f091...`); §35 was uncommitted when it ran (disclosed there).
+- **Built (§36):** `se-aux-stress-v1` (BTC / ETH 1 h realised volatility from the stored 1m klines, ratio to the 7-day
+  and same-clock-hour baselines, flag, BTC 2 h return) and `se-aux-slotfac-v1` (the previous slot's non-crypto mean
+  |2 h change|, the control). Both wait (`AuxNotReady`) rather than write NaN while an input table is still buildable.
+- **Registered:** `se27_lgbm_stress` (se1 params + slotfac + stress), not embargoed; promotion K rises by one. Fixed now:
+  no se27 gain is credited to BTC / ETH stress until a slotfac-only reference arm has been scored over the same days.
+- **Science review** (read-only): causality, census and embargo PASS; must-fixes (census provenance, control attribution,
+  replay dependency of the ~96 earlier inputs files) applied before registration.

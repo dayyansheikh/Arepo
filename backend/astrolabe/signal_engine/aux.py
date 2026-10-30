@@ -801,6 +801,14 @@ CR_FETCH_BUDGET_S = 120.0  # all of one capture's requests; over it nothing is w
 # network never runs a pass's tick into its timeout before the predictions are written
 
 
+class AuxNotReady(Exception):
+    """A builder's input table is still buildable but not built yet: no table, no error; retried (DESIGN_V1 section 36)."""
+
+
+class AuxUnbuildable(Exception):
+    """A builder's input table is missing and can no longer be built: no table (missing stays missing), counted as gone."""
+
+
 class CrUnavailable(Exception):
     """Binance answered HTTP 400 for a symbol (not listed on spot): permanent, recorded, never retried."""
 
@@ -1030,6 +1038,172 @@ def _crypto_builder(ctx: dict) -> pd.DataFrame:
     return crypto_features(f, ext, doc["klines"], ctx["cap_start"], H, starts)
 
 
+# ---------------------------------------------------------------------------------------------- stress family
+# The shared balance sheet (CH258; DESIGN_V1 section 36): a BTC / ETH realised-volatility spike raises makers' inventory
+# risk everywhere. Slot-level columns, the same on every row of a capture. Inputs: the crypto family's write-once 1m
+# klines (aux_inputs/crypto) of this capture and the earlier captures (every kline closed before its own capture start,
+# so before this one; nothing is fetched here). The common-factor control is its own family, `slotfac` (below), so a
+# reference arm can hold it without the stress columns.
+ST_COLUMNS = ["st_btc_rv_1h", "st_btc_rv_ratio", "st_btc_rv_ratio_hod", "st_btc_ret_2h", "st_btc_absret_2h",
+              "st_eth_rv_1h", "st_stress"]
+SF_COLUMNS = ["sf_prev_absd2h"]
+ST_SYMBOLS = ("BTCUSDT", "ETHUSDT")
+ST_BASE_S = 7 * 86400.0  # the all-hours baseline: 7 days of 1m returns, >= 90% of them present
+ST_BASE_MIN = 0.9
+ST_HOD_MIN = 5  # the same-clock-hour baseline needs >= 5 of the previous 7 days
+ST_STRESS = 2.0
+_ST_CACHE: dict[str, dict] = {}  # inputs file (path, size, mtime) -> {symbol: (open_ms, close), "sha256": ...}
+
+
+def _st_read(p: Path) -> dict:
+    st = p.stat()
+    key = f"{p}|{st.st_size}|{st.st_mtime_ns}"
+    if key not in _ST_CACHE:
+        import gzip
+
+        kl = json.loads(gzip.decompress(p.read_bytes())).get("klines") or {}
+        d = {}
+        for s in ST_SYMBOLS:
+            a = np.asarray((kl.get(s) or {}).get("1m", []), dtype=float).reshape(-1, 3)
+            d[s] = (a[:, 0].astype(np.int64), a[:, 2])
+        d["sha256"] = S.sha256_file(p)
+        if len(_ST_CACHE) >= 160:
+            _ST_CACHE.pop(next(iter(_ST_CACHE)))
+        _ST_CACHE[key] = d
+    return _ST_CACHE[key]
+
+
+def st_klines(paths: S.Paths, cid: str, cap_start: float) -> dict:
+    """Per symbol: the union of the stored 1m klines of capture ``cid`` and every earlier capture of the last 8 days,
+    closed before ``cap_start`` (open_ms ascending, unique; on a duplicate the earliest file's value is kept). Key
+    ``files``: {inputs file name: sha256} of every file read (the table's replay dependency)."""
+    root = paths.sub("aux_inputs", "crypto")
+    lo = cap_start - ST_BASE_S - 86400.0
+    files = []
+    for p in sorted(root.glob("*.json.gz")) if root.exists() else []:
+        name = p.name[: -len(".json.gz")]
+        if name > cid:
+            continue
+        try:
+            t = S.epoch(f"{name[:4]}-{name[4:6]}-{name[6:8]}T{name[9:11]}:{name[11:13]}:{name[13:15]}Z")
+        except ValueError:
+            continue
+        if t >= lo:
+            files.append(p)
+    out = {}
+    for s in ST_SYMBOLS:
+        parts = [_st_read(p)[s] for p in files]
+        o = np.concatenate([x[0] for x in parts]) if parts else np.array([], np.int64)
+        c = np.concatenate([x[1] for x in parts]) if parts else np.array([])
+        keep = (o + 60_000) / 1000.0 <= cap_start
+        o, c = o[keep], c[keep]
+        o, first = np.unique(o, return_index=True)  # files are read oldest first: the first copy is the earliest
+        out[s] = (o, c[first])
+    out["files"] = {p.name: _st_read(p)["sha256"] for p in files}
+    return out
+
+
+def _st_rv(o: np.ndarray, c: np.ndarray, t_end: float, span_s: float) -> tuple[float, int]:
+    """sqrt of the sum of squared consecutive-minute log returns of klines closing in [t_end - span_s, t_end]; n."""
+    close_s = (o + 60_000) / 1000.0
+    m = (close_s >= t_end - span_s) & (close_s <= t_end)
+    oo, cc = o[m], c[m]
+    if len(cc) < 2:
+        return np.nan, 0
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = np.diff(np.log(cc))[np.diff(oo) == 60_000]
+    r = r[np.isfinite(r)]
+    return float(np.sqrt((r ** 2).sum())), int(len(r))
+
+
+def _st_price(o: np.ndarray, c: np.ndarray, t: float, tol_s: float) -> float:
+    close_s = (o + 60_000) / 1000.0
+    pos = int(np.searchsorted(close_s, t, side="right")) - 1
+    return float(c[pos]) if pos >= 0 and t - close_s[pos] <= tol_s else np.nan
+
+
+def _st_rv1h(o: np.ndarray, c: np.ndarray, t: float) -> float:
+    """As cr_rv1h (60 closed 1m returns, >= 50 present), with a fresh close within CR_STALE_S of t."""
+    if not math.isfinite(_st_price(o, c, t, CR_STALE_S)):
+        return np.nan
+    v, n = _st_rv(o, c, t, 3659.0)  # the 61 closes of the last hour
+    return v if n >= 50 else np.nan
+
+
+def stress_values(kl: dict, cap_start: float) -> dict:
+    """The slot's stress columns from the union klines (``st_klines``)."""
+    v = {c: np.nan for c in ST_COLUMNS}
+    o, c = kl["BTCUSDT"]
+    rv1 = _st_rv1h(o, c, cap_start)
+    v["st_btc_rv_1h"] = rv1
+    v["st_eth_rv_1h"] = _st_rv1h(*kl["ETHUSDT"], cap_start)
+    s0, s2 = _st_price(o, c, cap_start, CR_STALE_S), _st_price(o, c, cap_start - 7200.0, 120.0)
+    if math.isfinite(s0) and math.isfinite(s2) and s0 > 0 and s2 > 0:
+        v["st_btc_ret_2h"] = math.log(s0 / s2)
+        v["st_btc_absret_2h"] = abs(v["st_btc_ret_2h"])
+    tot, n = _st_rv(o, c, cap_start, ST_BASE_S)
+    base = tot * math.sqrt(60.0 / n) if n >= ST_BASE_MIN * ST_BASE_S / 60.0 else np.nan  # per-hour scale
+    if math.isfinite(rv1) and math.isfinite(base) and base > 0:
+        v["st_btc_rv_ratio"] = rv1 / base
+        v["st_stress"] = float(v["st_btc_rv_ratio"] >= ST_STRESS)
+    hod = np.array([_st_rv1h(o, c, cap_start - d * 86400.0) for d in range(1, 8)])
+    hod = hod[np.isfinite(hod)]
+    if math.isfinite(rv1) and len(hod) >= ST_HOD_MIN and (hod > 0).all():
+        v["st_btc_rv_ratio_hod"] = rv1 / math.sqrt(float((hod ** 2).mean()))
+    return v
+
+
+def sf_prev_absd2h(paths: S.Paths, prev: dict | None) -> tuple[float, str | None]:
+    """The previous slot's mean |mo_d2h| over its eligible rows with cr_has == 0 (NaN without both tables)."""
+    if prev is None:
+        return np.nan, None
+    pid = prev["capture_id"]
+    fp, ap = paths.features(pid), aux_path(paths, "crypto", pid)
+    if not (fp.exists() and ap.exists()):
+        return np.nan, None
+    f = S.read_parquet(fp, ["market_id", "mo_d2h"])
+    a = S.read_parquet(ap, ["market_id", "cr_has"])
+    if not np.array_equal(a["market_id"].to_numpy(np.int64), f["market_id"].to_numpy(np.int64)):
+        return np.nan, None
+    d = f["mo_d2h"].to_numpy(float)
+    m = (a["cr_has"].to_numpy(float) == 0) & np.isfinite(d)
+    return (float(np.abs(d[m]).mean()) if m.any() else np.nan), pid
+
+
+def _stress_builder(ctx: dict) -> pd.DataFrame:
+    paths, cid = ctx["paths"], ctx["meta"]["capture_id"]
+    if not aux_path(paths, "crypto", cid).exists():  # the crypto table writes this capture's klines first
+        if (Path(paths.snapshots) / cid / "rows.csv.gz").exists():
+            raise AuxNotReady("stress: the capture's crypto table is not built yet")
+        raise AuxUnbuildable("stress: the capture's crypto table is missing and its rows are gone")
+    lo = ctx["cap_start"] - ST_BASE_S - 86400.0
+    for m in (ctx["index"] or {}).values():  # newest-first backfill: an earlier capture's klines still to be written
+        pid = m["capture_id"]
+        if (pid < cid and S.epoch(m["started_utc"]) >= lo and not aux_path(paths, "crypto", pid).exists()
+                and (Path(paths.snapshots) / pid / "rows.csv.gz").exists()):
+            raise AuxNotReady(f"stress: an earlier capture's crypto table is not built yet ({pid})")
+    kl = st_klines(paths, cid, ctx["cap_start"])
+    v = stress_values(kl, ctx["cap_start"])
+    own = cr_inputs_path(paths, cid)
+    ctx["provenance"] = {"st_own_inputs_sha256": S.sha256_file(own) if own.exists() else None,
+                         "st_klines_1m": {s: int(len(kl[s][0])) for s in ST_SYMBOLS}, "st_inputs_read": kl["files"]}
+    n = len(ctx["f"])
+    return pd.DataFrame({c: np.full(n, v[c], np.float32) for c in ST_COLUMNS})
+
+
+def _slotfac_builder(ctx: dict) -> pd.DataFrame:
+    """The common-factor control (CANDIDATES CH258): the previous slot's non-crypto mean |2 h change|. The current slot's
+    own value is not used: its rows were received during the capture (the `regime` review's receipt-order objection)."""
+    paths, prev = ctx["paths"], ctx["prev"]
+    if (prev is not None and not aux_path(paths, "crypto", prev["capture_id"]).exists()
+            and (Path(paths.snapshots) / prev["capture_id"] / "rows.csv.gz").exists()):
+        # newest-first backfill: the previous slot's crypto table is still buildable, so wait rather than write NaN
+        raise AuxNotReady("slotfac: the previous slot's crypto table is not built yet")
+    pv, pid = sf_prev_absd2h(paths, prev)
+    ctx["provenance"] = {"sf_prev_capture_id": pid}
+    return pd.DataFrame({"sf_prev_absd2h": np.full(len(ctx["f"]), pv, np.float32)})
+
+
 # ---------------------------------------------------------------------------------------------- registry
 # A builder takes a context dict: rows (snapshot rows; None for a family with needs_rows False), f (features key
 # columns + ms_mid, ms_spread), prev_mid (previous slot's mids or None), cap_dir, cap_start, paths, meta, prev (the
@@ -1055,6 +1229,10 @@ AUX_FAMILIES: dict[str, dict] = {
     "dormant": {"version": "se-aux-dormant-v1", "columns": DORMANT_COLUMNS, "needs_rows": False, "builder": _dormant_builder},
     # needs the capture's own sidecar (fee schedule), not the parsed rows
     "tilt": {"version": "se-aux-tilt-v1", "columns": TILT_COLUMNS, "skip_rows_read": True, "builder": _tilt_builder},
+    # after crypto (its klines); reads only engine files (kept), so it backfills after the snapshot rows are gone
+    "stress": {"version": "se-aux-stress-v1", "columns": ST_COLUMNS, "needs_rows": False, "builder": _stress_builder},
+    # the previous slot's features and crypto table only (stress's control, a family of its own)
+    "slotfac": {"version": "se-aux-slotfac-v1", "columns": SF_COLUMNS, "needs_rows": False, "builder": _slotfac_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -1106,7 +1284,7 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
     index = S.load_index(paths)
     state = S.load_state(paths)
     caps = {c["id"]: c for c in S.discover_captures(paths, state)}
-    written, gone, errors = [], 0, []
+    written, gone, errors, waiting = [], 0, [], 0
     mids = SlotMids(paths, index, keep=max(SP_LOOKBACK, HW_LOOKBACK) + 4)  # shared across captures (newest first)
     for _slot, m in sorted(index.items(), reverse=True):
         cid = m["capture_id"]
@@ -1122,6 +1300,12 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
                 continue
             try:
                 r = build_aux(paths, fam, m, cap["dir"] if cap is not None else None, index, mids)
+            except AuxNotReady:  # its input table is still to be built: no table, no error, no budget; retried next run
+                waiting += 1
+                continue
+            except AuxUnbuildable:  # its input table can no longer be built: as a capture whose rows are gone
+                gone += 1
+                continue
             except Exception as e:  # noqa: BLE001 - one build's failure must not block the others or the predictions
                 # no table is written (missing stays missing); this capture is retried at the next run, the others go on
                 errors.append({"capture_id": cid, "family": fam, "error": f"{type(e).__name__}: {e}"[:300]})
@@ -1129,7 +1313,8 @@ def run_aux(paths: S.Paths, max_items: int = 4) -> dict:
             if r:
                 written.append({k: r[k] for k in ("capture_id", "family", "n_rows")})
     S.save_state(paths, state)
-    return {"written": written, "unbuildable_no_rows": gone, **({"errors": errors} if errors else {})}
+    return {"written": written, "unbuildable_no_rows": gone, **({"waiting": waiting} if waiting else {}),
+            **({"errors": errors} if errors else {})}
 
 
 # ---------------------------------------------------------------------------------------------- readers
@@ -1182,4 +1367,5 @@ def check_spec_aux(spec: dict) -> str | None:
 
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
-           "surprise_features", "participation_features", "crypto_features", "hwm_features", "tilt_features"]
+           "surprise_features", "participation_features", "crypto_features", "hwm_features", "tilt_features",
+           "stress_values", "sf_prev_absd2h"]

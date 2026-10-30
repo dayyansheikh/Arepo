@@ -487,7 +487,8 @@ def test_aux_family_end_to_end_write_once_and_missing(env, monkeypatch):
     assert not A.aux_path(paths, "event", old).exists()
     cap5 = idx[SLOT0 + 5]["capture_id"]
     sha = S.sha256_file(A.aux_path(paths, "event", cap5))
-    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 5}  # 5 families need the snapshot folder
+    # 5 families need the snapshot folder; stress needs only engine files but waits on the capture's crypto table (gone)
+    assert A.run_aux(paths, max_items=50) == {"written": [], "unbuildable_no_rows": 6}
     assert A.aux_path(paths, "rewards", cap5).exists()  # synthetic sidecar has no reward columns: an all-NaN table
     assert S.sha256_file(A.aux_path(paths, "event", cap5)) == sha
     f = A.read_features(paths, cap5)
@@ -753,11 +754,15 @@ def test_crypto_family_fetches_once_only_for_mapped_markets(env, monkeypatch):
     monkeypatch.setattr(A, "cr_fetch", boom)
     r = A.run_aux(paths, max_items=50)
     assert {x["family"] for x in r["errors"]} == {"crypto"} and len(r["errors"]) == 1  # only the mapped capture fetches
+    # newest first, so stress and slotfac wait at slots 3, 2, 1 (stress for the klines of the capture or an earlier one in
+    # its window, slotfac for the previous slot's crypto table)
+    assert r["waiting"] == 6 and not A.aux_path(paths, "stress", cap3).exists()
     assert not A.aux_path(paths, "crypto", cap3).exists() and not A.cr_inputs_path(paths, cap3).exists()
     assert A.aux_path(paths, "crypto", idx[SLOT0 + 2]["capture_id"]).exists()  # no series slugs: no fetch, no inputs
     assert not A.cr_inputs_path(paths, idx[SLOT0 + 2]["capture_id"]).exists()
     monkeypatch.setattr(A, "cr_fetch", fake)
-    A.run_aux(paths, max_items=50)
+    assert "waiting" not in A.run_aux(paths, max_items=50)
+    assert all(A.aux_path(paths, "stress", idx[SLOT0 + k]["capture_id"]).exists() for k in range(4))
     start = S.epoch(idx[SLOT0 + 3]["started_utc"])
     assert sorted(calls) == [("BTCUSDT", "1m", int(math.floor(start * 1000)) - 1), ("BTCUSDT", "5m", int(math.floor(start * 1000)) - 1)]
     doc = json.loads(gzip.decompress(A.cr_inputs_path(paths, cap3).read_bytes()))
@@ -1040,6 +1045,114 @@ def test_tilt_reads_only_its_own_capture(env):
     while A.run_aux(paths, max_items=50)["written"]:
         pass
     pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "tilt", k)), before)
+
+
+def _st_kl(rows: list[list]) -> tuple[np.ndarray, np.ndarray]:
+    a = np.asarray(rows, float).reshape(-1, 3)
+    return a[:, 0].astype(np.int64), a[:, 2]
+
+
+def test_stress_values_hand_example():
+    """DESIGN_V1 section 36: 1 h realised volatility, its ratio to the 7-day and same-clock-hour baselines, the flag."""
+    cap = S.slot_time(SLOT0 + 120) + 2.0  # hh:31:02Z, ten days after SLOT0
+    rng = np.random.default_rng(7)
+    n = 8 * 1440 + 30
+    last_open = math.floor(cap / 60) * 60 - 60
+    opens = last_open - 60 * np.arange(n)[::-1]
+    sig = np.where(opens >= cap - 3660, 4e-4, 1e-4)  # the last hour is four times as volatile
+    lp = np.log(80000.0) + np.cumsum(rng.normal(0, 1, n) * sig)
+    rows = [[int(o * 1000), 0.0, float(np.exp(x))] for o, x in zip(opens, lp, strict=True)]
+    rows.append([int((last_open + 60) * 1000), 0.0, 1e9])  # still open at the capture start: never used
+    kl = {"BTCUSDT": _st_kl(rows), "ETHUSDT": _st_kl(rows[:-1])}
+    o, c = kl["BTCUSDT"]
+    keep = (o + 60_000) / 1000 <= cap
+    kl["BTCUSDT"] = (o[keep], c[keep])
+    v = A.stress_values(kl, cap)
+    assert set(v) == set(A.ST_COLUMNS)
+    r = np.diff(lp)  # the last 60 returns: closes hh-1:31 .. hh:31 (61 closes)
+    np.testing.assert_allclose(v["st_btc_rv_1h"], math.sqrt((r[-60:] ** 2).sum()), rtol=1e-9)
+    close = opens + 60
+    m = (close >= cap - 7 * 86400) & (close <= cap)
+    rr = np.diff(lp[m])
+    np.testing.assert_allclose(v["st_btc_rv_ratio"], v["st_btc_rv_1h"] / math.sqrt((rr ** 2).sum() * 60 / len(rr)), rtol=1e-9)
+    assert v["st_btc_rv_ratio"] > 2 and v["st_stress"] == 1.0 and v["st_btc_rv_ratio_hod"] > 3
+    np.testing.assert_allclose(v["st_btc_ret_2h"], lp[-1] - lp[-121], rtol=1e-9)
+    assert v["st_btc_absret_2h"] == abs(v["st_btc_ret_2h"]) and v["st_eth_rv_1h"] == v["st_btc_rv_1h"]
+    # a short history: no 7-day baseline, so no ratio and no flag; the 1 h value stands
+    short = {s: (a[-2000:], b[-2000:]) for s, (a, b) in kl.items()}
+    w = A.stress_values(short, cap)
+    assert math.isnan(w["st_btc_rv_ratio"]) and math.isnan(w["st_stress"]) and math.isnan(w["st_btc_rv_ratio_hod"])
+    assert w["st_btc_rv_1h"] == v["st_btc_rv_1h"]
+    # stale spot (nothing closed within 5 min of the capture start): every BTC column is NaN
+    stale = {s: (a[a / 1000 < cap - 1800], b[a / 1000 < cap - 1800]) for s, (a, b) in kl.items()}
+    x = A.stress_values(stale, cap)
+    assert all(math.isnan(x[k]) for k in A.ST_COLUMNS)
+
+
+def test_stress_reads_only_earlier_inputs(env, monkeypatch):
+    """Capture k's stress table reads the stored klines of k and earlier captures only, after k's crypto table exists."""
+    w, paths = env
+    w.run(6)
+    build_all(paths)
+    idx = S.load_index(paths)
+    for i in range(6):
+        p = w.root / "snapshots" / idx[SLOT0 + i]["capture_id"] / "rows_ext.csv.gz"
+        e = pd.read_csv(p)
+        e["series_slugs"] = np.where(e["market_id"] == 1001, '["btc-up-or-down-hourly"]', "[]")
+        e.to_csv(p, index=False, compression="gzip")
+
+    def fake(symbol, interval, end_ms, limit=1000, timeout=20.0):
+        iv = A.CR_INTERVALS[interval] // 1000
+        return _klines(end_ms / 1000 + 0.001, 1000, iv, lambda t: 100.0 * math.exp(2e-4 * math.sin(t / 97.0)))
+
+    def boom(*a, **k):
+        raise OSError("network down")
+
+    monkeypatch.setattr(A, "cr_fetch", boom)
+    r = A.run_aux(paths, max_items=200)
+    # no klines yet: stress waits at all 6 captures, slotfac at the 5 with an earlier slot (its crypto table)
+    assert {x["family"] for x in r["errors"]} == {"crypto"} and r["waiting"] == 11
+    assert not any(A.aux_path(paths, "stress", idx[SLOT0 + i]["capture_id"]).exists() for i in range(6))
+    monkeypatch.setattr(A, "cr_fetch", fake)
+    while A.run_aux(paths, max_items=200)["written"]:
+        pass
+    k, prev, nxt = (idx[SLOT0 + i]["capture_id"] for i in (4, 3, 5))
+    start = S.epoch(idx[SLOT0 + 4]["started_utc"])
+    f = A.read_features(paths, k)
+    assert f.attrs["aux_ok"]["stress"]
+    pv, pid = A.sf_prev_absd2h(paths, idx[SLOT0 + 3])
+    assert pid == prev and math.isfinite(pv) and f.attrs["aux_ok"]["slotfac"]
+    np.testing.assert_allclose(f["sf_prev_absd2h"].to_numpy(float), np.float32(pv))
+    assert S.parquet_meta(A.aux_path(paths, "slotfac", k))["sf_prev_capture_id"] == prev
+    kl = A.st_klines(paths, k, start)
+    want = A.stress_values(kl, start)
+    for c in A.ST_COLUMNS:
+        np.testing.assert_allclose(f[c].to_numpy(float), np.float32(want[c]), equal_nan=True, err_msg=c)
+    assert np.isfinite(f["st_btc_rv_1h"]).all() and f["st_btc_rv_1h"].nunique() == 1
+    assert np.isnan(f["st_btc_rv_ratio"]).all()  # 10 h of history: no 7-day baseline
+    md = S.parquet_meta(A.aux_path(paths, "stress", k))
+    assert md["st_own_inputs_sha256"] == S.sha256_file(A.cr_inputs_path(paths, k))
+    assert md["st_inputs_read"] == kl["files"] and set(kl["files"]) == {A.cr_inputs_path(paths, idx[SLOT0 + i]["capture_id"]).name for i in range(5)}
+    assert kl["files"][A.cr_inputs_path(paths, prev).name] == S.sha256_file(A.cr_inputs_path(paths, prev))
+    before = S.read_parquet(A.aux_path(paths, "stress", k))
+    # a later capture's klines (here made wild over k's last hour) change nothing for k
+    p = A.cr_inputs_path(paths, nxt)
+    doc = json.loads(gzip.decompress(p.read_bytes()))
+    doc["klines"]["BTCUSDT"]["1m"] = [[r[0], r[1], r[2] * (1.5 if (r[0] // 60_000) % 2 else 0.5)] for r in doc["klines"]["BTCUSDT"]["1m"]]
+    p.unlink()
+    p.write_bytes(gzip.compress(json.dumps(doc).encode()))
+    A._ST_CACHE.clear()
+    A.aux_path(paths, "stress", k).unlink()
+    (w.root / "snapshots" / k / "rows.csv.gz").unlink()  # the rows are gone: stress reads only engine files, so it builds
+    while A.run_aux(paths, max_items=200)["written"]:
+        pass
+    pd.testing.assert_frame_equal(S.read_parquet(A.aux_path(paths, "stress", k)), before)
+    # the capture's own crypto table missing with its rows gone: unbuildable (no table, no wait), not an error
+    A.aux_path(paths, "stress", nxt).unlink()
+    A.aux_path(paths, "crypto", nxt).unlink()
+    (w.root / "snapshots" / nxt / "rows.csv.gz").unlink()
+    r = A.run_aux(paths, max_items=200)
+    assert "waiting" not in r and "errors" not in r and not A.aux_path(paths, "stress", nxt).exists()
 
 
 def test_aux_builder_failure_is_isolated(env, monkeypatch):
@@ -1457,6 +1570,12 @@ def test_repo_registry_loads_and_embargo_assignment():
     assert reg["models"]["se24_lgbm_tilt"]["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": ["tilt"]}
     assert reg["models"]["se25_lr_tilt"]["train"] == reg["models"]["se0_champion_lr_mm"]["train"] | {"require_full_coverage": True, "require_sources": ["tilt"]}
     assert not any("tilt" in s["families"] for s in reg["models"].values() if s.get("broad"))
+    st, se1 = reg["models"]["se27_lgbm_stress"], reg["models"]["se1_lgbm_mm"]  # DESIGN_V1 section 36
+    assert emb["se27_lgbm_stress"] is None and st["learner"] == "lgbm" and st["params"] == se1["params"] and st["isolates"] == ["slotfac", "stress"]
+    assert st["families"] == ["market_state", "momentum", "slotfac", "stress"] and st["broad"] is False and st["derived"] == se1["derived"]
+    assert st["aux_versions"] == {"slotfac": "se-aux-slotfac-v1", "stress": "se-aux-stress-v1"}
+    assert st["train"] == reg["models"]["se21_lgbm_hwm"]["train"] | {"require_sources": ["slotfac", "stress"]}
+    assert not any({"stress", "slotfac"} & set(s["families"]) for s in reg["models"].values() if s.get("broad"))
     assert all(v is None for v in ((SP.embargo_of(s, S.epoch("2027-02-14T00:00:01Z")) or {}).get("until") for s in reg["models"].values()))  # latest: book 2027-02-14 (LT9)
 
 
@@ -1734,7 +1853,8 @@ def test_cli_exit_codes_walkforward_and_dashboard(env, capsys, monkeypatch):
     cli = _cli()
     base = ["--engine-root", str(paths.engine), "--dumps-root", str(w.root), "--spec-dir", str(paths.spec_dir)]
     assert cli.main(["features", "--max-items", "30", *base]) == 0  # aux budget 7 families x 30 captures
-    assert cli.main(["features", *base]) == C.TEMPFAIL  # nothing new
+    # stress / slotfac tables that waited for earlier crypto tables are written over the next runs, then nothing is new
+    assert [cli.main(["features", *base]) for _ in range(6)][-1] == C.TEMPFAIL
     assert cli.main(["predict", *base]) == C.TEMPFAIL  # no fit yet (and captures are old)
     assert cli.main(["refit", "--force", *base]) == 0
     assert cli.main(["refit", *base]) == C.TEMPFAIL  # not due again within 20 h
