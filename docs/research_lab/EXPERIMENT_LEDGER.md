@@ -4992,3 +4992,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `f4deb7846be1cc2051e2f76b1fe8e41f30b3c65b0bbb3ef4db8d0d3ce31408c1`, `frame.csv.gz` (140 bytes, header only)
   `ab34dd3ed11da5aea46876139d29b82603f94b293a4ad2ed542b455856f11f9f`. These are the pins of the runner's empty-frame waiver
   (`fix/cb9-q0184`; diff check ACCEPT_WITH_FIXES: record the host values, verify the frame file too) and of CB10 q0201's pyth pin.
+- CB9 runner fix merged (04:27Z; fix/cb9-q0184 2eb68ef1): P1 / P2 labelled "not testable (empty frame: exclusion keys)", p = 1,
+  counted, bound to the manifest sha256 and counts (written at the screen, not now); `rep` P not run; the census's books
+  condition 5 is waived for P only when both host pins match (manifest and `frame.csv.gz` above), else unchanged (exit 75).
+  **q0184 recorded "not run (empty frame)"** (draft kept; the shared verifier would refuse the unlisted `frame_partial.jsonl`
+  scratch file anyway). No rules hash moved. Diff check ACCEPT_WITH_FIXES, both fixes applied.
