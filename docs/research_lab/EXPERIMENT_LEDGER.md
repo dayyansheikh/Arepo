@@ -5393,3 +5393,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0751b J2 not_before 12-15T07:00Z. Deviation (implementer): dup / late side files are written only for slots with a chain
   status. **q0750b** queued: the dry run again on this code, in a fresh store `m1_dryruns/q0750b/research_lab/m1_ch263_dryrun`
   (q0750's store holds another dry window's state; moving it is blocked by the evidence hook, correctly, so it stays).
+
+## M1 fix diff check ACCEPT_WITH_FIXES (one more edge case); q0750b cancelled before it ran, 2026-10-30 13:30Z (experiments autopilot; nothing counted)
+- `reviews/M1_FIX_DIFF_CHECK_2026-10-30.md` on ee8ce2b6: MUST 1-2 and SHOULD 1-3 of the previous check done; the side-file
+  deviation is sound (J2 refuses unless all 252 slots are decided). **New MUST 1:** a second on-time capture for a slot already
+  recorded missing would go unrecorded (regression; probe `reviews/probes_m1_r/miss2.py`). SHOULD 1 `(start, id)` tie key;
+  SHOULD 2-3 code-note readings (k - 1 directory gone -> refusal; captures visible only after the last J1 pass). Fix chosen over
+  disclosure; delegated on `feat/m1-code`. **q0750b cancelled on the host while still queued** (its code_sha would no longer be
+  the pinned one); the dry run re-runs as q0750c on the final code.
