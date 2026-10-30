@@ -1076,3 +1076,87 @@ shown on these terms.
   - Otherwise record a dead end here; nothing is registered.
 - **Not a reason to register.** A gain over se1 or se26 alone does not count: the comparison is against se17, the model
   the variant changes.
+
+## 35. `stress` (CH258) census: definitions fixed before the run (2026-10-29 ~23:55Z; counts only, no scoring change)
+
+**What it decides.** Only the two census kills in CANDIDATES round 18, item 4: fewer than 5 stress slots in 21 days, or
+|corr| of `st_btc_rv_1h` with the slot's common factor above 0.8. No outcome is read: no next-slot spread, flat class,
+label or prediction. No K, no column, no table.
+- **Inputs.** The engine's own write-once `aux_inputs/crypto/<cid>.json.gz` (Binance spot 1m klines, each closed before
+  its own capture start), the capture's `features/<cid>.parquet` (`market_id`, `mo_d2h`) and `aux/crypto/<cid>.parquet`
+  (`cr_has`). Nothing is fetched.
+- **`st_btc_rv_1h`.** As `cr_rv1h`: sqrt of the sum of squared 1m log returns of the last 60 closed BTCUSDT 1m klines
+  before the capture start (NaN below 50 returns).
+- **7-day baseline.** The union of the 1m klines in every earlier-or-same capture's inputs file (each closed before its
+  own capture start, so before this one), restricted to the 7 days before the capture start; per-hour scale
+  sqrt(sum of squared consecutive 1m log returns x 60 / n). A slot enters the census only with n >= 90% of 10,080.
+- **`st_btc_rv_ratio`** = `st_btc_rv_1h` / baseline; **stress slot** = ratio >= 2.
+- **Common factor.** The slot's mean |`mo_d2h`| over eligible rows with `cr_has` == 0 and a finite `mo_d2h`.
+- **Correlation.** Pearson over census slots (Spearman printed as information only, not a kill).
+- **Reading.** >= 5 stress slots and |Pearson| <= 0.8: the census passes and a builder step may follow (control column
+  included). |Pearson| > 0.8: killed. Fewer than 5 stress slots: killed only once the census covers 21 days; a shorter
+  census (the stored inputs start 2026-10-13) is re-read when it reaches 21 days, never with a scaled threshold.
+- **Result (2026-10-30 ~01:55Z, counts only).** Script and output committed afterwards as
+  `census/se_stress_census_2026-10-30.py` (sha256 `9865f091...43cf2`, the same file as the host's `/tmp/se_stress_census.py`,
+  mtime 2026-10-29 23:39Z) and `census/se_stress_census_2026-10-30.out`. The script and this section were uncommitted when
+  the census ran, so "fixed before the run" rests on the session narrative and the file's mtime, not on a commit.
+  195 inputs files, 0 kline conflicts; 132 census slots over 11.0 days (10-18 20:31Z .. 10-30 00:31Z; the 7-day baseline
+  needs the inputs from 10-13). **6 stress slots** (10-20, 10-22, 10-23 and 10-26 at 14:31Z, around the US equity open;
+  10-29 22:31Z and 10-30 00:31Z, probably one episode): roughly two genuine spikes, not six independent events. Ratio
+  p50 / p90 / p99 / max 0.785 / 1.631 / 2.614 / 3.252; 17 slots at ratio >= 1.5. **Pearson(`st_btc_rv_1h`, common factor)
+  0.294** (Spearman 0.242, information). Median 43,824 non-crypto rows a slot. Reading as written: >= 5 stress slots and
+  |Pearson| <= 0.8, so **the census passes** and the builder step (section 36) follows. The 21-day span applies only to
+  the < 5 kill (more days can only add stress slots), so the 11-day census is a pass, not a provisional read.
+
+## 36. `stress` and `slotfac` builders, challenger `se27_lgbm_stress` (2026-10-30 ~03:00Z; development, CH258)
+
+**Why.** Section 35's census passed. CH258's hypothesis: a BTC / ETH volatility spike raises makers' inventory risk
+everywhere, so non-crypto books thin in the next slot with no news. The champion and se1 hold no cross-asset column.
+Ideas only: no evidence yet. Science review 2026-10-30 (read-only, `science-reviewer`): causality, census and embargo
+PASS; three must-fixes (census provenance, control attribution, replay dependency), all applied below.
+- **Aux family `stress` (`se-aux-stress-v1`, `aux.stress_values`), slot-level columns** (the same value on every row of a
+  capture). Inputs: the crypto family's write-once `aux_inputs/crypto/<cid>.json.gz` of this capture and every earlier
+  capture of the last 8 days (file name <= this capture id), keeping only klines closed at or before this capture's start
+  (`(open + 60 s) <= cap_start`); on a duplicate kline the earliest file's value is kept. Nothing is fetched.
+  - `st_btc_rv_1h`, `st_eth_rv_1h`: as `cr_rv1h` (the 61 closes of the last hour, >= 50 consecutive-minute returns), NaN
+    without a close within `CR_STALE_S` of the capture start.
+  - `st_btc_rv_ratio`: `st_btc_rv_1h` over the 7-day per-hour baseline of section 35 (>= 90% of 10,080 returns);
+    `st_stress` = 1[ratio >= 2] (NaN with the ratio).
+  - `st_btc_rv_ratio_hod`: `st_btc_rv_1h` over the root mean square of the same clock hour's `st_btc_rv_1h` on the previous
+    7 days (>= 5 of them finite). **Added after seeing the census** (four of six stress slots at 14:31Z, so the 7-day ratio
+    partly measures the clock hour). Disclosed; no outcome was read.
+  - `st_btc_ret_2h`, `st_btc_absret_2h`: the log BTC return from the close within 120 s of cap_start - 2 h to the fresh close.
+  - Provenance: `st_own_inputs_sha256`, kline counts and **`st_inputs_read`** = {inputs file: sha256} of every file read.
+- **Aux family `slotfac` (`se-aux-slotfac-v1`), the common-factor control, one column.** `sf_prev_absd2h` = the
+  **previous** slot's mean |`mo_d2h`| over its eligible rows with `cr_has` == 0, from its features and crypto tables (NaN
+  without both or with mismatched market ids; `sf_prev_capture_id` recorded). The current slot's own value is not used:
+  its rows were received during the capture (the `regime` review's receipt-order objection). A family of its own so a
+  reference arm can hold it without the stress columns, and so the fit's per-family SHAP separates the two.
+- **Waiting, not NaN (`AuxNotReady` / `AuxUnbuildable`).** Both families read only engine files (`needs_rows` false), so
+  they backfill after the snapshot rows are gone (on the host the rows start 10-20, the inputs 10-13). `stress` waits
+  while this capture's crypto table, or any earlier capture's in its 8-day window, is missing but still buildable (its
+  rows exist); a write-once table built too early would keep NaN baselines for good. `slotfac` waits while the previous
+  slot's crypto table is missing but buildable. `run_aux` counts a wait as `waiting` (no table, no error, no budget) and
+  retries next run. A capture whose own crypto table is missing with its rows gone is `AuxUnbuildable`, counted with the
+  captures whose rows are gone: missing stays missing. A crypto table that is missing because its build keeps failing
+  makes stress wait without an error of its own; the crypto build reports the error.
+- **Replay dependency.** A stress table depends on up to ~96 earlier `aux_inputs/crypto` files (listed with hashes in
+  its metadata). Those files must be kept as long as the stress tables may need rebuilding; retiring them removes that
+  ability (to be listed if a retention review ever covers `aux_inputs`).
+- **Challenger `se27_lgbm_stress`:** LightGBM with se1_lgbm_mm's params on market_state + momentum + slotfac + stress;
+  isolates both; trains only when every labelled capture of the window has both tables (`require_full_coverage`,
+  `require_sources: ["slotfac", "stress"]`), the train block of se21 / se24. Not broad: no broad model gains the columns.
+  - **Attribution rule (fixed now).** CANDIDATES asks for the stress read "against se1 with the slot factor held". A se27
+    result against se1 mixes the stress columns with the control, so **no se27 gain is credited to BTC / ETH stress**
+    until a slotfac-only reference arm (se1 + `slotfac`) has been registered and scored over the same days. If se27 beats
+    se1 on `dir_2h` at its first 14-day read, that arm is registered then (no new aux version needed); otherwise se27's
+    result stands for the pair only. No arm now: each active model raises the promotion K for every challenger.
+  - **Same overfit risk as `regime`** (section 19): about 12 slot-level values a day, 7 + 1 constant columns a slot, which
+    trees can overfit. The cross-asset argument is new, the mechanism of `regime`'s failure is not.
+- **Departures from CH258:** the control is the previous slot's value (CANDIDATES' alternative), not the own slot's; the
+  tick-size interactions are not built (trees can form them from `market_state`); `st_btc_rv_ratio_hod` is added.
+- **No embargo.** `crypto` (row 20) is crypto-template rows only and its columns are row-level; no live test's token
+  names cross-asset volatility or a market-wide move (the dropped `regime` was a development family, not a test). After
+  2026-11-18 a reward-status interaction is allowed (`rewards`); not built.
+- **Diagnostics CANDIDATES lists (spread change, flat class on non-crypto rows)** are not computed here; they would be a
+  separate counts read after se27 has scored days, labelled development.

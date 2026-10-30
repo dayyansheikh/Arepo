@@ -1,0 +1,60 @@
+{
+ "aux_versions": {
+  "slotfac": "se-aux-slotfac-v1",
+  "stress": "se-aux-stress-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Learner-matched shared balance sheet (CANDIDATES CH258, development only): LightGBM with se1_lgbm_mm's params on the champion's features + the stress aux family (se-aux-stress-v1: BTC 1 h realised volatility from the crypto family's stored 1m klines, its ratio to the 7-day and to the same-clock-hour baselines, the stress flag ratio >= 2, BTC 2 h return and its size, ETH 1 h realised volatility) + the slotfac family (se-aux-slotfac-v1: the previous slot's non-crypto mean |2 h change|, the common-factor control). Slot-level columns, all closed before the capture start. Read against se1_lgbm_mm, the gain is stress plus its control; none of it is credited to BTC / ETH stress before a slotfac-only reference arm is read (DESIGN_V1 section 36). Trains only when every labelled capture of the window has both tables; not embargoed.",
+ "families": [
+  "market_state",
+  "momentum",
+  "slotfac",
+  "stress"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "slotfac",
+  "stress"
+ ],
+ "learner": "lgbm",
+ "model_id": "se27_lgbm_stress",
+ "params": {
+  "early_stopping": 30,
+  "lgb": {
+   "bagging_fraction": 0.8,
+   "bagging_freq": 1,
+   "feature_fraction": 0.8,
+   "lambda_l2": 1.0,
+   "learning_rate": 0.05,
+   "max_bin": 127,
+   "min_data_in_leaf": 500,
+   "num_leaves": 31,
+   "seed": 20261021
+  },
+  "max_rounds": 300,
+  "val_frac": 0.2
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 300000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "slotfac",
+   "stress"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}
