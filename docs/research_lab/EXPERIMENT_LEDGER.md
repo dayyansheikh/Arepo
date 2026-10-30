@@ -5541,3 +5541,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `reviews/CH276_CODE_RECHECK_2026-10-30.md` no further round is needed.
 - **q0760 promoted** (priority 90, mem 900, unchanged otherwise) so it starts before the 2026-11-01T02:45Z blackout and
   rotation. M3's R1 response was committed (ba1c9841) before this run, as required.
+
+## CB7 census q0147c: GS fail, GG / GX pass, 2026-10-30 (experiments autopilot; counts only)
+- q0147c done 2026-10-30T15:33Z on the host; `census.json` (git_commit 7e9958c1, `cb7_descriptive`, EXCLUDE, uncounted; counts only,
+  no outcome read). Counts and gates inserted into `CREATIVE_BATCH_7.md` section 2.7a. No threshold, floor, window or formula changed.
+- **GS FALSE:** units 787 (need 3,000), event x week clusters 329 (need 1,000); series/event clusters 319 (need 300) and
+  within-cell SD of C 0.971 (need 0.5) met. Text-only deff 2.38; S1 MDE 7.0c per marker (design assumed 2.5c).
+- **GG TRUE:** units 1,756, event clusters 663, theme clusters 177, sum m 86.2, h_geo measured 0.012. **GX TRUE:** S prints 23,760,
+  skip windows 4,915, event clusters 70, UTC dates 295 (non-sports).
+- **Pre-declared consequence for S:** S1 "not testable", p = 1, counted; no rescue, no re-screen (section 2.8). S1-rep is not run
+  (section 8 item 5: q0152 only if S1 advanced). Open for the freeze check: whether the `textorig` step / q0151 and S2 still run.
+- **Holm:** Stage-1 k1 stays 3 (S1 counted at p = 1); Stage-2 k can only fall (at most 2 if S1-rep and S2 do not run). Cumulative
+  denominator still includes S1.
+- Ops: CB7 no longer needs the 12-day snapshot hold, but LT14's census (q0742, 11-17) still does; keep 12 days until then.
+- Next: science-reviewer freeze check for G and X (and the S questions above); then freeze `model_specs/cb7_v1.json`, pin
+  `T7_S_rep_start` (only if S2/S1-rep survive the check), deploy the `textorig` step and q0151 as the check decides. Nothing frozen or queued by this entry.

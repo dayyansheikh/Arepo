@@ -365,6 +365,68 @@ loss is computed.**
   recomputed with it.
 - MDEs recomputed from these counts (never used to change a floor, window or threshold).
 
+### 2.7a Census result (q0147c, 2026-10-30; counts only, appended after the run)
+
+Source: host `~/arepo/data-dumps/research_lab/creative_batch7/census.json` (15,683 bytes), job `q0147c_cb7_census`, done
+2026-10-30T15:33Z, `git_commit` 7e9958c1, `cb7-census-v1`, `evidence_role: exploratory_historical`, kind `cb7_descriptive`
+(EXCLUDE, count 0). No outcome, mark, YES rate or estimate was computed. Appended after the run; no gate, floor, window,
+band or formula in this document was changed, and none is revised from these counts. Declaration pins in the file:
+`constants_sha256` 2ce0e637...b0cd (GS 3000 / 1000 / 300 / 0.5, GG 300 / 100 / 15 / 15.0, GX 2000 / 300 / 30 / 30 as in §2.7),
+`rules_sha256` 05bf365c...21e9, seals h8_text 6074eee8..., h8_geo 4ae2be72..., h8_tail 2a88f3e5... (all `sealed`).
+
+| Gate | Component | Need | Value | Met |
+|---|---|---|---|---|
+| **GS** | S1 population units | >= 3,000 | **787** | no |
+| | event x resolution-week clusters | >= 1,000 | **329** | no |
+| | series/event clusters | >= 300 | 319 | yes |
+| | within-cell SD of C | >= 0.5 | 0.971 (n-denominator, the binding smaller one; df-corrected 0.986) | yes |
+| **GG** | eligible units | >= 300 | 1,756 | yes |
+| | event clusters | >= 100 | 663 | yes |
+| | theme clusters | >= 15 | 177 | yes |
+| | expected YES `sum m` | >= 15 | 86.2 | yes |
+| | `h_geo` measured | available | 0.012 | yes |
+| **GX** | S prints (non-sports) | >= 2,000 | 23,760 | yes |
+| | skip windows with >= 1 S print | >= 300 | 4,915 | yes |
+| | event clusters | >= 30 | 70 | yes |
+| | UTC dates | >= 30 | 295 | yes |
+
+**Result: GS FALSE, GG TRUE, GX TRUE.**
+
+**S (h8_text).** Sample 4,108 markets; after seal drops (h8_geo frame 30, sealed runs 400) 3,678 kept; 940 eligible units over
+all topics; the S1 population (eligible, kept, not sports, not clarification-marked; 24 cells) is **787 units**. Text-only
+design effect `deff_S` = 2.381 (series/event way: m̄ 2.467, rho_C 0.941; event x week way: 2.310). **S1 MDE from these counts
+7.0c per marker** (SE 0.0221 in price units, assumed within-cell SD of g 0.39), against the design's 2.5c at about 5,000 units.
+Disjointness verified (1 of 20,913 exclusion ids missing, share 0.00005). Descriptions longer than 4,000 characters: 0 in the
+sample (7 in the frame). Units with `closed_time < t7`: 4 eligible, 3 in the S1 population; `|closed_time − end_at| < 1 h`: 73
+and `closed_time < end_at − 7 d`: 778 of 3,656 closed rows. Censored share at fetch 0.0060. Marker prevalence m1-m7:
+0.017, 0.858, 0.401, 0.035, 0.012, 0.605, 0.482. Clarification-marked share is at most 3.2% in any topic.
+
+**G (h8_geo).** Frame 6,846 rows, 3,067 markets, 727 capped out at 8 per event (86 events hit the cap); 2,849 sample markets
+after seal drops (218 sealed-run drops); eligible units 1,756 (30-day origin 484, 14-day 607, 7-day 665); event clusters 663
+(event x week 982), 8 named themes with a unit; units with `closed_time < t_k`: 1. Tag-only share 0.400 of the frame and
+0.361 of the sample; the tag-and-topic subset has 1,147 units, 422 event clusters, `sum m` 57.3. `h_geo` = 0.012 (36 complete
+captures, 397 markets, 11,540 observations; per-market-median 0.012, pooled 0.010; both Reading 13a variants equal 0.012;
+text table sha256 5333444b...9ce15, capture pins 0df1dff6...03c0).
+
+**X (C1 + prints).** 316 pairs (167 non-sports), 6,143 pair-days (2 capped), 656,285 prints. Non-sports prints: S 23,760
+(of which mark available 23,754), S' 20,944, neither 100,864; 4,915 skip windows, 70 events and 295 UTC dates with S prints.
+Sports S prints 16,775 (reported stratum only). Kalshi move events (all) 140,961 up / 143,371 down. Minute ends without an
+exactly stamped candle: 6,089,390 of 8,399,070 (Reading 1, stricter than the study; conservative).
+
+**Pre-declared consequences (applied as written, no rescue).**
+- **GS fails: S1 is "not testable" (§2.7), p = 1, and counted** (§2.5). §CB7-S "what would kill CH63" lists "GS fails"; CH63 is
+  closed on S1 as `not_testable` and S1 is not re-screened with other windows, origins, bands, markers, cut points or
+  populations (§2.8). The 7.0c MDE is reported, not used to change any floor. The design contains no rescue for a failed GS,
+  and none is declared here: the §8 item 5 rule that S1-rep (q0152) is committed only if S1 advanced means S1-rep is not run.
+  Whether the `textorig` pass step / q0151 and S2 (which "has no Stage 1", §2.3) still proceed is not settled by the text and
+  goes to the freeze check (see ledger).
+- **GG and GX hold:** G1 and X1 remain testable; the further analysis-time rules (>= 10 YES clusters for G1; small-G rule and
+  testability for X1) are applied then.
+- **Holm family size.** k1 = 3 is unchanged (S1, G1, X1; failed-gate tests are counted with p = 1, §2.5). The Stage-2 k is
+  fixed "when the last Stage-1 result is final" over tests reaching Stage 2, so it can only fall (k <= 3 becomes k <= 2 if S1-rep
+  and S2 do not run).
+  The cumulative-count denominator still includes S1 (3 fixed tests, §2.5).
+
 ### 2.8 Compute, network, disk and stop rules
 
 - Host: 1 OCPU, about 5.6 GiB RAM shared with the collector. Queue worker as CB6 §2.8 (one job per lane, nice 19,

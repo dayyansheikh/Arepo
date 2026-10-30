@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T17:17:28Z",
+ "updated": "2026-10-30T17:50:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -995,19 +995,19 @@
   {
    "id": "CB7",
    "title": "Specificity, geopolitics, Kalshi-skewed maker",
-   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. The text lookup finished (text found for all 13,148 markets) and the counting check is queued with its inputs pinned.",
+   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. The counting check finished on 30 Oct: the specificity test has far too few markets for its pre-declared size (787 of 3,000 needed), so it is counted as untestable; the geopolitics and Kalshi parts have enough data to go ahead.",
    "batch": "CB7",
    "family": "text",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Pre-freeze counting check (q0147c) must run before 3 Nov while the server holds its snapshots",
-   "next_date": "2026-11-03",
+   "next": "Independent freeze check of the geopolitics and Kalshi parts, then freeze",
+   "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 fetches complete (q0142, q0143); docs/AREPO_V2_CHECKPOINT.md",
-    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 h_geo: Reading 13 superseded by 13a (2026-10-28); docs/research_lab/reviews/CB7_HGEO_RECHECK_2026-10-28.md",
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 census q0147c: GS fail, GG / GX pass (2026-10-30); docs/research_lab/CREATIVE_BATCH_7.md § 2.7a",
+    "next": "docs/research_lab/CREATIVE_BATCH_7.md § 8 (steps 4-5)",
     "status": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 q0147c promoted (2026-10-29)"
    },
    "stage_results": {
