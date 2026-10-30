@@ -418,7 +418,10 @@ class ResearchReplayService:
     def _evolution(e: ResearchEntryRow, snap: SignalSnapshotRow | None) -> dict:
         """Diagnostic later evolution; never participates in selection or category filtering."""
         if snap is None:
-            return {"available": False, "state": "no later scan"}
+            # Older scan snapshots may live in the verified cold archive (docs/infra/
+            # PROVENANCE_ARCHIVE.md), so absence here is not evidence that no later scan existed.
+            return {"available": False,
+                    "state": "no later scan stored (older scan history may be archived)"}
         strength_change = round((snap.strength or 0.0) - (e.strength or 0.0), 4)
         reversed_dir = bool(
             e.direction in ("up", "down") and snap.direction in ("up", "down")

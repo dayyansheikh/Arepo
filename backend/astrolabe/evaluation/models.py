@@ -50,7 +50,7 @@ class SignalSnapshotRow(Base):
     # Stable hash of (market, token, captured_at, calculation_version): dedupes re-ingest.
     snapshot_ref: Mapped[str] = mapped_column(String, nullable=False)
     calculation_version: Mapped[str] = mapped_column(
-        String, ForeignKey("calculation_versions.version"), nullable=False
+        String, ForeignKey("calculation_versions.version"), nullable=False, index=True
     )
 
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -122,7 +122,7 @@ class CohortEntryRow(Base):
         Integer, ForeignKey("weekly_cohorts.id"), index=True, nullable=False
     )
     snapshot_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("signal_snapshots.id"), nullable=False
+        Integer, ForeignKey("signal_snapshots.id"), nullable=False, index=True
     )
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
 

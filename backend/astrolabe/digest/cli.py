@@ -16,9 +16,17 @@ from ..config import get_settings
 from ..storage.db import make_engine, make_sessionmaker
 from ..storage.migrate import preflight
 from .service import DigestService
+from .service import _config as digest_config
 
 
 async def _run(email: str | None, *, single_account_send: bool = False) -> None:
+    # Kill-switch short-circuit (infra 2026-10-11): with digest sending disabled the scheduled run
+    # can do nothing, so don't open a Supabase connection or run the migration preflight (catalog
+    # reflection + RLS DDL) ~48 times a day for no work. Same JSON result as DigestService.run_due.
+    if not single_account_send and not digest_config().enabled:
+        print(json.dumps({"ran": False, "reason": "digest email is disabled", "processed": 0},
+                         indent=2))
+        return
     engine = make_engine()
     try:
         await preflight(engine, auto_migrate=get_settings().auto_migrate)

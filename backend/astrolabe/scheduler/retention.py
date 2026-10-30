@@ -8,7 +8,10 @@ history (trajectory needs <=6h; market-detail reads <=200 rows/market).
 Hard safety invariants (never weakened):
 
 1. A scan referenced by a frozen research cohort (``research_cohorts.scan_id`` /
-   ``research_entries.scan_id``) is PERMANENT provenance and is NEVER pruned.
+   ``research_entries.scan_id``) is PERMANENT provenance and is NEVER pruned by this pass.
+   Permanent means "in the database OR in the verified cold archive": older cohort-referenced
+   snapshot rows may be moved, only by the user-approved ``backend/scripts/provenance_archive.sh``
+   (count+md5 verified, restorable on demand; see docs/infra/PROVENANCE_ARCHIVE.md).
 2. The latest complete scan (current product state) is NEVER pruned, regardless of age.
 3. When a cold archive is configured, each scan is archived + verified BEFORE its rows are deleted;
    an archive failure retains the source (archive-before-delete). Default is prune-only.
@@ -121,9 +124,11 @@ async def run_retention(
         protected.add(latest_complete)
 
     # Candidate scans: older than the window and not protected.
+    # Only the keys (the full header carries large JSON funnel/discovery blobs; ~180 of them were
+    # re-read on every daily pass).
     candidates = (await session.execute(
-        select(ScanRunRow).where(ScanRunRow.started_at < signal_cutoff)
-    )).scalars().all()
+        select(ScanRunRow.id, ScanRunRow.scan_id).where(ScanRunRow.started_at < signal_cutoff)
+    )).all()
 
     pruned_scans = 0
     pruned_signal_rows = 0
@@ -132,9 +137,10 @@ async def run_retention(
     for scan in candidates:
         if scan.scan_id in protected:
             continue
+        # Full rows are needed only to archive them; prune-only mode never loads them.
         rows = (await session.execute(
             select(SignalSnapshotRow).where(SignalSnapshotRow.scan_id == scan.scan_id)
-        )).scalars().all()
+        )).scalars().all() if archive is not None else []
         if archive is not None and rows:
             try:
                 manifest = archive.put_scan(scan.scan_id, [_row_to_dict(r) for r in rows])

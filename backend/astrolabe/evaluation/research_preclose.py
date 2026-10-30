@@ -10,17 +10,26 @@ never overwrites it. Final resolution is never inferred from price here.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import NamedTuple
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..domain.models import utcnow
 from .research_models import (
+    ResearchCohortRow,
     ResearchEntryRow,
     ResearchPreCloseRow,
 )
 from .research_repository import ResearchRepository
 from .research_tracking import PriceProvider
+
+
+class _PreCloseCandidate(NamedTuple):
+    id: int
+    market_id: str
+    token_id: str
+    expected_close: datetime | None
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -59,59 +68,100 @@ async def collect_preclose(
     freeze-to-close is actually approaching.
     """
     now = now or utcnow()
-    repo = ResearchRepository(session)
-    cohorts = await repo.list_cohorts(provenance="prospective", frozen=True)
     updated = closed = rejected_after_close = unavailable = 0
 
-    for cohort in cohorts:
-        if cohort.excessively_late:
+    # Egress/IO guard (infra 2026-10-11): the previous loop loaded EVERY full research_entries row
+    # of every cohort (~166 MB in production) and then issued one SELECT per tracked entry (N+1), on
+    # every tick, even though almost every tracked row is already finalised. The SQL below applies
+    # the SAME eligibility rules server-side (frozen prospective cohort, not excessively late,
+    # directional, has a close time, public-selected when ``public_only``) and drops entries whose
+    # freeze-to-close row is already ``closed`` -- a closed row is terminal (the loop only ever
+    # ``continue``d past it), so excluding it changes nothing. Ordering matches the old loop.
+    q = (
+        select(
+            ResearchEntryRow.id, ResearchEntryRow.market_id, ResearchEntryRow.token_id,
+            ResearchEntryRow.expected_close, ResearchEntryRow.time_remaining_hours,
+        )
+        .join(ResearchCohortRow, ResearchCohortRow.id == ResearchEntryRow.cohort_id)
+        .outerjoin(ResearchPreCloseRow, ResearchPreCloseRow.entry_id == ResearchEntryRow.id)
+        .where(
+            ResearchCohortRow.provenance_class == "prospective",
+            ResearchCohortRow.frozen.is_(True),
+            ResearchCohortRow.excessively_late.is_not(True),
+            ResearchEntryRow.direction.in_(("up", "down")),
+            ResearchEntryRow.expected_close.is_not(None),
+            or_(ResearchPreCloseRow.id.is_(None), ResearchPreCloseRow.closed.is_not(True)),
+        )
+        .order_by(
+            ResearchCohortRow.cutoff_at.desc(), ResearchEntryRow.rank.is_(None),
+            ResearchEntryRow.rank, ResearchEntryRow.id,
+        )
+    )
+    if public_only:
+        q = q.where(ResearchEntryRow.public_selected.is_(True))
+    candidates = []
+    for entry_id, market_id, token_id, expected_close, trh in (await session.execute(q)).all():
+        # Same expression as before (incl. ``0.0 or 1e9``), applied in Python for exact parity.
+        if within_hours is not None and (trh or 1e9) > within_hours:
             continue
-        for entry in await repo.get_entries(cohort.id):
-            if entry.direction not in ("up", "down") or entry.expected_close is None:
-                continue
-            if public_only and not entry.public_selected:
-                continue
-            if within_hours is not None and (entry.time_remaining_hours or 1e9) > within_hours:
-                continue
-            close = _utc(entry.expected_close)
-            row = await _get_or_create(session, entry)
+        candidates.append(_PreCloseCandidate(entry_id, market_id, token_id, expected_close))
 
-            if close is not None and now >= close:
-                # Market has closed: finalise. Never fetch or accept a post-close quote.
-                if not row.closed:
-                    row.closed = True
-                    row.closed_detected_at = now
-                    row.updated_at = now
-                    closed += 1
-                continue
+    rows_by_entry: dict[int, ResearchPreCloseRow] = {}
+    ids = [c.id for c in candidates]
+    for start in range(0, len(ids), 500):
+        chunk = ids[start:start + 500]
+        res = await session.execute(
+            select(ResearchPreCloseRow).where(ResearchPreCloseRow.entry_id.in_(chunk))
+        )
+        rows_by_entry.update({r.entry_id: r for r in res.scalars().all()})
 
-            quote = await price_of(entry.market_id, entry.token_id)
-            if quote is None or quote.midpoint is None:
-                row.unavailable_reason = "no valid quote at this collection"
+    for entry in candidates:
+        close = _utc(entry.expected_close)
+        row = rows_by_entry.get(entry.id)
+        if row is None:
+            row = ResearchPreCloseRow(
+                entry_id=entry.id, close_time=entry.expected_close, observations=0,
+                closed=False, updated_at=utcnow(),
+            )
+            session.add(row)
+            rows_by_entry[entry.id] = row
+
+        if close is not None and now >= close:
+            # Market has closed: finalise. Never fetch or accept a post-close quote.
+            if not row.closed:
+                row.closed = True
+                row.closed_detected_at = now
                 row.updated_at = now
-                unavailable += 1
-                continue
+                closed += 1
+            continue
 
-            src = _utc(quote.source_timestamp)
-            if close is not None and src is not None and src >= close:
-                # The quote itself is at/after close: reject it, keep the last valid pre-close.
-                rejected_after_close += 1
-                continue
-
-            if row.first_observed_at is None:
-                row.first_observed_at = now
-                row.first_midpoint = quote.midpoint
-            row.last_valid_at = now
-            row.last_midpoint = quote.midpoint
-            row.last_best_bid = quote.best_bid
-            row.last_best_ask = quote.best_ask
-            row.last_spread = quote.spread
-            row.last_near_mid_depth = quote.near_mid_depth
-            row.last_source_timestamp = src
-            row.unavailable_reason = None
-            row.observations += 1
+        quote = await price_of(entry.market_id, entry.token_id)
+        if quote is None or quote.midpoint is None:
+            row.unavailable_reason = "no valid quote at this collection"
             row.updated_at = now
-            updated += 1
+            unavailable += 1
+            continue
+
+        src = _utc(quote.source_timestamp)
+        if close is not None and src is not None and src >= close:
+            # The quote itself is at/after close: reject it, keep the last valid pre-close.
+            rejected_after_close += 1
+            continue
+
+        if row.first_observed_at is None:
+            row.first_observed_at = now
+            row.first_midpoint = quote.midpoint
+        row.last_valid_at = now
+        row.last_midpoint = quote.midpoint
+        row.last_best_bid = quote.best_bid
+        row.last_best_ask = quote.best_ask
+        row.last_spread = quote.spread
+        row.last_near_mid_depth = quote.near_mid_depth
+        row.last_source_timestamp = src
+        row.unavailable_reason = None
+        row.observations += 1
+        row.updated_at = now
+        updated += 1
 
     await session.commit()
     return {
