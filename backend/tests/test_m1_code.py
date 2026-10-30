@@ -169,7 +169,7 @@ def test_out_of_order_delivery_processes_in_order_with_same_units(tmp_path, worl
     ms.move_capture(src, hold, 8)  # capture 8 is not yet delivered while 9 and later are
     store = tmp_path / "research_lab" / "m1_ch263_x"
     t8 = ms.tcap(8).timestamp()
-    r1 = ex.run_pass(store, src, sw, SPEC, now=t8 + 3600)  # within 6 h of slot 8: must wait, not skip ahead
+    r1 = ex.run_pass(store, src, sw, SPEC, now=t8 + 5 * 3600)  # slot 7 is decided (grid + 6 h passed), slot 8 is not: must wait, not skip ahead
     assert r1.get("processed") == 2 and r1.get("waiting_for_slot") == 1  # k = 6, 7 only
     assert not (store / "units" / f"{ms.cid(9)}.jsonl.gz").exists()
     ms.move_capture(hold, src, 8)
@@ -203,7 +203,7 @@ def test_state_holding_a_later_capture_refuses(tmp_path):
     held = tuple(range(ms.L + 4, ms.L + ms.W))
     snap, sw = ms.build_stores(tmp_path / "src", skip=held)
     store = tmp_path / "research_lab" / "m1_ch263"
-    ex.run_pass(store, snap, sw, SPEC, now=ms.tcap(ms.L + 3).timestamp() + 1800)  # k = 6, 7, 8, 9 processed
+    ex.run_pass(store, snap, sw, SPEC, now=ms.tcap(ms.L + 3).timestamp() + 6 * 3600 + 1800)  # k = 6, 7, 8, 9 processed
     for k in held:
         if k != ms.MISSING_K:
             ms.write_capture(snap, k)
@@ -791,7 +791,7 @@ def test_amendment18_m2_overlap_reads_ids_only_and_is_unavailable_without_a_stor
              json.dumps({"market_id": 1, "capture_id": "other_capture", "ask_f": 0.5}), json.dumps({"market_id": 77, "capture_id": ms.cid(9)})]
     (m2 / "units" / "x.jsonl.gz").write_bytes(gzip.compress(("\n".join(lines) + "\n").encode()))
     res2 = an.run_analysis(store, pins, tmp_path / "o2.json", SPEC, now=ms.after_readout(SPEC))
-    assert res2["m2_overlap"] == {"count": 1, "m2_unit_ids_read": 3, "key": "market_id + capture_id", "pooled": False}
+    assert res2["m2_overlap"] == {"count": 1, "m2_unit_ids_read": 3, "m2_lines_missing_a_key": 0, "key": "market_id + capture_id", "pooled": False}
     blob = (tmp_path / "o2.json").read_text()
     assert "0.123457" not in blob and "SECRETCLASS" not in blob  # no M2 price, class or outcome reaches the output
     res3 = an.run_analysis(store, pins, tmp_path / "o3.json", SPEC, now=ms.after_readout(SPEC), m2_store=tmp_path / "nowhere")
@@ -810,3 +810,97 @@ def test_amendment18_survivorship_comes_from_j1_in_scope_sets(tmp_path, full):
     assert sv["per_day"]["2026-10-20"]["in_scope_ids_distinct"] == 10 and sum(d["m1_units"] for d in sv["per_day"].values()) == res["eligible_units"]
     gone = [dict(d, in_scope_market_ids=None) if d.get("capture_id") == ms.cid(8) else d for d in ex.load_statuses(store)[1]]
     assert an.survivorship(gone)["per_capture"][ms.cid(8)] == "unavailable"
+
+
+# --- re-check R1-R3, S1-S3 (docs/research_lab/reviews/M1_CODE_RECHECK_2026-10-30.md) ---------------------------------------------------------
+
+def _dup_capture(snap, k, name="A_dup", start_min=-10, fin_min=180):
+    A = snap / name
+    shutil.copytree(snap / ms.cid(k), A)
+    m = json.loads((A / "manifest.json").read_text())
+    m.update(capture_id=name, started_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=start_min)), finished_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=fin_min)))
+    (A / "manifest.json").write_text(json.dumps(m))
+
+
+def test_r1_slot_is_decided_only_after_grid_plus_6h_and_live_equals_catch_up(tmp_path):
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    hold = tmp_path / "hold"
+    for kk in range(k + 1, ms.L + ms.W):
+        if (snap / ms.cid(kk)).exists():
+            ms.move_capture(snap, hold, kk)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    r1 = ex.run_pass(store, snap, sw, SPEC, now=ms.tcap(k).timestamp() + 30 * 60)  # B (start g, finished g + 5 min) is on disk, but the slot is not final
+    assert not (store / "status" / f"{ms.cid(k)}.json").exists() and r1.get("waiting_for_slot") == 1
+    _dup_capture(snap, k)  # A: same slot, started 10 min earlier, finished g + 3 h (on time)
+    ex.run_pass(store, snap, sw, SPEC, now=ms.tcap(k).timestamp() + 4 * 3600)  # still inside the 6 h: no refusal, still waiting
+    assert not (store / "status" / f"{ms.cid(k)}.json").exists()
+    for kk in range(k + 1, ms.L + ms.W):
+        if (hold / ms.cid(kk)).exists():
+            ms.move_capture(hold, snap, kk)
+    ex.run_pass(store, snap, sw, SPEC, now=ms.after_end(SPEC))
+    store2 = tmp_path / "research_lab" / "m1_ch263_catch"
+    ex.run_pass(store2, snap, sw, SPEC, now=ms.after_end(SPEC))
+    for s_ in (store, store2):  # live and catch-up pick the same capture (A, the earliest start) and fold the same chain
+        assert (s_ / "status" / "A_dup.json").exists() and not (s_ / "status" / f"{ms.cid(k)}.json").exists()
+    assert (store / STATE_FILE).read_bytes() == (store2 / STATE_FILE).read_bytes()
+
+
+def test_r1_a_slot_with_any_chain_status_is_not_reprocessed_for_another_capture_id(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    before = (store / STATE_FILE).read_bytes()
+    _dup_capture(snap, ms.L + 2)  # an earlier-start on-time capture arrives for a slot already decided (e.g. a restart that overlapped)
+    run(store, snap, sw)  # must not refuse with "state chain broken"
+    assert (store / STATE_FILE).read_bytes() == before and not (store / "status" / "A_dup.json").exists()
+
+
+def test_r2_open_record_with_split_prices_is_pending_not_closed():
+    rec = {"id": "1", "closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["0.5", "0.5"]}
+    out = ro.classify_record(rec)
+    assert out["state"] == "pending" and out["parse_reason"] == "not_closed" and out["y"] is None
+    assert ro.classify_record(rec | {"closed": True})["state"] == "split_50_50"
+    assert ro.classify_record({"closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["1", "0"]})["state"] == "pending"
+
+
+def test_r3_absent_or_unparseable_finished_utc_is_not_on_time(tmp_path):
+    for label, patch in (("absent", None), ("garbage", "not-a-time")):
+        snap, sw = ms.build_stores(tmp_path / label / "src", skip=())
+        k = ms.L + 3
+        mp = snap / ms.cid(k) / "manifest.json"
+        m = json.loads(mp.read_text())
+        m.pop("finished_utc")
+        if patch:
+            m["finished_utc"] = patch
+        mp.write_text(json.dumps(m))
+        store = tmp_path / label / "research_lab" / "m1_ch263"
+        r = run(store, snap, sw)
+        assert r["late_capture_ignored"] == 1 and r["missing_capture"] >= 1 and not (store / "status" / f"{ms.cid(k)}.json").exists()
+        late = json.loads((store / "status" / f"late_{ms.cid(k)}.json").read_text())
+        assert late["reason"] == "finished_utc_absent" and late["finished_utc"] is None
+        assert (store / "status" / f"missing_{sp.iso(sp.slot_time(SPEC, ms.slot(k))).replace('-', '').replace(':', '')}.json").exists()
+        assert an.counted_classes(store)["late_capture_ignored"] == 1
+
+
+def test_s1_unparseable_manifests_have_their_own_key(tmp_path):
+    snap, sw = ms.build_stores(tmp_path / "src")
+    bad = snap / "garbled"
+    bad.mkdir()
+    (bad / "manifest.json").write_text("{not json")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    lb = json.loads((store / "status" / "_init.json").read_text())["lookback"]
+    assert lb["unparseable_manifests"] == 1 and lb["noncomplete_manifests_before_window"] == 0
+
+
+def test_s2_s3_survivorship_states_the_dropped_clause_and_m2_overlap_counts_keyless_lines(tmp_path, full):
+    store, pins = full
+    res = an.run_analysis(store, pins, tmp_path / "o1.json", SPEC, now=ms.after_readout(SPEC))
+    assert res["survivorship"]["share_seen_before_close"] == "not computed (amendment 18(b))"
+    m2 = tmp_path / "research_lab" / "m2_ch264"
+    (m2 / "units").mkdir(parents=True)
+    lines = [json.dumps({"market_id": 1, "capture_id": ms.cid(8)}), json.dumps({"market_id": 2}), json.dumps({"capture_id": "x"}), json.dumps({"mid": 3, "cap": "y"})]
+    (m2 / "units" / "x.jsonl.gz").write_bytes(gzip.compress(("\n".join(lines) + "\n").encode()))
+    res2 = an.run_analysis(store, pins, tmp_path / "o2.json", SPEC, now=ms.after_readout(SPEC))
+    assert res2["m2_overlap"]["m2_lines_missing_a_key"] == 3 and res2["m2_overlap"]["m2_unit_ids_read"] == 1

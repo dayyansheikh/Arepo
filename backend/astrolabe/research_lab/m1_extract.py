@@ -198,25 +198,26 @@ def list_complete(root: Path) -> list[dict]:
     return sorted(out, key=lambda c: (c["start"], c["id"]))
 
 
-def count_noncomplete(root: Path, before: float) -> int:
+def count_noncomplete(root: Path, before: float) -> dict:
     """Manifests that exist and start before ``before`` but are not complete (state not complete or rows missing); counted, never used."""
     n = 0
+    unparseable = 0
     for p in sorted(Path(root).glob("*/manifest.json")):
         try:
             m = json.loads(p.read_text())
         except (OSError, ValueError):
-            n += 1
+            unparseable += 1  # time unknown, so not assigned to "before the window" (S1)
             continue
         t = c240.parse_utc(m.get("started_utc"))
         if math.isfinite(t) and t < before and (m.get("state") != "complete" or not (p.parent / "rows.csv.gz").exists()):
             n += 1
-    return n
+    return {"noncomplete_manifests_before_window": n, "unparseable_manifests": unparseable}
 
 
 def window_captures(root: Path, spec: dict) -> tuple[dict, list[dict], list[dict], list[dict]]:
     """({slot: capture} the first on-time complete capture of each window slot by start, [later on-time duplicates], [late captures], [off-grid captures]).
     On time (9.2): the manifest's ``finished_utc`` is at most grid time + 6 h; the rule is a fact about the capture, not about when J1 runs. A manifest
-    without a parseable ``finished_utc`` falls back to the start time and is flagged ``fin_missing``."""
+    without a parseable ``finished_utc`` is not on time (re-check R3): it goes to the late list, flagged ``fin_missing``."""
     a, b = sp.ts(spec, "registered_utc"), sp.ts(spec, "end_utc")
     wslots = set(sp.window_slots(spec))
     by: dict = {}
@@ -231,8 +232,8 @@ def window_captures(root: Path, spec: dict) -> tuple[dict, list[dict], list[dict
             off.append(c | {"slot": s})
             continue
         fin_missing = not math.isfinite(c["fin"])
-        c = c | {"slot": s, "fin_eff": c["start"] if fin_missing else c["fin"], "fin_missing": fin_missing}
-        if c["fin_eff"] > sp.slot_time(spec, s) + spec["missing_after_grid_s"]:
+        c = c | {"slot": s, "fin_missing": fin_missing}
+        if fin_missing or c["fin"] > sp.slot_time(spec, s) + spec["missing_after_grid_s"]:  # absent or unparseable finished_utc is not on time (R3)
             late.append(c)
         elif s in by:
             extra.append(c)
@@ -529,7 +530,7 @@ def init_state(store: Path, snap_root: Path, spec: dict, sha: dict, pin_rec: dic
     st.lookback = {"pre_window_source": n, "below_minimum": n < spec["lookback_min_captures"], "minimum": spec["lookback_min_captures"],
                    "first_capture_utc": sp.iso(caps[0]["start"]) if caps else None, "last_capture_utc": sp.iso(caps[-1]["start"]) if caps else None,
                    "slot_gaps": gaps, "off_grid_captures": sum(1 for c in caps if not sp.slot_of(spec, c["start"])[1]),
-                   "noncomplete_manifests_before_window": count_noncomplete(snap_root, reg)}
+                   **count_noncomplete(snap_root, reg)}
     status = {"kind": "init", "lookback": st.lookback, "notes": dict(sorted(notes.items())),
               "inputs": hash_inputs([p for c in caps for p in (c["dir"] / "manifest.json", c["dir"] / "rows_ext.csv.gz")]),
               "state_sha256_before": None, "state_sha256_after": st.sha(), "spec_sha": sha["spec"], "code_sha": sha["code"], "role": sp.ROLE, "pin_check": pin_rec}
@@ -562,21 +563,22 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
     sweeps = sweep_dirs(sweep_root)
     slots = sp.window_slots(spec)
     res: Counter = Counter()
+    chain_slots = {d["slot"] for d in load_all_statuses(store)[1]}  # a slot with any chain status is decided, whatever its capture id (R1)
     for s in slots:
         miss_path = status_path(store, spec, s, None)
         recorded_missing = miss_path.exists()
         cap = None if recorded_missing else caps.get(s)
         done_path = miss_path if recorded_missing else status_path(store, spec, s, cap)
-        if done_path.exists() and st.last_slot >= s:
+        if (done_path.exists() or s in chain_slots) and st.last_slot >= s:
             continue
         if st.last_slot > s - 1 or st.last_slot < s - 1:
             raise M1Refusal(f"state chain broken before slot {s}: the state file's last folded slot is {st.last_slot}, expected {s - 1} "
                             f"(a state holding a capture at or after k, or a gap, makes the run refuse)")
         g = sp.slot_time(spec, s)
+        if not recorded_missing and now < g + spec["missing_after_grid_s"]:  # R1: the on-time set of a slot is final only after grid + 6 h
+            res["waiting_for_slot"] += 1
+            break
         if cap is None:
-            if not recorded_missing and now < g + spec["missing_after_grid_s"]:
-                res["waiting_for_slot"] += 1
-                break
             st, _ = missing_status(store, s, st, spec, sha, pin_rec)
             save_state(store, st)
             res["missing_capture"] += 1
@@ -591,7 +593,7 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
     # Captures that never enter the chain are counted in write-once status files, so J2's manifest carries them (not only the append log).
     # A late capture is one whose manifest finished after grid + 6 h; a slot recorded missing also keeps an on-time capture that was delivered later.
     decided = {s for s in slots if status_path(store, spec, s, None).exists() or status_path(store, spec, s, caps.get(s)).exists()}
-    late_all = [(c, "finished_after_grid_plus_6h") for c in late if c["slot"] in decided]
+    late_all = [(c, "finished_utc_absent" if c["fin_missing"] else "finished_after_grid_plus_6h") for c in late if c["slot"] in decided]
     late_all += [(caps[s], "delivered_after_missing_recorded") for s in slots if s in caps and status_path(store, spec, s, None).exists()]
     for c, why in late_all:
         _write_once(store / "status" / f"late_{c['capture_id']}.json", dumps({"kind": "late_capture_ignored", "capture_id": c["capture_id"], "slot": c["slot"], "reason": why,

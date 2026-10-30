@@ -375,7 +375,8 @@ def survivorship(chain: list[dict]) -> dict:
         day_first[day] += first_seen
         day_units[day] += d["units"]
     days = sorted(set(day_sets) | set(day_unavail))
-    return {"label": "count-only, lagged: in-scope (non-sports ex-crypto, E5's reader at k) market ids per capture from J1's status files; proposal candidates are the sidecar's proposal states at k, all classes",
+    return {"share_seen_before_close": "not computed (amendment 18(b))",
+            "label": "count-only, lagged: in-scope (non-sports ex-crypto, E5's reader at k) market ids per capture from J1's status files; proposal candidates are the sidecar's proposal states at k, all classes",
             "per_day": {x: {"in_scope_ids_distinct": len(day_sets.get(x, ())), "proposal_candidates_all_classes": day_first.get(x, 0), "m1_units": day_units.get(x, 0),
                             "captures_unavailable": day_unavail.get(x, 0)} for x in days},
             "per_capture": per_capture}
@@ -388,14 +389,17 @@ def m2_overlap(units: list[dict], m2_store: Path | None) -> dict | str:
         return "unavailable"
     mid_re, cid_re = re.compile(r'"market_id":\s*(\d+)'), re.compile(r'"capture_id":\s*"([^"]*)"')
     seen: set = set()
+    missing_key = 0  # S3: a format drift must show as a count, not as a silent zero overlap
     for p in sorted((Path(m2_store) / "units").glob("*.jsonl.gz")):
         with gzip.open(p, "rt") as fh:
             for line in fh:
                 a, b = mid_re.search(line), cid_re.search(line)
                 if a and b:
                     seen.add((int(a.group(1)), b.group(1)))
+                elif line.strip():
+                    missing_key += 1
     n = sum(1 for u in units if (int(u["market_id"]), u["capture_id"]) in seen)
-    return {"count": n, "m2_unit_ids_read": len(seen), "key": "market_id + capture_id", "pooled": False}
+    return {"count": n, "m2_unit_ids_read": len(seen), "m2_lines_missing_a_key": missing_key, "key": "market_id + capture_id", "pooled": False}
 
 
 def counted_classes(store: Path) -> dict:
