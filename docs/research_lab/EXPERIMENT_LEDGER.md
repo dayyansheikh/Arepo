@@ -5725,3 +5725,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **M2 code_sha `aa6182badf87cd3e7ffb63b822f41171e13b91cd2fafc9f5861419b2f6b2270b`** (`m2_j1.py`, `m2_spec.py` changed).
   Same-event tests fail on the old code. Open for review: `left_before_overdue_slot`, `end_date_missing`. Draft q0754b
   (fresh store). Review running.
+
+## M3 code-check fixes merged, 2026-10-30 18:07Z (experiments autopilot; design DRAFT; nothing counted)
+- 4e7253d4 (merged 25619e1e): MUST 1 member count = non-unit rows + earlier units from state (probe-p1 test fails on the old
+  code; same-event `alter_after_k`); MUST 2 text at 10.1 verbatim as declared in the ledger before J0, `min_full_days` 3,
+  J0 prints `full_days` and `rule_a_result`; MUST 3-5, R3, R4, R13 text; SHOULDs 1, 2, 4, 6, 7 (rules index streamed and
+  skipped after the window, timing, `--dry-run-end-utc`, sidecar ids, write-once by recorded sha, exit codes); SHOULD 3 as
+  draft q0782 (serial M1 + M2 + M3 dry-run pass, `scripts/serial_dryrun_m123.py`); SHOULD 5 disclosed in 3.5.
+  `--last-days 8` kept (the text says 8; retention currently 12 days).
+- **M3 code_sha `345b96c88a58a58d7bba2eae5b87cacd80e3c87e5c0cedd6884e6cc4faa07d6d`**; draft design sha256 `34f17a62…a752`.
+  226 M1 + M2 + M3 tests. Diff-only check running; then q0780 (J0).
