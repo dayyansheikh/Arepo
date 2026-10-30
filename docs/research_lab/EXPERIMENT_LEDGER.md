@@ -4791,6 +4791,38 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   se17's 900k rows? Rule fixed before the run in DESIGN_V1 §34 (the §32 rule against se17: all three direction targets,
   CI excluding zero, >= 4 of 5 days positive). Development / historical; one write-once dev file; no live file changes.
 
+## Creative round 19 recorded: CH262-CH269, 2026-10-30 ~02:20Z (experiments autopilot; ideas only, nothing tested, k = 0)
+- `CREATIVE_HYPOTHESES_2026-11-02.md` (Fable xhigh; 671b2351, merged a5877d70). Eight ideas: CH263 carry after a UMA proposal
+  (hold to resolution; asks the `science-reviewer` to rule on rule 26, registered measurements), CH262 the engine's top decile
+  against the cost model's rungs (LT14 candidate), CH267 into-close spread by rule class (LT15 candidate), CH265 residual
+  momentum and CH268 quote fragility (engine-first, for the signal-engine builder), CH266 "<1%" tails, CH264 the overdue mid,
+  CH269 the counts-only map that decides the rest.
+- No host probe or data read by the round. Next: CH269 counts-only map job (in progress on `feat/ch269-map`).
+
+## CB3 `T3_fu_start` recorded, 2026-10-30 ~02:40Z (experiments autopilot; operational, nothing counted)
+- First complete follow-up pass: capture `20261030T003102Z_e883d896` (pass start 2026-10-30T00:31:02Z; code af8e0381,
+  committed 10-29T23:41:09Z, deployed before that pass). Manifest
+  `cb3_followup/20261030T003102Z_e883d896/manifest.json` sha256 `f4a8af20…2311f`: state complete, 962 requests, 0 x 429,
+  0 not reached, 0 page-cap hits (operational counts only; no rows read).
+- **`T3_fu_start` = 2026-10-30T00:31:02Z.** With `T_J4R_end` 10-21T00Z, `dev_window_end` (`cb3_declaration.py:407-414`)
+  moves `T3_dev_end` to **2026-11-03T00:00Z** (as the wire review computed). q0064a is created only when now >= 11-03T00Z
+  and quote_state is accounted for up to it; q0064 stays held until then. The design's top-level
+  `cb3_followup/manifest.json` was never implemented (per-capture manifests only; disclosed 10-30 ops batch).
+
+## LT13 full R1 re-check GO_WITH_CHANGES; LT12 fee-step impact DISCLOSE, 2026-10-30 ~03:15Z (experiments autopilot; nothing counted)
+- `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md` (on `LIVE_TESTS_13.md` sha256 `09501b14…6efb806`): every R1 MUST / SHOULD
+  discharged; q0717 fix 1 partly ("unexplained" at two lines). CH253 alone (k = 1) is coherent. MUST before stage A code:
+  (1) declare the verbatim `fee_category` reading for `cbar` and disclose it is now near a venue-wide factor; (2) stage A
+  includes the origin-side unit builders, batch join, pseudo-batch rule and twin-state loader (states only). SHOULD 1-5
+  (stale CH252 text and priors, moot coverage argument, "unexplained", aliased-controls rule, twin-state wording). Fixes
+  delegated on `feat/live-tests-13b`.
+- **LT12 (frozen a543db63…): DISCLOSE, not a deviation.** The venue fee step of 2026-10-20T16:31-18:31Z (q0717) moved 1,800
+  markets without a sports slug from sports to non-sports under the pinned `is_sports_sidecar`, and set `fee_category` to
+  `other:zero_fees` for about 0.90-0.95 of non-sports ex-crypto rows. LT12's census and window are wholly after the step,
+  so the rule applies verbatim and consistently. The "non-sports" population includes these former sports markets, and
+  the K category dummies carry little topic content. Crypto is unaffected. Any further venue step inside LT12's window is
+  recorded as an operational deviation.
+
 ## Signal engine: `stress` (CH258) census passed; families `stress` + `slotfac` built, challenger `se27_lgbm_stress` registered, 2026-10-30 ~03:00Z (signal-engine autopilot session 31; development, nothing counted)
 - **Census (DESIGN_V1 §35, counts only, no outcome read):** 132 slots over 11.0 days (10-18 20:31Z .. 10-30 00:31Z),
   **6 stress slots** (four at 14:31Z, two probably one episode), Pearson(`st_btc_rv_1h`, slot common factor) **0.294**:
