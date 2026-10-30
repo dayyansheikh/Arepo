@@ -5299,3 +5299,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   unit, class, threshold, cell or date changed.
 - Next: R1-R3 + S1-S3 (delegated on `feat/m1-code`) -> reviewer diff check -> q0750 host dry run on the final code ->
   registration commit by 2026-11-22T23:59Z.
+
+## Correction: heading times of this session's entries, 2026-10-30 07:37Z (experiments autopilot; operational)
+- The approximate times in the headings of the entries from "M1-J0 (q0731) counts recorded" (written "~07:10Z") through
+  "M1 code re-check ACCEPT_WITH_FIXES" (written "~10:40Z") were estimated wrongly (too late by 20 min to 3 h). The commit
+  times are authoritative: J0 record 06:50Z; M2 re-check 06:54Z; LT14 code check 06:57Z; M1 freeze 07:00Z; q0733 promoted
+  07:06Z; M2 rulings / q0733 stop 07:13Z (host times as written there are correct); LT14 re-check / q0740 07:14Z; q0733b
+  07:17Z; M1 code check 07:22Z; LT14 q0741-q0744 promoted 07:27Z; M1 re-check / amendment 18 07:35Z. The same wrong
+  estimates appear in the "PROMOTED ~…Z" notes of q0733b (~09:20Z, really 07:17Z) and q0741-q0744 (~10:05Z, really 07:27Z);
+  the job specs are left unedited (deployed). No dates, deadlines or not_before values are affected.
