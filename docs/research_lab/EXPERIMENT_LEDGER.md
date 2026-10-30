@@ -5530,3 +5530,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `~/crontab.bak.*`). It is guarded to start only after q0751 (the queue's first J1 pass) is recorded `done` in
   `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
   if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
+
+## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:45Z (experiments autopilot; counts only, k = 0, nothing counted)
+- 97d44e5b (merged 4dd7d896): MUST A, a sibling with no `rows_ext` row is `siblings_ext_missing` (out of U and I, printed);
+  line 6 gets an `ext_missing` class. MUST B, the dispute share denominator is first-seen proposal events ∪ disputed events
+  (numerator ⊆ denominator; the old first-seen-only share and the missing count are printed beside it). The reading rule
+  and its constants (0.01, 0.05, 0.99, 20) match the 15:30Z declaration exactly. SHOULDs: gap seconds per usable monitor
+  day, no re-appearance on a second-gap resume, the no-post-k test alters market 61 from k = 26, a line-7-only assertion.
+  28 tests, ruff clean. The diff is limited to `ch276_map.py`, its test and the code note, so per
+  `reviews/CH276_CODE_RECHECK_2026-10-30.md` no further round is needed.
+- **q0760 promoted** (priority 90, mem 900, unchanged otherwise) so it starts before the 2026-11-01T02:45Z blackout and
+  rotation. M3's R1 response was committed (ba1c9841) before this run, as required.
