@@ -5251,3 +5251,22 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   store is not read; the survivorship line needs a category the engine log lacks -> a design-text amendment** (LT7 13.6 /
   LT13 13 precedent: appended section, from code reading only, no window data exists). Ambiguities 1-15 ruled (14 as
   interpretations). SHOULD 1-12. Fixes + amendment draft delegated on `feat/m1-code`; then a re-check before q0750.
+
+## Signal engine: `umaparams` family (CH207) census passed, challenger `se29_lr_uma` and control `se30_lr_framein` added, 2026-10-30 ~07:30Z (signal-engine autopilot session 35; development, nothing counted, k = 0)
+- **Definitions before the run:** DESIGN_V1 §42, `uma_params.py` and `census/se_umaparams_census_2026-10-30.py`
+  committed `9d21cad7` (07:14:28Z); census started 07:14:36Z with the committed hashes. Counts only: no label, price
+  change, prediction or outcome read.
+- **Census:** capture `20261030T063102Z_e595297a`, 53,332 eligible rows; `up_has` 0.340 (non-sports 0.691) >= 0.05, so
+  the family passes. Kept: `up_log_bond`, `up_log_reward`, `up_live_custom`, `up_fallback`, `up_resolver_top` (top
+  `resolvedBy` address pinned after the run, as declared). Dropped: `up_unreviewed` (`hasReviewedDates` true on all
+  18,135 covered rows). The flags track category strongly.
+- **Built:** aux families `umaparams` (`se-aux-umaparams-v1`) and `framein` (`se-aux-framein-v1`, `fi_has` only), and
+  challengers `se29_lr_uma` and `se30_lr_framein` (the champion's logistic learner plus one isolated family each).
+  Not embargoed (CH207 is engine-first; LIVE_TESTS_8 §6.2: no token). `endDate` / `startDate` are not read (no `tte`
+  shadow). Registry 31 models; K rises by two.
+- **Science review (REVISE, minor; causality, embargo and census order PASS), applied before any table existed:**
+  the `se30` control arm; a reading fixed before any score (credit to UMA values or to se28's rule text needs a
+  positive per-day gain difference against se30, pooled with a 95% interval above 0, and in 2 of 3 category groups;
+  otherwise "frame or category proxy"); absent fallback / "none" resolver parsed as NaN; `customLiveness` None by
+  category recorded (sports 0.282); the same-day gap-guard looseness disclosed for both stream families.
+- **Reading dates:** as se28: `dir_*` fits without pre-stream rows from the 11-04 refit; first creditable `dir_2h` read ~11-18.

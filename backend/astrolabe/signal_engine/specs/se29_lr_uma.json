@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "umaparams": "se-aux-umaparams-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Champion + desk-set dispute parameters (CANDIDATES CH207, development only): the champion's logistic learner and params on its features + the umaparams aux family (se-aux-umaparams-v1: up_has, the market's gamma_rules row known at the capture start; up_log_bond = log1p umaBond; up_log_reward = log1p umaReward; up_live_custom, customLiveness > 0; up_fallback, a fallbackResolutionType other than none; up_resolver_top, resolvedBy equal to the census's top address). The row's endDate / startDate are not read. Logistic like se28, so main effects only. Read against se0_champion_lr_mm. Tables before the stream's first poll are all-NaN (counted as present); no gain is credited before the section-41 reading rule's date; not embargoed (DESIGN_V1 section 42).",
+ "families": [
+  "market_state",
+  "momentum",
+  "umaparams"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "umaparams"
+ ],
+ "learner": "logreg",
+ "model_id": "se29_lr_uma",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "umaparams"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

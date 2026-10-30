@@ -1396,3 +1396,90 @@ Ideas only: no evidence yet.
      the known set grows (106,442 markets by 10-30) and it tracks liquidity (corr 0.290); `rc_has` 0 lumps never-polled
      with polled-but-not-returned; a long stream outage would leave old text as current (only `rules_last_slot` in the
      table metadata shows it; an input-monitor line is a later step).
+
+## 42. `umaparams` (CH207, desk-set dispute parameters): definitions fixed before the census (2026-10-30; development family)
+
+**Why.** CH207 (CREATIVE_HYPOTHESES_2026-10-27) argues that the listing desk sets a higher UMA bond or a custom
+liveness on questions it expects to be contested, and leaves dates unreviewed where it is unsure, and that the crowd
+does not read these fields. It is engine-first (round 13 section 2.D; LIVE_TESTS_8 section 6.2 lists it "not taken",
+with no token requested), so **no embargo applies**. Ideas only: no evidence yet.
+- **Input and clock.** Identical to section 41: `stream_gamma_rules/` day files, a `m:` row known at capture k iff its
+  slot's `poll` line in the same file has `ok` true and `finished_utc` <= k's start; the value at k is the last known row
+  over all day files from `RULES_FIRST_DAY`; `RulesGap` on a missing day file. Code: `signal_engine/uma_params.py`
+  (own reader and sha256 in every table's metadata; `rules_text.py` is not edited, so se28's tables keep their sha).
+  **The row's `endDate` / `startDate` are not read**: hours-to-end is market_state's, and a stream copy of it would
+  shadow the embargoed `tte` family.
+- **Columns (`se-aux-umaparams-v1`).** `up_has` = 1 / 0 by a known row, NaN on the whole table before the stream's
+  first finished poll (section 41's rule). For markets with a known row, else NaN: `up_log_bond` = log1p(`umaBond`),
+  `up_log_reward` = log1p(`umaReward`), `up_live_custom` = 1 if `customLiveness` > 0, `up_unreviewed` = 1 if
+  `hasReviewedDates` is false, `up_fallback` = 1 if `fallbackResolutionType` is set and not "none", `up_resolver_top`
+  = 1 if `resolvedBy` equals the address with the most covered rows in this census (counts only; pinned in code
+  as `RESOLVER_TOP` after the run, before any table exists). A missing or malformed field is NaN, never filled.
+  **Deviations from CH207 (disclosed):** the bond is log1p, not standardised within category (a within-capture
+  category z moves with the cross-section; the learner's scaler standardises globally and market_state carries the
+  category); CH207's three-way resolver map becomes one top-address flag plus `up_fallback`, because no address map
+  exists before the census.
+- **Census (counts only, newest capture; script `census/se_umaparams_census_2026-10-30.py`, committed with this
+  section).** Kill the family if `up_has` = 1 on < 5% of eligible rows. A 0/1 column is kept iff its minority value
+  holds >= 2% of covered rows **and** >= 200 covered rows (lower than section 41's 5%: CH207's classes are expected to
+  be rare). `up_log_bond` / `up_log_reward` are kept iff >= 2% and >= 200 covered rows differ from the column's modal
+  value. Kill the family if no value column is kept. A dropped column leaves the version's column list before any
+  table is written. Information only: non-sports / sports coverage, value counts of bond / reward / liveness /
+  fallback / the top 5 `resolvedBy` addresses, each kept flag by category, and corr with `ms_log_liq` and with
+  section 41's `rc_occur_by`.
+- **Challenger if the census passes: `se29_lr_uma`.** The champion's logistic learner and params on market_state +
+  momentum + umaparams; isolates `umaparams`; read against `se0_champion_lr_mm`. Logistic like se28, so it adds main
+  effects only and forms no interaction with `ms_hours_to_end`. Targets `dir_2h`, `dir_6h`, `dir_24h`, `res_7d` (CH207
+  reads `res_7d` first; information, the primary target stays `dir_2h`). `require_full_coverage` with
+  `require_sources: ["umaparams"]`. Not broad.
+- **Reading rule (section 41's, applied from the start).** No se29 gain is credited to `umaparams` until its fits hold
+  no pre-stream rows (the `dir_*` fits from the 2026-11-04 refit on, `res_7d` from ~11-18) and it has 14 days of
+  scores from those fits (first `dir_2h` read ~11-18). Earlier se29 scores are shown, labelled development.
+- **Census result (counts only).** Run started 07:14:36Z, after the definitions commit `9d21cad7` (07:14:28Z; host
+  sha of `uma_params.py` `ba4b46b3...` and of the script `0cfb54ae...`, both equal to the commit). Capture
+  `20261030T063102Z_e595297a`, 53,332 eligible rows, 11 stream day files (10-20..10-30), 106,485 markets with a known
+  row. **`up_has` 0.340 of eligible rows: coverage passes** (non-sports 0.691 of 16,874, sports 0.178 of 36,458).
+  Covered rows 18,135. Value counts: `umaBond` 500 12,896 / 250 4,541 / 2,500 630 / rarer; `umaReward` 5 11,995 /
+  0.8 3,630 / 3.5 906 / 0.6 837 / 20 638; `customLiveness` 0 13,009 / None 2,449 / 900 2,272 / 600 255; **`hasReviewedDates`
+  true on all 18,135**; `fallbackResolutionType` none 15,756 / equal_split 2,379; `resolvedBy` three addresses hold
+  18,122 rows (`0x69c4...5f24` 9,096, `0x6507...f2a7` 7,967, `0x2f5e...aa9d` 1,059). Lines: `up_log_bond` kept (5,219
+  off-mode rows, 0.288), `up_log_reward` kept (6,120, 0.338), `up_live_custom` kept (minority 2,677), `up_fallback`
+  kept (2,379), `up_resolver_top` kept (minority 9,034), **`up_unreviewed` dropped (minority 0)**. Family passes.
+  Information: the flags track category strongly (`up_live_custom` sports 0.40, crypto 0.28, other 0.06; `up_fallback`
+  sports 0.32, other 0.02; `up_resolver_top` crypto 0.10, other 0.65), so much of any se29 gain may be a category
+  proxy: the reading compares se29 with se0 **within category** before crediting the desk-parameter story.
+  corr(`up_has`, `ms_log_liq`) 0.291; corr with `rc_occur_by`: `up_resolver_top` -0.342, others |r| <= 0.171.
+  Output `census/se_umaparams_census_2026-10-30.out`.
+- **Built (post-census, counts only, before any table existed):** `RESOLVER_TOP` pinned to `0x69c4...5f24`;
+  `up_unreviewed` removed from `se-aux-umaparams-v1` (final columns: `up_has`, `up_log_bond`, `up_log_reward`,
+  `up_live_custom`, `up_fallback`, `up_resolver_top`). Aux family `umaparams` (`aux.umaparams_features`,
+  `_umaparams_builder`; reads `Paths.rules_stream`), challenger `se29_lr_uma` (registry 30 models). Cold read on the
+  host 2.9 s, 155 MB (no text regexes; the `rules` reader takes 20 s). Commit `9d1184e5`.
+- **Science review 2026-10-30 ~07:25Z (read-only, `science-reviewer`): REVISE (minor).** Causality PASS (`endDate` /
+  `startDate` never read; the collector's change hash includes the UMA fields, so an edited bond or liveness writes a
+  new row). Embargo PASS (no token names these fields; CH242 died at its census). Census order and both post-census
+  changes PASS (declared in advance, counts only). Applied before any table existed:
+  1. Census result, `.out` and the within-category clause committed (`3c32f3d1`).
+  2. **Control arm (must-fix): aux family `framein` (`se-aux-framein-v1`, one column `fi_has` = `up_has` = the
+     `rc_has` set) and challenger `se30_lr_framein`** (the champion's logistic learner on market_state + momentum +
+     framein; registry 31 models; K rises by one). `up_has` mostly means "in the by-volume frame" (corr 0.291 with
+     `ms_log_liq`), so a gain over se0 alone could be frame membership. It also gives se28 the control that section 41's
+     note 3 lacked.
+  3. **Reading (fixed now, before any score; primary target `dir_2h`, the engine's daily-clustered log-loss `gain`
+     against the champion, 28-day window, the section 41 dates).** Credit to the UMA values needs all of:
+     (a) se29's gain minus se30's gain > 0, with the two-sided 95% interval of the per-day difference above 0;
+     (b) the same difference > 0 in at least 2 of 3 category groups: sports, crypto, and all other (the `category`
+     column; groups with < 7 scored days are reported, not counted). (a) without (b) is reported as "frame or category
+     proxy", not credited. The same reading applies to se28 (rule text) against se30. A se30 gain over se0 is read as
+     frame membership, a liquidity-like state, never as a desk-parameter effect. Promotion still uses only
+     `se-promotion-v2` against the champion; this reading decides what a gain is credited to, not who is promoted.
+  4. **Parse fix (should-fix): an absent `fallbackResolutionType` and an empty or "none" `resolvedBy` are NaN, not 0**
+     (the census had no absent fallback and 5 "none" resolvers; its shares are unchanged to 3 decimals). New sha.
+  5. **`customLiveness` None by category (counts, capture `20261030T063102Z_e595297a`):** sports 1,825 of 6,470
+     (0.282), unknown 228 of 1,387 (0.164), crypto 37 of 953, other:zero_fees 329 of 9,201 (0.036), economics 25 of 30.
+     The learner's NaN flag on `up_live_custom` is not leakage (known at k, present in train and prediction) and not an
+     era dummy, but it partly stands in for category; read under item 3(b).
+  6. **Gap guard, stated exactly (no code change):** like `rules_at`, `uma_at` accepts a missing file for the
+     capture's own day at any hour. Section 41's "only before ~00:50Z" is the intent, not what the code checks. A lost
+     same-day file leaves that day's captures on the previous day's known rows; the next day's captures then refuse.
+     Disclosed for both families.

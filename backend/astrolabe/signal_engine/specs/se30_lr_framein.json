@@ -1,0 +1,45 @@
+{
+ "aux_versions": {
+  "framein": "se-aux-framein-v1"
+ },
+ "broad": false,
+ "derived": [
+  "base"
+ ],
+ "description": "Control arm (DESIGN_V1 section 42 review): the champion's logistic learner and params on its features + framein (se-aux-framein-v1: fi_has, 1 if the market has a gamma_rules row known at the capture start, the same set as rc_has / up_has; the stream's frame is by volume). Credit to se28's rule text or se29's dispute parameters needs them to beat this arm, not only se0. Logistic; all-NaN before the stream's first poll (counted as present); not embargoed.",
+ "families": [
+  "market_state",
+  "momentum",
+  "framein"
+ ],
+ "features_version": "se-features-v1",
+ "isolates": [
+  "framein"
+ ],
+ "learner": "logreg",
+ "model_id": "se30_lr_framein",
+ "params": {
+  "C": 1.0,
+  "max_iter": 300,
+  "tol": 0.0001
+ },
+ "targets": [
+  "dir_2h",
+  "dir_6h",
+  "dir_24h",
+  "res_7d"
+ ],
+ "train": {
+  "max_rows": 400000,
+  "min_days": 2,
+  "min_rows": 5000,
+  "refit": "daily",
+  "require_full_coverage": true,
+  "require_sources": [
+   "framein"
+  ],
+  "res_window_days": 28,
+  "window_days": 14
+ },
+ "version": 1
+}

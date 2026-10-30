@@ -27,6 +27,7 @@ import pandas as pd
 from . import config as C
 from . import rules_text as RT
 from . import store as S
+from . import uma_params as UP
 from .features import (
     ALL_FEATURES,
     FAMILY_COLUMNS,
@@ -1224,6 +1225,45 @@ def rules_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
     return out
 
 
+def umaparams_features(ids: np.ndarray, res: dict) -> pd.DataFrame:
+    """``res``: ``uma_params.uma_at`` at the capture start. ``rules_features``' rule for the UMA columns (section 42)."""
+    n = len(ids)
+    out = pd.DataFrame({c: np.full(n, np.nan, np.float32) for c in UP.UMA_COLUMNS})
+    if n == 0 or res["first_poll"] is None:
+        return out
+    known = res["known"]
+    has = np.fromiter((int(i) in known for i in ids), bool, n)
+    out["up_has"] = has.astype(np.float32)
+    if has.any():
+        X = np.array([known[int(i)] for i in ids[has]], np.float32)
+        for j, c in enumerate(UP.VALUE_COLUMNS):
+            col = out[c].to_numpy(np.float32).copy()
+            col[has] = X[:, j]
+            out[c] = col
+    return out
+
+
+def _umaparams_builder(ctx: dict) -> pd.DataFrame:
+    """DESIGN_V1 section 42: the gamma_rules rows' UMA fields known at the capture start (poll finished at or before it)."""
+    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    ctx["provenance"] = {"uma_params_sha256": UP.code_sha256(), "rules_files": res["files"],
+                         "rules_last_slot": res["last_slot"], "uma_known_markets": len(res["known"])}
+    return umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)
+
+
+FRAMEIN_COLUMNS = ["fi_has"]
+
+
+def _framein_builder(ctx: dict) -> pd.DataFrame:
+    """Section 42 review: ``up_has`` / ``rc_has`` alone (in the gamma_rules by-volume frame), the control arm that
+    separates frame membership from the UMA and rule-text values. Same read as umaparams (memoised in the process)."""
+    res = UP.uma_at(ctx["paths"].rules_stream, ctx["cap_start"])
+    ctx["provenance"] = {"uma_params_sha256": UP.code_sha256(), "rules_files": res["files"],
+                         "rules_last_slot": res["last_slot"], "uma_known_markets": len(res["known"])}
+    has = umaparams_features(ctx["f"]["market_id"].to_numpy(np.int64), res)["up_has"].to_numpy(np.float32)
+    return pd.DataFrame({"fi_has": has})
+
+
 def _rules_builder(ctx: dict) -> pd.DataFrame:
     """DESIGN_V1 section 41: the gamma_rules rows known at the capture start (poll finished at or before it)."""
     res = RT.rules_at(ctx["paths"].rules_stream, ctx["cap_start"])
@@ -1263,6 +1303,10 @@ AUX_FAMILIES: dict[str, dict] = {
     "slotfac": {"version": "se-aux-slotfac-v1", "columns": SF_COLUMNS, "needs_rows": False, "builder": _slotfac_builder},
     # the gamma_rules stream's rule text known at the capture start (engine features + the stream; no snapshot rows)
     "rules": {"version": RT.RULES_VERSION, "columns": RT.RULES_COLUMNS, "needs_rows": False, "builder": _rules_builder},
+    # the same stream's static UMA dispute fields (bond, reward, liveness, fallback, resolver); section 42
+    "umaparams": {"version": UP.UMA_VERSION, "columns": UP.UMA_COLUMNS, "needs_rows": False, "builder": _umaparams_builder},
+    # frame membership only (umaparams' up_has): the control arm for se28 / se29 (section 42 review)
+    "framein": {"version": "se-aux-framein-v1", "columns": FRAMEIN_COLUMNS, "needs_rows": False, "builder": _framein_builder},
 }
 AUX_COLUMNS: dict[str, list[str]] = {k: v["columns"] for k, v in AUX_FAMILIES.items()}
 AUX_ALL: list[str] = [c for cols in AUX_COLUMNS.values() for c in cols]
@@ -1398,4 +1442,4 @@ def check_spec_aux(spec: dict) -> str | None:
 __all__ = ["AUX_FAMILIES", "AUX_COLUMNS", "AUX_ALL", "MODEL_FAMILY_COLUMNS", "aux_path", "build_aux", "run_aux",
            "aux_sources", "read_features", "spec_aux_families", "check_spec_aux", "event_features", "movetype_features",
            "surprise_features", "participation_features", "crypto_features", "hwm_features", "tilt_features",
-           "stress_values", "sf_prev_absd2h", "rules_features"]
+           "stress_values", "sf_prev_absd2h", "rules_features", "umaparams_features"]
