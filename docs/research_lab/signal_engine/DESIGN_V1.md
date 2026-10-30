@@ -1566,3 +1566,69 @@ cold on the host at 314 MB of stream (measured 2026-10-30 ~12:20Z, 230 MB RSS). 
   reads return values identical to the uncached reader.
 - **Shas.** `rules_text.py` and `uma_params.py` get new shas. Tables record the sha they were built with, so older
   tables keep the older sha. No spec, registry pin, fit or reading rule refers to a reader sha.
+
+## 45. `parentsib` (CH237, the parent event's other children): definitions fixed before the census (2026-10-30; development family)
+
+**Why.** CH237 (CREATIVE_HYPOTHESES_2026-10-30) notes that the v3 sidecar's `parent_event_ids` nests events under
+parents (state contests under a national race, games under a series). The `event` family stops at the event. The
+common factor one level up, the parent's other children moving in the same interval, is a join no family reads.
+It is engine-first: no test is proposed (LT5 F died on a design effect of 10.3 at the event level, and parent clusters are larger).
+Ideas only: no evidence yet. Nothing about the parent was counted before this section.
+- **Embargo check.** `event` was withdrawn on 2026-10-22. `participation` (CB17-C, until 11-25) covers event volume /
+  liquidity changes, so CH237's `ps_parent_vol_chg` is **not built** in v1 (it is a column only after 11-25, in a
+  new version). No token names parent-level moves. Put to the science reviewer before any table exists.
+- **Inputs and clock.** Capture k only, plus the previous slot's engine quotes, exactly the `event` family's: k's
+  complete binary listing (`rows.csv.gz`; binary, open, active, with an event id) and k's own sidecar `rows_ext.csv.gz`
+  (`event_ids` with the aligned `parent_event_ids`; an older sidecar without that column makes the whole capture
+  NaN). A market's child event is its listing `event_id`, and its parent is that event's `parentEventId` in its own
+  sidecar row. **Per-pair clock:** a sibling row counts only if it was received no later than 5 s after the market's
+  own row (`EVENT_MAX_SPREAD_S`, the `event` family's tolerance). A sibling on a later page never feeds an earlier
+  market. A late sibling counts as having no value. Code: `signal_engine/parent_sib.py` (own sha in each table's metadata).
+- **Columns (`se-aux-parentsib-v1`).**
+  - `ps_has_parent`: 1 / 0 when the market's listing row and sidecar lists exist, NaN otherwise.
+  - For parent rows, else NaN: `ps_log_n_child` = log(number of distinct child events among the parent's listing
+    rows received by the clock, own event included).
+  - `ps_sib_d2h` = the unweighted mean 2 h mid change (listing two-sided mid minus the previous slot's engine mid,
+    as `ev_sib_d2h`) of the siblings that pass the clock.
+  - `ps_sib_abs` = the mean |change|; `ps_sib_moving` = the share with |change| >= 1c.
+  - The three sibling columns need values for >= 1 sibling and for >= 50% of the siblings (`SIB_MIN_SHARE`).
+  - **Deviation from CH237 (disclosed):** the mean is unweighted, not volume-weighted, as `ev_sib_d2h`. A weight by
+    volume would bring the `participation` quantities in.
+- **Census (counts only, newest capture; script `census/se_parentsib_census_2026-10-30.py`, committed with this
+  section).**
+  - Kill the family if `ps_has_parent` = 1 on < 5% of the non-sports eligible rows (CH237's line).
+  - Kill it if `ps_sib_d2h` is finite on < 2% of all eligible rows or on < 200 rows: the parent factor is the idea,
+    and parent membership alone is a category stand-in.
+  - `ps_sib_moving` is kept iff > 0 on >= 200 rows.
+  - Information only: child-event counts, rows lost to the clock or share rule, coverage by category, the last 12
+    captures' sidecar versions, and corr with `ev_sib_d2h`.
+- **Challenger if the census passes: `se31_lgbm_parentsib`** (the id §43 would have used; §43 was killed, so it was
+  never assigned). se1's LightGBM learner and params on market_state + momentum + parentsib; isolates `parentsib`;
+  read against `se1_lgbm_mm`. LightGBM, because a parent factor matters through its interaction with the market's
+  own move (CH237's sign reading), and the logistic engine sits ~0.045 log loss behind se1. Targets `dir_2h`,
+  `dir_6h`, `dir_24h`, `res_7d`. `require_full_coverage` with `require_sources: ["parentsib"]`. Not broad. K rises by one.
+- **Reading rule (§42 item 3's form, against se1).** Credit to the parent factor needs se31's gain minus se1's gain >
+  0, with the per-day 95% interval above 0, and a positive difference in at least 2 of 3 category groups (sports,
+  crypto, the rest). Otherwise the gain is reported as a category or coverage stand-in. First creditable `dir_2h`
+  read after 14 days of scores from fits whose training window holds only v3-sidecar captures (dated from the
+  census's sidecar line). Promotion is unchanged (`se-promotion-v2` against the champion).
+- **Census result (counts only): FAMILY KILLED.** Run started 12:17:21Z, after the definitions commit `ec352da0`
+  (12:17:14Z). Host shas of `parent_sib.py` `e3b4e85f...` and of the script `27313e66...` equal the commit. Capture
+  `20261030T103101Z_c1803a16`, 53,973 eligible rows; v3 sidecar columns present. `ps_has_parent` was known on every row,
+  with share 1 0.463 overall, **non-sports 0.0014 (of 16,958) < 0.05: killed on CH237's line**, and sports 0.675.
+  The d2h coverage line would have passed (`ps_sib_d2h` finite 14,963, 0.277), and `ps_sib_moving` > 0 on 12,782.
+  Information: parents are a sports structure (sports d2h coverage 0.404, crypto 0, other 0.0006). Child events seen
+  per parent row: mostly 2-6. 9,939 parent rows with >= 2 children seen lost their moves to the clock or the
+  share rule. corr(`ps_sib_d2h`, `ev_sib_d2h`) 0.016. The sidecar-version line printed None: it read a key that
+  `ext_manifest.json` lacks; information only, and the v3 column was read directly. Cold run 4.5 s, 389 MB.
+  Output `census/se_parentsib_census_2026-10-30.out`.
+- **Consequence.** No aux family, spec or table is built; K is unchanged. `parent_sib.py` and its test stay as the
+  census's committed code (not wired). The line is not revisited. A **sports-only** parent factor would be a
+  different idea, scored on the sports breakdown only, and it waits on the owner's open sports-scope decision. It is
+  not proposed here.
+- **Companion: stream staleness in the input monitor (§31; monitoring only).** A stalled `gamma_rules` stream keeps
+  the last known rows, so the coverage rules never fire. `input_health.capture_summary` now reads each stream-fed
+  table's recorded `rules_last_slot` (`rules`, `umaparams`, `framein`) and stores its age against the capture start.
+  `judge` raises one `stale_stream` alert per stream when the oldest of its tables' slots is > 6 h old
+  (`STREAM_STALE_H`; hourly polls normally leave ~1.5 h), or when a table read no poll after earlier tables had one.
+  The view gains a `streams` block. Engine metadata only: no label, prediction or score is read; no model changes.

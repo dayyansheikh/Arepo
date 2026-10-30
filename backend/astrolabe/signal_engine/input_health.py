@@ -30,6 +30,10 @@ UNIVERSE_RATIO = 0.7  # eligible rows below 70% of the trailing median: "univers
 PENDING_S = 4 * 3600.0  # an aux table still missing this long after the capture start is "missing" (else "pending")
 # constant within a capture by construction (calendar), so an all-zero capture (Monday, 00:xx) is normal
 NO_ZERO_RULE = frozenset({"sp_dow", "sp_hour"})
+# stream-fed aux families: their tables carry the newest stream slot read (``rules_last_slot``). A stalled stream keeps
+# the last known rows, so coverage does not drop; only the slot's age shows it (section 44's companion, STATUS item 5)
+STREAM_FAMILIES = {"rules": "gamma_rules", "umaparams": "gamma_rules", "framein": "gamma_rules"}
+STREAM_STALE_H = 6.0  # hourly polls: the newest finished slot is normally ~1.5 h before a capture's start
 SOURCE_FAMILIES = tuple(F.FAMILY_COLUMNS)
 FAMILIES = (*SOURCE_FAMILIES, *A.AUX_FAMILIES)
 
@@ -58,8 +62,16 @@ def capture_summary(paths: S.Paths, meta: dict) -> dict:
     for fam, cols in A.AUX_COLUMNS.items():
         p = A.aux_path(paths, fam, cid)
         fams[fam] = _shares(S.read_parquet(p, cols), cols) if p.exists() else None
+    streams: dict[str, float | None] = {}
+    t0 = S.epoch(meta["started_utc"])
+    for fam in STREAM_FAMILIES:
+        p = A.aux_path(paths, fam, cid) if fam in A.AUX_FAMILIES else None
+        if p is not None and p.exists():
+            last = S.parquet_meta(p).get("rules_last_slot")
+            lag = (t0 - S.epoch(last)) / 3600.0 if last else math.nan
+            streams[fam] = round(lag, 3) if math.isfinite(lag) else None
     return {"capture_id": cid, "slot": int(meta["slot"]), "started_utc": meta["started_utc"],
-            "n_features": int(meta.get("n_features", len(f))), "families": fams}
+            "n_features": int(meta.get("n_features", len(f))), "families": fams, "streams": streams}
 
 
 def _median(xs: list[float]) -> float | None:
@@ -119,7 +131,24 @@ def judge(latest: dict, trail: list[dict], now: float) -> dict:
         if bad:
             families[fam]["columns"] = bad
             alerts.extend({"family": fam, **b} for b in bad)
-    return {"universe": universe, "families": families, "alerts": alerts, "missing_slots": len(gaps) if trail else None}
+    # stream age: the newest stream slot each stream-fed table read, against the capture start (None = no poll read)
+    streams: dict[str, dict] = {}
+    for fam, lag in (latest.get("streams") or {}).items():
+        name = STREAM_FAMILIES.get(fam, fam)
+        e = streams.setdefault(name, {"lag_h": None, "families": []})
+        e["families"].append(fam)
+        if lag is not None and (e["lag_h"] is None or lag > e["lag_h"]):
+            e["lag_h"] = lag
+        if lag is None and any((t.get("streams") or {}).get(fam) is not None for t in trail):
+            e["none_after_data"] = True
+    for name, e in streams.items():
+        if (e["lag_h"] is not None and e["lag_h"] > STREAM_STALE_H) or e.get("none_after_data"):
+            e["status"] = "stale"
+            alerts.append({"family": name, "rule": "stale_stream", "lag_h": e["lag_h"], "limit_h": STREAM_STALE_H})
+        else:
+            e["status"] = "ok"
+    return {"universe": universe, "families": families, "alerts": alerts, "missing_slots": len(gaps) if trail else None,
+            "streams": streams}
 
 
 def run(paths: S.Paths, now: float | None = None, write: bool = True) -> dict:
@@ -173,4 +202,5 @@ def read(paths: S.Paths) -> dict | None:
     return {"at": h.get("at"), "capture_id": h.get("capture_id"), "status": h.get("status"),
             "n_alerts": h.get("n_alerts", 0), "alerts": (h.get("alerts") or [])[:20],
             "families": {k: v.get("status") for k, v in (h.get("families") or {}).items()},
-            "universe": h.get("universe")}
+            "universe": h.get("universe"),
+            "streams": {k: {"lag_h": v.get("lag_h"), "status": v.get("status")} for k, v in (h.get("streams") or {}).items()}}
