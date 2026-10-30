@@ -5679,6 +5679,80 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   placebo discordance, theme imbalance. 43 tests. **Declaration sha256 `cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e`.**
   Diff-only check running; then the freeze commit.
 
+## CB7 FROZEN (G1, X1; S1 not testable), 2026-10-30 17:59Z (experiments autopilot; freeze; S1 counted at p = 1 when q0148 runs)
+- Diff check `reviews/CB7_CF_FIX_DIFF_CHECK_2026-10-30.md` ACCEPT_WITH_FIXES (one doc-only fix: the code note's
+  `run_cb7.py` hash row, corrected b033f9e2). Host `census.json` sha256 equals the pinned `85824be1…e6920`.
+- **Freeze commit 10722060** (commit time 2026-10-30T17:59:13Z, `freeze_utc` 17:59:04Z): `model_specs/cb7_v1.json`
+  (sha256 `e4a725c76215d2fc092f6fce14fd3e38d15ea4f3fdfe10e04ab8aae940c43f10`) written by `run_cb7.py write-spec`:
+  declaration `cf84f910…fd8e`, nine source sha256s, rules `05bf365c…21e9`, census json / constants / xv definitions,
+  seals h8_text / h8_geo / h8_tail, h_geo table and capture pins (binding 0.012). Dates: `screen_not_before_utc`
+  2026-10-31T06:00Z, `T7_X_list` 2026-11-03T06:00Z, `T7_S_rep_start` not applicable. Counting: k1 = 3 (S1, G1, X1) at
+  alpha 0.01; k2 = 1 if X1 advances, else 0; S1-rep and S2 not run.
+- **Promoted** q0148 (S, not-testable line), q0150 (X), q0149 (G; depends on both), each `not_before` 2026-10-31T06:00Z,
+  nothing else changed. Not promoted: q0151, q0152, q0156; q0153-q0155 only if X1 advances. Results carry the label
+  "pre-union lower bound" for the cumulative count (accepted by the diff check). Commit the Stage-1 seal copies after each
+  screen.
+
+## M1 / M2: the event member count reads earlier units' rows (M3 MUST 1's defect class), 2026-10-30 18:00Z (experiments autopilot; nothing counted)
+- `reviews/M1_M2_SIBLING_COUNT_CHECK_2026-10-30.md` (`science-reviewer`, probe on M1): both count an event's open binary
+  members at the new unit's k from every row, including earlier units' rows at that k.
+- **M1 (registered): AFFECTED_BUT_PERMITTED_BY_TEXT.** M1's 3.3 and S3 define the count on every market's row at the new
+  unit's own k; 9.2 / principle 3 restrict reads "for a unit"; M1 has no sealed follow-up data that this could leak. Reading
+  11.2 as "after any unit's k" cannot be applied consistently (J1 must read captures after the first unit's k to find later
+  units). **No code change, no re-registration.** Before 11-24 (no window data exists; not outcome-informed): an
+  implementation-reading note plus a test that an earlier unit's line is unchanged by later captures, confirmed by a
+  `science-reviewer`. The M1 code_sha stays `9cb8aa03…`.
+- **M2 (not registered): AFFECTED_AND_FORBIDDEN.** l.439 "no follow-up state after any unit's k"; an earlier unit's later
+  `closed` / missing row is the sealed follow-up defining competing event C (7.3), so a later unit's S8 cell would leak it
+  into an unsealed unit file. Also `reoverdue_seen` / `seen_without_k_minus_1_row` counts iterate over earlier units.
+  **q0754 cancelled on the host** (queued, never started). Fix: M3's option (a) (non-unit rows plus earlier units from
+  state), exclude unit ids from those status counts, an appended amendment to the frozen text (3.3, 3.4, S8; precedent M1
+  section 18 / LT13 amendment 13), a same-event test, disclosure that M2-J0 ran the old path (it feeds only rules (a), (e);
+  no number changes). Then review, diff check, new code_sha, q0754b.
+
+## M1 sibling member-count reading CONFIRMED, 2026-10-30 18:04Z (experiments autopilot; M1 stays as registered)
+- `reviews/M1_SIBLING_READING_CONFIRM_2026-10-30.md`: **CONFIRMED**, a reading of 3.3 / S3 / 9.2, no void risk; no pinned
+  file changed since f939c0b5; code_sha `9cb8aa03…d148`; 64 M1 tests incl. the new write-once sibling test (c7d1532e).
+  No other per-unit field reads another unit's row. One further reading disclosed in the note's addendum (the count's
+  "open" uses row fields only, not the sidecar's `accepting_orders`), before any window data.
+
+## M2 amendment 23 (sibling member count) and code fix merged, 2026-10-30 18:06Z (experiments autopilot; before registration; nothing counted)
+- 4ddf53d8 (merged ad04c0b9): section 23 appended to `MEASUREMENT_M2_CH264.md` (l.796-806; predecessor `bb7c27e0…7cbb0`;
+  new sha256 `a7f30de2121a4c8817cca89a688f276ed72a449315b7dcbcc847b95ec3736e07`): the member count (3.3 / 3.4 / S8) counts
+  non-unit rows plus earlier M2 units from state, never reading their rows after their k; `reoverdue_seen` and
+  `seen_without_k_minus_1_row` exclude unit ids; M2-J0 ran the old path (feeds rules (a), (e) only; no number changes).
+  Made from code reading only, before registration and before any window data.
+- **M2 code_sha `aa6182badf87cd3e7ffb63b822f41171e13b91cd2fafc9f5861419b2f6b2270b`** (`m2_j1.py`, `m2_spec.py` changed).
+  Same-event tests fail on the old code. Open for review: `left_before_overdue_slot`, `end_date_missing`. Draft q0754b
+  (fresh store). Review running.
+
+## M3 code-check fixes merged, 2026-10-30 18:07Z (experiments autopilot; design DRAFT; nothing counted)
+- 4e7253d4 (merged 25619e1e): MUST 1 member count = non-unit rows + earlier units from state (probe-p1 test fails on the old
+  code; same-event `alter_after_k`); MUST 2 text at 10.1 verbatim as declared in the ledger before J0, `min_full_days` 3,
+  J0 prints `full_days` and `rule_a_result`; MUST 3-5, R3, R4, R13 text; SHOULDs 1, 2, 4, 6, 7 (rules index streamed and
+  skipped after the window, timing, `--dry-run-end-utc`, sidecar ids, write-once by recorded sha, exit codes); SHOULD 3 as
+  draft q0782 (serial M1 + M2 + M3 dry-run pass, `scripts/serial_dryrun_m123.py`); SHOULD 5 disclosed in 3.5.
+  `--last-days 8` kept (the text says 8; retention currently 12 days).
+- **M3 code_sha `345b96c88a58a58d7bba2eae5b87cacd80e3c87e5c0cedd6884e6cc4faa07d6d`**; draft design sha256 `34f17a62…a752`.
+  226 M1 + M2 + M3 tests. Diff-only check running; then q0780 (J0).
+
+## M2 amendment 23 review ACCEPT_WITH_FIXES, 2026-10-30 18:10Z (experiments autopilot; before registration; nothing counted)
+- `reviews/M2_AMENDMENT23_REVIEW_2026-10-30.md`: section 23 append-only (predecessor `bb7c27e0…` = 689de040), the S8 and
+  status-count fix exact, same-event tests fail on the old code. **MUST:** the two open items do read forbidden state:
+  `left_before_overdue_slot` (an earlier unit whose end_date moves near j, then closed / gone at j + 1: the 7.3 C signal in
+  an unsealed status file) and `end_date_missing` (an earlier unit's follow-up end_date); exclude M2 units, append section
+  24 (23 is not edited), tests. SHOULD: extend the J0 disclosure (`left_before_overdue_slot` 1,123, `end_date_missing`
+  1,587 / 20 markets, `status_forms`), numbering, explicit refusal for a state without `unit_events`, q0754 moved out of
+  `jobs/`. q0754b after a diff-only check. Delegated (`feat/m2-a24`).
+
+## M3 J0 and dry run PROMOTED, 2026-10-30 18:11Z (experiments autopilot; counts only, uncounted; design DRAFT)
+- `reviews/M3_CF_FIX_DIFF_CHECK_2026-10-30.md`: **ACCEPT** on 4e7253d4 (MUST 1 test fails on the old code; MUST 2 text
+  verbatim and committed in e0a6bf33 at 17:57Z, before any J0 output; nothing scientific changed; q0782 cannot write a real
+  store; hashes match). **q0780 (J0) and q0781 (dry run, depends on q0780) promoted** at code_sha `345b96c8…07d6d`.
+  q0782 (serial M1 + M2 + M3 timing) stays a draft: depends on q0781, mem 800; promote after M2's final code is checked.
+- After J0: copy rule (a)'s result into the design text by hand as the 10.1 rule says (`keep_21` / `extend_42` /
+  `not_evaluable_extend_42`), then the final pre-freeze verification. Correct the "about 8 days" retention wording at freeze.
+
 - **2026-10-30 ~18:15Z signal engine (challenger, DESIGN_V1 §47; development, k = 0, no edge claim):** new learner
   `ens_pool` (fixed-weight linear pool of stored, same-capture member predictions; no fit, no refit cost) and challenger
   `se31_ens_pool3` (se1 / se17 / se18, weights 1/3, member spec sha256s pinned; spec sha256 `74544860...dc82`;

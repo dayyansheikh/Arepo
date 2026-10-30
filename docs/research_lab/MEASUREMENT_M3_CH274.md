@@ -276,6 +276,11 @@ that leave the listing while near-certain are not counted at window time (that c
   fields and the two fee lines of 6, the rule class, the deadline flag and the committing poll's receipt time and day file
   (3.5), the raw status strings at k and k - 1, capture ids k and k - 1, `t_d`, `t_d_source`,
   gaps, `spec_sha`, `code_sha`, role. **Nothing from after capture k.**
+- **Event open binary member count at k (S6, S8; code check MUST 1).** "The event's open binary member count at k counts every
+  market of the event that is not an earlier M3 unit and whose row at k has `binary` true, `closed` false and `active` true,
+  plus every earlier M3 unit of the same event (by its `event_id` at its own k), counted without reading its row after its k;
+  an earlier unit that has since left the listing still counts (disclosed)." The state stores each unit's `event_id` at its
+  own k. A unit created at the same capture is counted from its row at k like any other market.
 
 ### 3.5 Rule class at `t_d` (S2 and S3; pinned; the as-of-k reader)
 - **Why not the engine's `rules` aux table.** DESIGN_V1 41 builds `rules` columns only for the engine's eligible feature
@@ -297,7 +302,9 @@ that leave the listing while near-certain are not counted at window time (that c
   without one missing file reclassing every unit.) The number of units with a visible record whose class was computed
   while some day file in that range was unmerged is printed (`classed_with_gap`; they keep their class). **Ops guard, in
   the registration commit:** no `gamma_rules` day-file retention may activate on the host before every M-recorder's
-  (M1, M2, M3) first pass has merged the retained day files.
+  (M1, M2, M3) first pass has merged the retained day files. **Disclosed (code check SHOULD 5):** `rules_gap` is tested against the day files merged when the capture is
+  processed, so a unit without a visible record can be `rules_gap` in a live pass and `no_rules` in a catch-up pass (or the reverse) if its k's day file appears between the two;
+  a slot is processed only 6 h or more after its grid time, which makes this rare, and a unit file, once written, is never changed.
 - **S3 deadline flag `occur_by`:** 1 if `OCCUR_Q_RE` matches the question or `OCCUR_D_RE` the description, else 0; `na`
   for `no_rules`, `rules_unresolved` and `rules_gap`. Disclosed: the pattern was written from the 40-text hand audit and is
   in-sample there (DESIGN_V1 41: it marked 4 of 4 deadline questions and none of the other 36).
@@ -444,7 +451,9 @@ declared secondary printed beside it. No event cap (the ruling: declare weights 
   `schedule_rate` = its rate where served, else None.
   - **L1 (headline cost line):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled, policy="conservative")`, with
     `fees_enabled` passed as False only for a literal served false, otherwise None (M1 code-freeze ambiguity 7, the
-    conservative reading): max(served schedule, docs rate); 0 when the flag is a literal false; for a key outside the docs
+    conservative reading; "literal false" is the served strings `false`, `0`, `0.0`, `f`, case-insensitive; **disclosed:** S10's
+    `population_map_ch251.fee_class` treats any served non-truthy value as fee-free, a wider set, so S10 `fee_free` and a non-zero L1 rate can
+    co-occur for a value outside this set; both are recorded): max(served schedule, docs rate); 0 when the flag is a literal false; for a key outside the docs
     table, the served rate, possibly 0 (0.07 only when no schedule is served; `costs.py:93-104`, M2 R1 Q9).
   - **L2 (rate-0-not-trusted line):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled=None, policy="conservative")`
     when `cat_k` is a `CATEGORY_TAKER_RATE` key; **`costs.MAX_TAKER_RATE` (0.07) when it is not** (M2 5: `taker_rate` drops a
@@ -555,7 +564,7 @@ print their numbers labelled `thin` (never suppressed).
 | S5 | S2 x S4 (CH274's class x hours-to-end grid) | 8 x 4 = 32 cells |
 | S6 | ladder position at k | standalone (one open binary market in the event at k; an empty `event_id` is its own one-market event), member_yes (favoured side YES), member_no (favoured side NO) |
 | S7 | favoured side | YES, NO |
-| S8 | event open binary member count at k | 1, 2-5, 6+ |
+| S8 | event open binary member count at k, as defined in 3.4 (every open binary market of the event that is not an earlier M3 unit, from its row at k, plus every earlier M3 unit of the same event by its `event_id` at its own k, counted without reading its row after its k; an earlier unit that has since left the listing still counts, disclosed) | 1, 2-5, 6+ |
 | S9 | fee category `cat_k` | economics, culture, weather, other, finance, politics, mentions, tech, geopolitics, unknown (= any `cat_k` outside those nine keys; E5 structurally excludes an empty `fee_category`, M2 re-check SHOULD 5); 10 cells fixed by rule; J0 prints the distribution |
 | S10 | fee class at k, `population_map_ch251.fee_class(fees_enabled, has_fees_enabled_column, fee_schedule)[0]` on capture k's sidecar row | fee_free, fee_on, unknown |
 | S11 | favoured ask zone `ask_f` at k (rounded) | [0.95, 0.96), [0.96, 0.97), [0.97, 0.98), [0.98, 0.99), [0.99, 1) |
@@ -667,6 +676,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   construction; (c) none of J0's numbers changes an estimand, split, cell, cut, cost line, class rule, threshold or date other
   than by (a); the classed-share kill line of CH274 is **not** a J0 rule (it is coarse rule 3, applied to the window's own
   units). Output labelled `informed (M3-J0)`, counts only, sealed with its code hash and the pins of 5.
+- **Full day and the empty case (declared now, before any J0 output; code check MUST 2).** A full day is a UTC day with 12 classified captures. If J0 yields fewer than 3 full days, rule (a) is not evaluable and the window is extended to 42 days (the branch that keeps coarse rule 1 attainable); J0 is not re-run to obtain a different answer. J0's output prints `full_days` and rule (a)'s result as one of `extend_42` (3 or more full days, median below 48), `keep_21` (3 or more full days, median 48 or more) or `not_evaluable_extend_42` (fewer than 3 full days).
 - Memory: under 600 MB (M2-J0 peaked at 457.7 MB with the rule ledger; M1-J0 297.6 MB); dry run measured.
 
 ### 10.2 M3-J1: window-time extractor and blind follow-up recorder (every pass; catch-up within retention)
@@ -675,7 +685,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   `slot_of(REGISTERED_UTC - 84 * 2 h)` (M2 ruling N4); a slot with no complete capture, or already removed by retention at
   that pass, is `missing_lookback_slot`; pre-window manifests that exist but are not complete are recorded. The same pass
   merges every retained `gamma_rules` day file from `RULES_FIRST_DAY` into the rule ledger and records any day file
-  absent (the source of `rules_gap`).
+  absent (the source of `rules_gap`). J1 refuses unless the pins file carries a parseable `registration_commit_utc` at least 24 h before `REGISTERED_UTC` (12.6). `SPEC["design_sha256"]` is set at the registration commit (the sha256 of this file there, 2.1); J1 refuses while it is unset.
 - **Extractor.** For each complete on-grid capture k in the window not yet processed: read captures k - 1 (the capture id
   in the chain status of slot k - 1, M1 R-diff MUST 1) and k (rows and sidecar, `usecols` only) and the rule ledger up to
   `t_d`; apply 3.2-3.5; write `units/<capture_id>.jsonl.gz`
@@ -684,8 +694,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   Q1). Idempotent per capture; refuses to overwrite; every line carries `spec_sha`, `code_sha` and role
   `prospective_measurement`. J1 opens no sweep file (6.4).
 - **State file between runs:** the near-seen set, the ever-seen market set (for `left_censored_first_row`), the M3 unit ids
-  with their favoured side and k, and the append-only rule ledger (3.5). **The state used at capture k holds only captures
-  before k and rule records committed at or before each unit's `t_d`.**
+  with their favoured side and k, and the append-only rule ledger (3.5). **The state used at k holds only captures before k; the rule ledger may hold records committed later, and the reader uses only records with commit time ≤ `t_d` (3.5).**
 - **Strictly chronological, deterministic missing rule (M1 R1 MUST 1, re-check fix 3, code-freeze MUST 1).** Captures are
   processed in increasing manifest start, one at a time; a capture is processed only when every earlier slot is processed
   or recorded `missing_capture`; catch-up replays the backlog in the same order. A slot is recorded `missing_capture` once it
@@ -697,8 +706,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   **Duplicate slot:** the first complete capture of a slot by the **`(start, id)` key** is processed; others are
   `duplicate_slot_capture`, and ties on `start` use the same key for the label (M1 fix-diff SHOULD 1). **Off-grid:** a
   complete capture whose start is not within 30 min of a grid point is `off_grid_capture`, never folded, classified or used
-  as follow-up (granularity is the grid). Late, duplicate and off-grid capture ids are written to the next processed
-  capture's write-once status file, so J2's manifest carries them (M1 code-freeze SHOULD 5). The run refuses unless the
+  as follow-up (granularity is the grid). Late, duplicate and off-grid capture ids are each written to their own write-once status file (`late_<id>`, `dup_<id>`, `offgrid_<id>`, with the reason) when their slot is decided, so J2's manifest carries them. The run refuses unless the
   state file's last folded capture is the last processed-or-missing capture before k. Each status file records that
   capture id and the state file's sha256 before and after.
 - **Blind follow-up recorder (for 4 only; procedural blinding, M2 R1 Q1).** At every processed capture j (in the window
@@ -708,13 +716,13 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   4.1's interval, R1 MUST 4), **and the row's `best_bid` and `best_ask`** (for 4.4 only; removed with estimand 3 under its
   schedule fallback). No outcome field. Every unit is recorded at every
   capture regardless of its earlier follow-up state, so the writer never reads its own output. The extractor never opens a
-  follow-up file; nothing reads one before `READOUT_UTC` (the analysis refuses; no other module imports the reader); each
+  follow-up file (a crash re-run compares the sha256 that the capture's own status recorded, or the byte length by `stat` when that status was not yet written, and refuses a mismatch); nothing reads one before `READOUT_UTC` (the analysis refuses; no other module imports the reader); each
   file's sha256 enters the status chain. The follow-up is written during the window because the host keeps captures only
   about 8 days; its non-reading before the read-out is a procedure, not a property the data can prove (12.2(b)).
 - **Blind proposal-set recorder (for the survivorship line of 14 only; M1 amendment 18(b)'s form).** At every processed
-  window capture j, J1 writes to `proposals/<capture_id>.json.gz` (write-once, blind like the follow-up) the sorted ids
+  window capture j whose previous slot was also processed, J1 writes to `proposals/<capture_id>.json.gz` (write-once, blind like the follow-up) the sorted ids
   (deltas, gzip, base64) of in-scope markets (E5's reader on capture j's own sidecar) whose status turns from an empty form
-  at the previous processed capture to a whole-token P form at j, with its count. Not opened before `READOUT_UTC`; its
+  at the previous processed capture to a whole-token P form at j, with its count. At a processed window capture whose previous slot was not processed the set is **unavailable** (no file is written and the status carries `proposals: null`), not empty, because the transition is unobservable. Not opened before `READOUT_UTC`; its
   sha256 enters the status chain.
 - **Counted missingness reaches the output (M1 code-freeze MUST 6, MUST 7).** Captures without a sidecar, missing columns,
   unparseable `market_id` rows, `t_d_source` fallbacks, `no_row_at_k` cases, the look-back record and every guard class are
@@ -739,7 +747,7 @@ the serial M1 + M2 + M3 pass against the 2 h slot. Precedent for the gap between
   its class, a unit without one is `rules_gap`. The analysis's own synthetic tests cover confirmed absence and
   `absent_flicker`, the receipt fallbacks of 4.1, `horizon_unreached`, the KM quantiles of V with censoring and
   `g_nonpositive`, and the `H_k < 43 d` early-share population.
-- Planned peak RSS 300-500 MB; cap 600 MB. The code checks `code_sha` against the registered pins during the window (M1
+- Planned peak RSS 300-500 MB; cap 600 MB. The `gamma_rules` day files are streamed into the ledger from the byte offset after each file's last committed poll line (kept in the state; a file whose size is unchanged is not opened) and are not opened at all once a slot at or after `END_UTC` has been folded; this changes no output. `logs/j1_runs.jsonl` carries wall time per capture and per phase (never a status or unit file). The code checks `code_sha` against the registered pins during the window (M1
   code-freeze SHOULD 10).
 
 ### 10.3 M3-J2: window close and follow-up close
@@ -839,7 +847,7 @@ M3 is **void** (recorded in the ledger, its numbers not reported as a measuremen
    proposal-set file or any data from after a unit's k before `READOUT_UTC`, other than the blind write-and-hash of 10.2
    (R1 MUST 1: M1's 2027-01-15 analysis and the engine read resolutions before 01-29 by design; that is not an M3 read,
    and no output of theirs is an M3 input); named case **(a)**: J1 processed a capture out of
-   chronological order, or used state holding a capture at or after k or a rule record committed after `t_d` (audited from
+   chronological order, or used state holding a capture at or after k, or used a rule record committed after `t_d` (audited from
    the status files' sha256 chain); named case **(b)** (procedural blinding; not auditable from the data, only from the
    process record): a follow-up or proposal-set file opened by any process other than its writer before `READOUT_UTC`, or
    the J2 follow-up manifest missing at the analysis;

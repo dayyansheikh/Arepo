@@ -1,30 +1,28 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 18:48 UTC+1
+**Last updated:** 2026-10-30 19:04 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **M1 (the discount left after an outcome is proposed) is REGISTERED (30 Oct).** The server rehearsal used 346 MB of its
-  600 MB limit, so the code is now locked by fingerprint and its collection job is scheduled. Window 24 Nov to 14 Dec,
-  read-out from 15 Jan 2027. It is a measurement (a number with an error bar), never called a finding.
-- **M2 (the overdue favourite):** its code passed the independent check (after four small fixes); the server rehearsal
-  is queued. Registration before 22 Nov.
-- **M3 ("the wait", how long after a favourite reaches 95 cents until an outcome is proposed):** the challenger's second
-  round asked for four text fixes, now made. Its collection code is written and under independent check. Aim: freeze by 16 Nov.
-- **Batch 7's count finished:** the "very specific markets" test has far too few markets for its pre-declared size (787 of
-  3,000 needed), so it counts as a test that could not be run. The geopolitics and Kalshi parts have enough data. The
-  checker found their analysis code had never been written; it is now written and under independent check before freezing.
-- **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** passed its code re-check and
-  is queued to run before 1 Nov, when the server rotates its old snapshots.
+- **M1 (the discount left after an outcome is proposed) is REGISTERED (30 Oct).** Code locked by fingerprint; collection
+  window 24 Nov to 14 Dec, read-out from 15 Jan 2027. A measurement (a number with an error bar), never called a finding.
+  A checker spotted that it counts sibling markets using their state at the new market's own time; M1's text defines it
+  exactly that way, so it stays as registered (written note + test; a second checker is confirming).
+- **Batch 7 is FROZEN (30 Oct).** The specificity test could not be run (too few markets) and counts as a test with no
+  result. The geopolitics-longshot and Kalshi-maker tests run their one and only screen from 31 Oct, 07:00 UTC+1.
+- **M2 (the overdue favourite):** the same sibling-count issue is NOT allowed by M2's text, so its code is being fixed and
+  a short dated amendment added before registration (no data has been collected, so nothing is informed by results). Its
+  server rehearsal was cancelled and will re-run on the fixed code. Registration still aimed before 22 Nov.
+- **M3 ("the wait")**: the code check asked for fixes (including the same sibling issue), being made. Its decision rule for
+  a short count was declared in writing before any count is seen. Aim: freeze by 16 Nov.
+- **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** is queued to run before 1 Nov.
 - **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.**
-- **Fixed:** a holders-collection job (batch 8) ran out of memory at start-up (a shared health check reads every snapshot's
-  index file); given more memory and re-queued. A lighter health check is a later code fix.
+- **Fixed:** a holders-collection job (batch 8) ran out of memory at start-up; given more memory and re-queued.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
-  E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov). Registered
-  measurement M1 (window from 24 Nov).
+  E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov), CB7 screens (31 Oct).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

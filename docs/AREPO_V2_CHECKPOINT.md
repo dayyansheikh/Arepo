@@ -8,32 +8,31 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 17:48Z)
-- **Done this session:** **M1 REGISTERED** (f939c0b5, `registration_commit_utc` 2026-10-30T17:17:28Z; `seals/M1_pins.json`;
-  q0751/q0751b in jobs/; J1 cron in crontab.txt AND on host, guarded on q0751 `done`). CH276 MUST A/B fixed -> **q0760
-  promoted** (prio 90; must start before 11-01T02:45Z). CB7: census written up (S1 not testable, counted; S2 not run;
-  k2 = 1 if X1 advances else 0); freeze check NOT_READY (analysis code missing) -> analysis code written and merged
-  (301b6679, declaration sha `8eb396ba…438f`). **M2:** code-freeze check ACCEPT_WITH_FIXES -> fixes -> diff check ACCEPT,
-  **code_sha `03984d2c…d6e2`**, **q0754 dry run promoted**. **M3:** J1/J0 code merged (33cd591c, code_sha `105587be…98ef`).
-  q0163 MemoryError (collector health check loads all manifests, ~490 MB) -> mem 1000 / as_cap 2048, retried. Deployed 5c78b849.
-- **In flight (background `science-reviewer`s):** CB7 code-freeze check (-> `reviews/CB7_CODE_FREEZE_CHECK_2026-10-30.md`,
-  census copy at /tmp/cb7_census/census.json); M3 code check (-> `reviews/M3_CODE_CHECK_2026-10-30.md`). Both return text;
-  the orchestrator saves it.
-- **Next:** CB7: apply MUSTs -> freeze commit (`model_specs/cb7_v1.json` per the check's list; `T7_X_list` = max(11-03T06:00Z,
-  freeze + 24 h); promote q0148 (not-testable), q0150, q0149). M3: apply MUSTs -> promote q0780 (J0) + q0781 -> final
-  verification -> freeze by 11-16. M2: when q0754 passes (peak RSS, code_sha `03984d2c…` in `j1_runs.jsonl`) -> registration
-  commit by 11-22 (record the dumps-cap plan first; three J1s must run serially per 2 h pass, design M3 10). Verify q0760 ran.
-  E009/E010 on 11-03: commit results to `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
-  **11-24: check q0751 done** (else the M1 cron never starts).
-- **Queue:** q0116k (MC1, exclusive) running; q0760, q0163, q0754 queued; q0085 slices; q0086, q0103b, q0106, q0064, q0518;
-  LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's census (q0742, 11-17).**
-  Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k completes. Dumps guard 50 GiB vs
-  ~38 GiB used (rotation live).
-- **Carried over:** `cb2_weather.collector_healthy` loads every manifest (~490 MB, +25 MB/day) but cb2_weather.py is referenced by frozen seals (cb9/cb11/cb14/cb16 rules): do NOT edit it; raise memory of jobs that hit it (as q0163). CB9 SHOULD 6;
-  CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not before 11-07T08Z; LT12
-  census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
+## Experiments autopilot live state (2026-10-30 18:04Z)
+- **Done this session:** **M1 REGISTERED** (f939c0b5, `registration_commit_utc` 2026-10-30T17:17:28Z; J1 cron on host,
+  guarded on q0751 `done`); M1 sibling member-count reading note + test (c7d1532e; code_sha unchanged; reviewer
+  confirmation running). **CB7 FROZEN** (10722060, `model_specs/cb7_v1.json`, declaration `cf84f910…`; S1 not testable,
+  counted; q0148 -> q0150 -> q0149 promoted, not before 2026-10-31T06:00Z; deployed 656a9a3d). CH276 q0760 promoted
+  (must start before 11-01T02:45Z). M2 code-freeze fixes ACCEPT (code_sha 03984d2c), BUT the sibling member-count read is
+  forbidden by M2's text -> **q0754 cancelled**; fix + appended amendment in progress (`feat/m2-sibling`). M3 code check
+  ACCEPT_WITH_FIXES -> fixes in progress (`feat/m3-cf-fixes`); M3 MUST 2 rule (full day = 12 classified captures; < 3
+  full days -> extend to 42 days) declared in the ledger before J0. q0163 MemoryError fixed (mem 1000 / as_cap 2048).
+- **In flight (agents):** M2 sibling fix + amendment; M3 code-check fixes; M1 reading confirmation (`science-reviewer`).
+- **Next:** M2: amendment review (`science-reviewer`) + diff check -> promote q0754b (fresh store) -> registration by 11-22.
+  M3: diff check -> promote q0780 (J0) -> q0781 dry run -> final verification -> freeze by 11-16. CB7: after each screen
+  commit the Stage-1 seal copies; ledger results (counted); registry. Verify q0760 ran (before 11-01T02:45Z).
+  E009/E010 on 11-03: commit results into `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
+  **11-24: check q0751 done** (else the M1 cron never starts). Serial M1+M2+M3 J1 timing before M2/M3 registration.
+- **Queue:** q0116k (MC1, exclusive) running; q0760, q0163 queued; CB7 screens 10-31 06:00Z; q0085 slices; q0086, q0103b,
+  q0106, q0064, q0518; LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's
+  census (q0742, 11-17).** Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k
+  completes. Dumps guard 50 GiB vs ~38 GiB used (rotation live).
+- **Carried over:** `cb2_weather.collector_healthy` loads every manifest (~490 MB, +25 MB/day); cb2_weather.py functions are
+  seal-pinned (cb9/cb11/cb14/cb16): do NOT edit; raise memory of jobs that hit it. CB9 SHOULD 6; CB5 SHOULD 3 before
+  q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not before 11-07T08Z; LT12 census/seal from 11-07; E026
+  weekly-count phone note ~11-01; two order-dependent tests.
 - **Registered live analyses:** E009/E010 3 Nov (queued), E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
-  Registered measurement M1: window 11-24..12-14, read-out from 2027-01-15.
+  Registered measurement M1: window 11-24..12-14, read-out from 2027-01-15. CB7 screens from 10-31 (one-shot).
 ## Interactive session state (2026-10-23 08:30Z)
 - **Security audit run 1 (2026-10-23):** Cloudflare security-audit skill, quick profile, source-only. 0 confirmed findings and 5 needs-validation leads; see `docs/security/AUDIT_2026-10-23_RUN1.md` (full artefacts in `~/security-audit-skill/astrolabe/run-1/`). Owner notified via ntfy. No fixes made yet. Proposed small PRs:
   1. Refuse to start in production on a default or short AUTH_SECRET.

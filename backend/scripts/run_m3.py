@@ -1,14 +1,16 @@
 # ruff: noqa: E501
 """M3 (CH274, "the wait") runner: ``j0`` (counts-only pre-freeze check, the J1 extractor in dry mode) and ``j1`` (window extractor and blind follow-up recorder).
 See docs/research_lab/MEASUREMENT_M3_CH274.md sections 10.1 and 10.2. Research only; no network. Refusals exit 2 (declared refusal, or an unusable argument), 1 (``j0``: the
-output exists), 3 (pin mismatch, expected and actual values printed); ``j0`` and ``j1`` exit 75 when the dumps guard trips or the output disk is short of space.
+output exists), 3 (pin mismatch, expected and actual values printed), 4 (an uncaught exception: a defect, not a refusal; the traceback is on stderr); ``j0`` and ``j1`` exit 75 when
+the dumps guard trips or the output disk is short of space.
 
     python scripts/run_m3.py j0 --snapshot-root R/snapshots --rules-root R/stream_gamma_rules --last-days 8 --lookback-slots 12 --out R/m3_ch274_j0/M3_J0.json --data-dumps-cap-gb 50
     python scripts/run_m3.py j1 --store R/m3_ch274 --snapshot-root R/snapshots --rules-root R/stream_gamma_rules --pins PINS.json
-    python scripts/run_m3.py j1 --store R/m3_ch274_dryrun --snapshot-root R/snapshots --rules-root R/stream_gamma_rules --dry-run-last-days 3
+    python scripts/run_m3.py j1 --store R/m3_ch274_dryrun --snapshot-root R/snapshots --rules-root R/stream_gamma_rules --dry-run-last-days 3 [--dry-run-end-utc 2026-11-20T00:00:00Z]
 
 The J1 store must sit in a ``research_lab`` directory named ``m3_ch274`` (``m3_ch274_dryrun`` with ``--dry-run-last-days``, which derives a short window from the newest
-captures, pads the state to its end-of-window size and writes a different spec_sha; it never writes the real store). ``j0`` writes only ``--out`` (write-once, under a
+captures, or ends at ``--dry-run-end-utc`` so that a steady-state pass can be timed on the same store, pads the state to its end-of-window size and writes a different
+spec_sha; it never writes the real store). ``j0`` writes only ``--out`` (write-once, under a
 ``research_lab`` directory). J2, J3 and the analysis are not in this file yet.
 """
 
@@ -19,6 +21,7 @@ import json
 import os
 import shutil
 import sys
+import traceback
 from pathlib import Path
 
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
@@ -111,9 +114,14 @@ def run_j0_cmd(a) -> int:
     tmp.write_text(json.dumps(res, sort_keys=True, indent=1, default=str))
     try:
         os.link(tmp, a.out)  # write-once
+    except FileExistsError:
+        print(f"refuses to overwrite {a.out}", file=sys.stderr)
+        return 1
     finally:
         tmp.unlink(missing_ok=True)
-    print(f"wrote {a.out} units={res['eligible_units']['total']} captures={res['span']['classified_captures']} peak_rss_mb={res['peak_rss_mb']} rule_a_extend_to_42_days={res['decisions']['rule_a_extend_to_42_days']}")
+    d = res["decisions"]
+    print(f"wrote {a.out} units={res['eligible_units']['total']} captures={res['span']['classified_captures']} peak_rss_mb={res['peak_rss_mb']} full_days={d['full_days']} "
+          f"rule_a_result={d['rule_a_result']} rule_a_extend_to_42_days={d['rule_a_extend_to_42_days']}")
     return 0
 
 
@@ -127,7 +135,10 @@ def run_j1_cmd(a) -> int:
         return 2
     spec = sp.SPEC
     if dry:
-        end = newest_end(a.snapshot_root)
+        end = c240.parse_utc(a.dry_run_end_utc) if a.dry_run_end_utc else newest_end(a.snapshot_root)
+        if end != end:
+            print("refuses: --dry-run-end-utc is not a UTC timestamp", file=sys.stderr)
+            return 2
         spec = sp.dry_spec(end - a.dry_run_last_days * 86400.0, end)
     pins = json.loads(a.pins.read_text()) if a.pins is not None else None
     if not dry and pins is None:
@@ -165,6 +176,7 @@ def main(argv=None) -> int:
     ap.add_argument("--last-days", type=int, default=None, help="j0: the span, counted back from the newest complete capture")
     ap.add_argument("--lookback-slots", type=int, default=sp.SPEC["j0"]["fold_captures"], help="j0: captures that only fold before the first classified k (J0's one-day fold, fixed in 10.1)")
     ap.add_argument("--dry-run-last-days", type=int, default=None, help="j1: derive a short window from the newest captures (store m3_ch274_dryrun)")
+    ap.add_argument("--dry-run-end-utc", default=None, help="j1 dry run only: the fixed end of the stand-in window (default: the newest capture), so a second, steady-state pass can be timed on the same store")
     ap.add_argument("--no-pad", action="store_true", help="j1 dry run only: do not pad the state to its end-of-window size")
     ap.add_argument("--data-dumps-cap-gb", type=float, default=None)
     ap.add_argument("--min-free-gb", type=float, default=1.0)
@@ -185,6 +197,9 @@ def main(argv=None) -> int:
     except sp.M3Refusal as e:
         print(f"refuses: {e}", file=sys.stderr)
         return 2
+    except Exception:  # noqa: BLE001 - a defect must not look like "output exists" (exit 1): its own code, traceback on stderr
+        traceback.print_exc()
+        return 4
 
 
 if __name__ == "__main__":

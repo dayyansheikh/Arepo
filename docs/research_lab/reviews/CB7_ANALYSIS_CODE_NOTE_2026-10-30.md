@@ -30,7 +30,7 @@ Not done here: MUST 4 (already applied in b919b4b7), MUST 5 (census hash re-chec
 | cb7_census.py | 351d436d039ef2558f3b4ad225f9d1a3c7a8417824494a0bd44dcff5ee82cb1d |
 | cb7_xv.py | 0d8404e6fa9dd0b296b2864e88468d977e6064ac67d90483b1282ed95485c3a8 |
 | cb7_common.py | 88dc0614f0c6296287fce93ba49ddea94e208b0af304a7bad88a2a6515ee29ef |
-| scripts/run_cb7.py | 9584ac51ab15c2cf9c947e3502faae21cd58e6571361068962b49d10fa90a4a9 |
+| scripts/run_cb7.py | bc3c43cbf7bda7a72170fc21c90a446ef362f5a1c86558d639725466f333f76d |
 
 The declaration hash covers every UPPER_CASE constant and the source of every function / class in the four analysis modules, the source of each imported helper
 (CB2 `small_g_pvalue`, `battery._cr_var_of_sum`, CB1 `holm` / `wilson_bound` / `half_spread` / `parse_outcome0`, CB6 `event_key_split`, `cb7_geo.theme_of`, `topic_of`, the

@@ -1,0 +1,106 @@
+{
+ "census_constants_sha256": "2ce0e637c5793ce56178566f8388f735a4d39062930ac84491175be44a23b0cd",
+ "census_json_sha256": "85824be10a1b4d7c4bbb51e1d7f52581d9889069c0cf47aaec547a88be7e6920",
+ "census_xv_definitions_sha256": "73b5f53b1860e8a27e3f955eac63e1f379a970bf181607478ae480e212aa1d9b",
+ "counting": {
+  "conditional": [
+   "X1-rep"
+  ],
+  "counts": "creative_batch_7:S|G|X ml_explain lines (n_tests 1 each; S1 is counted at p = 1)",
+  "fixed": [
+   "S1",
+   "G1",
+   "X1"
+  ],
+  "k1": 3,
+  "not_run": [
+   "S1-rep",
+   "S2"
+  ],
+  "stage1_alpha": 0.01,
+  "stage2": "Holm, one-sided alpha 0.05; k2 = 1 if X1 advances, else 0 (S1-rep and S2 do not run because S1 is not testable; freeze check 2026-10-30)"
+ },
+ "dates": {
+  "T7_S_rep_start": "not applicable",
+  "T7_X_list": "2026-11-03T06:00:00Z",
+  "freeze_utc": "2026-10-30T17:59:11Z",
+  "screen_not_before_utc": "2026-10-31T06:00:00Z"
+ },
+ "declaration_sha256": "cf84f91053385c371a875f39f72cd09bcc519dc446829b3b1fed47c7f481fd8e",
+ "h_geo": {
+  "capture_pins": {
+   "captures": 36,
+   "files": 144,
+   "pin_file_sha256": "0df1dff65da6039241efd8d0f8912004e810e52d44809075633e5798687703c0"
+  },
+  "h_geo_binding": 0.012000000000000004,
+  "text_table_sha256": "5333444b150289cf588d193c2b394d6a58dd4fed04504124bdea7a4bfaf9ce15"
+ },
+ "hypotheses": {
+  "G1": {
+   "direction": "> 0",
+   "family": "G",
+   "kind": "economic",
+   "statistic": "mean net per share of buying YES at the modelled ask, held to resolution; inverted tail gate; >= 10 YES event clusters; carried to Stage P only if it meets the Stage-1 batch Holm (alpha 0.01, k1 = 3)",
+   "unit": "eligible (market, origin) of h8_geo, YES in [0.02, 0.10] at 30 / 14 / 7 days before the scheduled end"
+  },
+  "S1": {
+   "direction": "> 0",
+   "family": "S",
+   "kind": "mechanism",
+   "statistic": "within-cell slope of (price - outcome) on the condition count C; recorded NOT TESTABLE (gate GS false in the census, 787 units against 3,000), p = 1, counted",
+   "unit": "eligible h8_text market at t7 (one origin)"
+  },
+  "X1": {
+   "direction": "< 0",
+   "family": "X",
+   "kind": "economic",
+   "statistic": "mean resting-maker mark-out at 1 h plus the forgone rebate over the fills a 20-minute Kalshi-skewed step-aside would skip; route gate on kept fills",
+   "unit": "print in S (non-sports C1 pairs)"
+  }
+ },
+ "queue": {
+  "conditional_on_x1_advance": [
+   "q0153",
+   "q0154",
+   "q0155"
+  ],
+  "do_not_promote": [
+   "q0151",
+   "q0152",
+   "q0156"
+  ],
+  "promote": [
+   "q0148",
+   "q0150",
+   "q0149"
+  ]
+ },
+ "rules_sha256": "05bf365cbb885d0183f31da1b032b2337830afaf262c90bfa1f0e9f9061221e9",
+ "seals": {
+  "h8_geo": {
+   "sha256": "4ae2be72731be0a32f44a000c0286248cd68a48cd837c7dfc76fc1d5cc0a894c",
+   "state": "sealed"
+  },
+  "h8_tail": {
+   "sha256": "2a88f3e59f9523d817b21446b8e9a0b84501351428097e5e83f97910c8ac94a9",
+   "state": "sealed"
+  },
+  "h8_text": {
+   "sha256": "6074eee8929d0f80bf1b663b54b34fe6e2744b9623b735bda931c85a690bc6df",
+   "state": "sealed"
+  }
+ },
+ "sources": {
+  "astrolabe/research_lab/cb7_astats.py": "a9c8b20565906c32aa2c33f1752de6bd5fbe264b186cc18f3d7c8b57e21c70b4",
+  "astrolabe/research_lab/cb7_census.py": "351d436d039ef2558f3b4ad225f9d1a3c7a8417824494a0bd44dcff5ee82cb1d",
+  "astrolabe/research_lab/cb7_common.py": "88dc0614f0c6296287fce93ba49ddea94e208b0af304a7bad88a2a6515ee29ef",
+  "astrolabe/research_lab/cb7_declaration.py": "5017283862f5638e141f0f37472883a8804a281573743aec67035a58b234b605",
+  "astrolabe/research_lab/cb7_g_analysis.py": "f0972287e2cbaf4dd729ca933a74523d46a55e8c4fe47f4a6df53dff79f51109",
+  "astrolabe/research_lab/cb7_s_analysis.py": "070a10d3a432407a28fb58532e95c3c12cd28c3f1b300c1468d7a52b54f2770a",
+  "astrolabe/research_lab/cb7_x_analysis.py": "141ebdc653662f1809b2b6a65b9b2e8a040e20eb7c4490ff04975a73bb819cb8",
+  "astrolabe/research_lab/cb7_xv.py": "0d8404e6fa9dd0b296b2864e88468d977e6064ac67d90483b1282ed95485c3a8",
+  "scripts/run_cb7.py": "bc3c43cbf7bda7a72170fc21c90a446ef362f5a1c86558d639725466f333f76d"
+ },
+ "version": "cb7-declaration-v1"
+}
