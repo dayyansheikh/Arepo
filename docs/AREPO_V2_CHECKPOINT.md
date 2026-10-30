@@ -29,7 +29,7 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's census (q0742, 11-17).**
   Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k completes. Dumps guard 50 GiB vs
   ~38 GiB used (rotation live).
-- **Carried over:** follow-up code fix: `cb2_weather.collector_healthy` should stream manifests (check pins first). CB9 SHOULD 6;
+- **Carried over:** `cb2_weather.collector_healthy` loads every manifest (~490 MB, +25 MB/day) but cb2_weather.py is referenced by frozen seals (cb9/cb11/cb14/cb16 rules): do NOT edit it; raise memory of jobs that hit it (as q0163). CB9 SHOULD 6;
   CB5 SHOULD 3 before q0111; LT13 q0722 memory dry run (from 11-17); LT11 census q0691 not before 11-07T08Z; LT12
   census/seal from 11-07; E026 weekly-count phone note ~11-01; two order-dependent tests.
 - **Registered live analyses:** E009/E010 3 Nov (queued), E011 11 Nov, E012-E014 13 Nov, E015 15 Nov, E022 17 Nov, E026 6 Dec.
