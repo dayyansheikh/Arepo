@@ -5401,3 +5401,6 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   SHOULD 2-3 code-note readings (k - 1 directory gone -> refusal; captures visible only after the last J1 pass). Fix chosen over
   disclosure; delegated on `feat/m1-code`. **q0750b cancelled on the host while still queued** (its code_sha would no longer be
   the pinned one); the dry run re-runs as q0750c on the final code.
+- **13:40Z addendum:** fix merged (e8c36bf0; 98 M1 tests; both new tests fail on the old code). **M1 code_sha
+  `9cb8aa03b0ddde9c4fc462b4ed6bb70ef93234317ac5a1cd8d2cb27be061d148`**, spec_sha `3afd6ad6…68b0` unchanged, pins ok. J2's
+  manifest carries a notes line on the after-last-pass gap. **q0750c** (dry run on this code, fresh store) queued.
