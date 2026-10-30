@@ -1,0 +1,35 @@
+{
+ "id": "q0752_m1_j3",
+ "title": "M1 (CH263) J3 read-out resolution fetch (MEASUREMENT_M1_CH263.md 9.4): Gamma /markets?id= in batches of 50 with closed=true, a second pass without the filter for ids not returned, up to 3 attempts per batch at least 1 h apart, parse_outcome at the pinned calibration.py; on or after READOUT_UTC",
+ "family": "creative_hypotheses",
+ "priority": 70,
+ "expected_value": "the resolution classes of 8.1 for every unit (resolved, split, pending, not_found, unavailable) for the analysis; about 100-400 requests",
+ "data": [
+  "data-dumps/research_lab/m1_ch263/ (units/, manifest.json; read-only); writes readout/ (write-once)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "as_cap_mb": 3000,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api.polymarket.com (public, read-only)"
+ },
+ "depends_on": [
+  "q0751b_m1_j2"
+ ],
+ "not_before": "2027-01-15T00:00:00Z",
+ "argv": [
+  "scripts/run_m1.py",
+  "j3",
+  "--store",
+  "../data-dumps/research_lab/m1_ch263"
+ ],
+ "timeout_s": 28800,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/m1_ch263/readout/readout.jsonl.gz",
+  "data-dumps/research_lab/m1_ch263/readout/readout_manifest.json"
+ ],
+ "next_action": "q0753_m1_analysis on or after 2027-01-15T12:00Z",
+ "notes": "DRAFT (not in jobs/). Refuses before READOUT_UTC (2027-01-15T00:00Z, or the slid date in the registration commit), without the J2 manifest, and over an existing read-out. The 1 h gap between attempts is slept inside the job (timeout 8 h covers 2 passes x 2 gaps). The no-retry-at-once case is the only way a batch becomes unavailable (fetch). If the slide rule moved the dates, edit not_before in the registration commit only. Code: backend/scripts/run_m1.py with astrolabe/research_lab/m1_spec.py, m1_extract.py, m1_readout.py, m1_analysis.py and the imported m1_j0.py (code_sha in the unit lines); pins checked at start (exit 3 with expected and actual values on a mismatch, exit 2 on a declared refusal)."
+}
