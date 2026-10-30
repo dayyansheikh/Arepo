@@ -1,6 +1,6 @@
 # Measurement M1 (CH263, "the carry"): the favoured side's discount after a UMA proposal state is first seen, against the reversal tail and the recorded cost, held to resolution, k = 0 (DRAFT)
 
-**Status: final text after the final pre-freeze verification (NOT_READY -> fixes and disclosures applied); next: diff-only check, then the design-text freeze commit.
+**Status: FROZEN (design text) 2026-10-30, after the freeze diff check (`reviews/M1_FREEZE_DIFF_CHECK_2026-10-30.md`: one pin-list fix, `cb13_label`, applied and diff-checked); next: code, code-freeze check, host dry run, registration by 2026-11-22T23:59Z.
 2026-10-30, third draft plus the fee-line / S4 / float fix of 17.6 and the final-verification fixes of 17.8 (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
 GO_WITH_CHANGES, the pre-freeze re-check, `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY, and the final verification,
 `reviews/M1_FINAL_VERIFY_2026-10-30.md`, NOT_READY -> FREEZE_OK_WITH_DISCLOSURES once applied; every item applied,
@@ -225,8 +225,8 @@ No cap: weights are declared instead (4).
   `REGISTERED_UTC` is void 11.1. Here the `tier_of` source is `census_map_ch269.py` (S1; it imports `boundary_map_ch240` and
   `population_map_ch251`), and `boundary_map_ch240.category_of` (E5) imports `cb17_census` and `live_tests8_base`, which are
   pinned too (`live_tests8_base` because `category_of` calls its `crypto_class`). The full pin list is `boundary_map_ch240.py`,
-  `population_map_ch251.py`, `census_map_ch269.py`, `cb17_census.py`, `live_tests8_base.py`, `calibration.py`, `costs.py`;
-  their sha256 values are recorded in J0's successor seal and at registration.
+  `population_map_ch251.py`, `census_map_ch269.py`, `cb17_census.py`, `cb13_label.py` (`cb17_census.is_sports_sidecar` reads its
+  `first_series_slug`, `SPORTS_CATEGORIES`, `SPORTS_SERIES_RE`), `live_tests8_base.py`, `calibration.py`, `costs.py`; their sha256 values are recorded in J0's successor seal and at registration.
 - **Fees are immaterial here (J0; D4).** At p ~ 0.999 any rate gives at most about 0.007c a share. S4 has fee_on 12 of 1,232.
   L1 and L2 are expected to be indistinguishable. Staleness haircut,
   liquidity rewards, holding rewards and rebates are not in any line (disclosed).
@@ -440,7 +440,7 @@ M1 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 4. resolution-source coverage below the floor of 8.3;
 5. unit lines whose `spec_sha` or `code_sha` differs from the pins making up more than 1% of the units (below that they are
    dropped, counted); the pins include the sha256 of each imported module that sets a class or cell (`boundary_map_ch240`,
-   `population_map_ch251`, `census_map_ch269` as the `tier_of` source, `cb17_census`, `live_tests8_base`, `calibration`,
+   `population_map_ch251`, `census_map_ch269` as the `tier_of` source, `cb17_census`, `cb13_label`, `live_tests8_base`, `calibration`,
    `costs`; section 5): a mismatch at run time refuses, and after `REGISTERED_UTC` is void 11.1;
 6. the window started before the registration commit plus 24 h.
 
@@ -627,7 +627,7 @@ No estimand, weight, cell, threshold, cost line, class rule or date changed.
 
 | Item | What changed | Where |
 |---|---|---|
-| MUST 1 pins of class-setting imports | reviewer's pin sentence; `tier_of` source named (`census_map_ch269.py`); `category_of`'s imports `cb17_census`, `live_tests8_base` added; full pin list; mirrored in the pin void condition | 5, 11 item 5 |
+| MUST 1 pins of class-setting imports | reviewer's pin sentence; `tier_of` source named (`census_map_ch269.py`); `category_of`'s imports `cb17_census`, `live_tests8_base` added; `cb13_label` (sports reader under `cb17_census`, added at the freeze diff check); full pin list; mirrored in the pin void condition | 5, 11 item 5 |
 | MUST 2 J0 span | 96 read, 12 warm-up, 84 processed, first 10-23T06:31Z, 6 full UTC days, no missing slot (ledger correction entry is separate; ledger not edited here) | 17.7 |
 | D1 status field history | replaces "unverified" wording in E3 | 3.2 E3 |
 | D2 markets leave the universe | length-biased sample; wait and capital near zero | 3.5 |
