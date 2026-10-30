@@ -187,7 +187,7 @@ def test_cf4_seen_without_k_minus_1_row_counts_every_category_and_an_unparseable
 
 def test_cf5_design_text_pin_and_refusals(tmp_path):
     rec = sp.pin_record()
-    assert rec["ok"] and rec["design"]["actual"] == "bb7c27e05d94e6585af09a8e8d5b2add274b149c89035dfe4fe6c8b783f7cbb0" == sp.SPEC["design_sha256"]
+    assert rec["ok"] and rec["design"]["actual"] == "a7f30de2121a4c8817cca89a688f276ed72a449315b7dcbcc847b95ec3736e07" == sp.SPEC["design_sha256"]
     assert len(rec["modules"]) == 8 and rec["lexicon"]["ok"]
     assert sp.spec_sha(sp.SPEC) == sp.SPEC["design_sha256"]  # section 2: spec_sha is the sha256 of the frozen text
     bad = tmp_path / "MEASUREMENT_M2_CH264.md"
