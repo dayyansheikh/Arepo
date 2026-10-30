@@ -9,6 +9,9 @@ awaited); (2) bytes first (exit 3 "STOP AND ASK THE OWNER" when bytes + reserve 
 of the ENGINE stores (quotes, features, predictions, meta) from the verified release is selected by the caller's arguments (3: "on the host within retention, else restored once"); this guard
 adds no selector of its own (ambiguity A9 in reviews/LT14_CODE_NOTE_2026-10-30.md).
 
+Added after the F re-check (A, D; reviews/LT14_CODE_F_RECHECK_2026-10-30.md): (A) "used" is measured with the census's own ``du -sk`` (``live_tests11_base.du_bytes``) and q0743 passes
+``--data-cap-gb 50`` (q0742's census cap); (D) the coverage check runs first on the host roots (plus the restore tree): no gaps -> exit 0 "no restore needed", with no catalogue match and no download.
+
 Added after the diff re-check (F1, F2; reviews/LT14_CODE_RECHECK_2026-10-30.md), LT14-only:
 (a) with no ``--tag`` the guard computes an EXPLICIT tag list from the catalogue (the tags with at least one row matching the selectors) and passes it on, and refuses (exit 3, STOP AND
 ASK THE OWNER) when none match (a stale catalogue would otherwise make the restore a silent no-op that exits 0); (b) the bytes must also fit the AREPO data cap
@@ -34,6 +37,7 @@ from lt12_restore_guard import STOP, _selectors, measure  # noqa: E402
 
 from astrolabe.research_lab import live_tests14 as lt  # noqa: E402
 from astrolabe.research_lab import live_tests14_base as t  # noqa: E402
+from astrolabe.research_lab.live_tests11_base import du_bytes  # noqa: E402
 
 
 def _load(name: str, path: str):
@@ -68,17 +72,6 @@ def matching_tags(argv: list[str], dc=None) -> dict:
         if any(dc.matches(r, a.experiment, a.dir, a.since, a.until, None if r.get("granularity") == "group" else a.path_glob) for r in dc.load_jsonl(os.path.join(cat, tag + ".jsonl"))):
             hit.append(tag)
     return {"catalogue_tags": have, "matching_tags": hit}
-
-
-def tree_bytes(root: str) -> int:
-    n = 0
-    for dp, _dn, fn in os.walk(root):
-        for f in fn:
-            try:
-                n += os.lstat(os.path.join(dp, f)).st_size
-            except OSError:
-                pass
-    return n
 
 
 def cap_check(used_bytes: int, nbytes: int, reserve: int, cap_gb: float) -> dict:
@@ -121,6 +114,13 @@ def main(argv: list[str] | None = None, *, restore_main=None, dc=None, now: floa
     if rd["refuse"]:
         print(f"not now: lag-slot capture(s) still in progress or not yet past the slot tolerance: {rd['refusing_slots']} (LIVE_TESTS_14.md 6)")
         return t.TEMPFAIL
+    # re-check D: coverage first; with no gaps there is nothing to restore (no catalogue match, no download); retention keeps the sidecars on the host for 8 days
+    dest0 = os.path.abspath(os.path.expanduser(_selectors(rest).dest))
+    cov0 = coverage_gaps(ga.engine_root or str(t.ENGINE_ROOT), [*roots, os.path.join(dest0, "data-dumps", "research_lab", "snapshots")], spec)
+    print(json.dumps({"lt14_restore_precheck_coverage": cov0}, sort_keys=True))
+    if not cov0["gaps"]:
+        print("no restore needed: every span slot with a host meta/ already has a rows_ext.csv.gz in the host snapshots (or the restore tree); nothing downloaded or written")
+        return 0
     if not _opt(rest, "--tag"):
         mt = matching_tags(rest, dc=dc)
         print(json.dumps({"lt14_restore_tags": mt}, sort_keys=True))
@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None, *, restore_main=None, dc=None, now: floa
     reserve = int(ga.reserve_gb * 2**30)
     m["reserve_bytes"] = reserve
     cap_gb = ga.data_cap_gb if ga.data_cap_gb is not None else float(os.environ.get("AREPO_DATA_CAP_GB", "55"))
-    used = used_bytes if used_bytes is not None else tree_bytes(ga.data_dumps_root or str(t.ROOT / "data-dumps"))
+    used = used_bytes if used_bytes is not None else du_bytes(Path(ga.data_dumps_root or str(t.ROOT / "data-dumps")))
     m.update(cap_check(used, m["bytes"], reserve, cap_gb))
     m["fits"] = bool(m["rows_without_bytes"] == 0 and not m["catalogues_missing"] and m["bytes"] + reserve <= m["free_bytes"] and m["fits_cap"])
     print(json.dumps({"lt14_restore_measure": m}, sort_keys=True))
