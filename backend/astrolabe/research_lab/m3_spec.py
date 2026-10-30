@@ -3,7 +3,7 @@
 
 ``SPEC`` holds the declared constants of the text (dates, grid, near-certainty state, cells, bootstrap, coarse thresholds, fetch rule). ``spec_sha``:
 
-* the REAL spec after the design-text freeze (``design_sha256`` set): the sha256 of the frozen design text (section 2: "the sha256 of this file at the registration commit");
+* the REAL spec once ``design_sha256`` is set AT THE REGISTRATION COMMIT (2.1: the design text is final and pinned there, R3): the sha256 of the frozen design text (section 2: "the sha256 of this file at the registration commit");
 * a spec whose ``design_sha256`` is still ``None`` (the DRAFT state of this code) or a dry-run spec: the sha256 of its own canonical JSON. A real (non-dry) J1 pass REFUSES while
   ``design_sha256`` is ``None`` (``check_real_run``), so nothing registered can run on the draft.
 
@@ -74,8 +74,8 @@ SPEC: dict = {
     "coarse": {"min_units": 1000, "max_headline_ci_width_ps": 0.10, "min_classed_share": 0.5, "min_slot_coverage": 0.75, "min_followup_slot_coverage": 0.75, "max_nonfinal_share": 0.10},
     "void_sha_mismatch_share": 0.01,
     # 10.1: J0's decision rule (a) (the only effect of J0): median full-day units below this extends the window to 42 days
-    "j0": {"rule_a_units_below": 48, "rule_b_projected_21_day_units_below": 1008, "fold_captures": 12, "full_day_captures": 12},
-    # the pins. design_sha256 stays None until the design-text freeze commit (a real J1 pass refuses while it is None).
+    "j0": {"rule_a_units_below": 48, "rule_b_projected_21_day_units_below": 1008, "fold_captures": 12, "full_day_captures": 12, "min_full_days": 3},
+    # the pins. design_sha256 stays None until it is set at the registration commit (a real J1 pass refuses while it is None).
     "design_sha256": None,
     "pinned_module_sha256": {
         "boundary_map_ch240.py": "2bc9ff9edb97b76990579c90929e55f22cb4cfe9fdec852395bd07f7d3bea09a",
@@ -181,7 +181,7 @@ def check_pins(spec: dict = SPEC, paths: dict | None = None, design: Path | None
 def check_real_run(spec: dict) -> None:
     """A real (non-dry) J1 pass needs the frozen design text: ``design_sha256`` must be pinned."""
     if not spec.get("dry_run") and not spec.get("design_sha256"):
-        raise M3Refusal("refuses: the design text is not frozen (SPEC['design_sha256'] is None); a registered J1 pass needs the design-text freeze and the registration commit pins")
+        raise M3Refusal("refuses: the design text is not frozen (SPEC['design_sha256'] is None until the registration commit sets it); a registered J1 pass needs the registration commit pins")
 
 
 def check_run_pins(pins: dict | None, spec: dict = SPEC) -> None:
