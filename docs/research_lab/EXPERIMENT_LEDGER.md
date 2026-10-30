@@ -4928,3 +4928,18 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   rule's drop groups, so every fit would be `NaN` and CH253 `census_dropped` by construction. The code implements the text
   as written (a test documents it). Independent code-freeze check and A3 amendment ruling running; q0722 is not promoted
   before an accepted amendment. No threshold, estimand or window is to change.
+
+## Signal engine: round-19 engine families read: `resid` (CH265) killed, `fragile` (CH268) not built, `rsrev` gate not met, 2026-10-30 ~02:55Z (signal-engine autopilot session 32; development looks, nothing counted, k = 0)
+- **`resid` census (DESIGN_V1 §37, committed `a3e6adf1` before the run):** the champion's 2 h residual lag-1
+  autocorrelation **-0.0912** (pooled, deciding; market-clustered CI -0.093..-0.089; 4.64 M pairs, 183 k markets);
+  Pearson(`rs_2h_m6`, `mo_chg_1d`) 0.218. Killed as written (reversal, not CH265's continuation). Reads realised labels:
+  a development look. §37 also fixes the meta-family rule for any family read from the engine's own predictions.
+- **`fragile` census (§38, `8cb5ba84`; label states only):** share > 0 0.121, Pearson with `ms_log_liq` 0.020, pass as
+  written; not built: the unavailable states are almost all whole missing captures and the market-specific share is
+  0.0000 (information rerun committed before it ran), because a one-sided market has no features row.
+- **`rsrev` gate probe (§39, `7a97b797`; engine-side idea suggested by the §37 look, disclosed):** se1's own residual
+  lag-1 **-0.0021** (CI -0.0037..-0.0002); gate (<= -0.02) not met; not built. se1's trees already absorb the reversal.
+- **Science review** (read-only, `science-reviewer`): execution ACCEPT; REVISE on wording and clocks, fixes applied
+  (commit-clock times, run order from file times / the probe's own start line, the "property of the champion" claim).
+- Nothing registered; the active set and K are unchanged (28 models). The CH269 map's CH265 / CH268 lines (q0730) are
+  not needed by the engine for these two families; they remain the experiments track's own counts.
