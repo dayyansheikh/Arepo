@@ -5308,3 +5308,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   07:17Z; M1 code check 07:22Z; LT14 q0741-q0744 promoted 07:27Z; M1 re-check / amendment 18 07:35Z. The same wrong
   estimates appear in the "PROMOTED ~…Z" notes of q0733b (~09:20Z, really 07:17Z) and q0741-q0744 (~10:05Z, really 07:27Z);
   the job specs are left unedited (deployed). No dates, deadlines or not_before values are affected.
+
+## M2-J0 (q0733b) counts recorded: 21-day window kept, receipt-time reader, 2026-10-30 07:40Z (experiments autopilot; counts only, k = 0, uncounted)
+- q0733b done 07:30:48Z (646 s, peak RSS 457.7 MB) on the ruled code (`m2_j1.py` `c0538322…51dc`, `run_m2_j0.py`
+  `c0e4d061…793d`, version `m2-j1-v1`, dry run). Output `seals/M2_J0_q0733b.json` sha256 `31e3380c…1564`, `informed (M2-J0)`.
+  Span 10-22T06:31Z..10-30T06:31Z, 12-capture fold (W9), 83 classified captures, 6 full days, no missing slot.
+- **Rules:** median full-day units **138** (>= 75) and projected 21-day units **2,898** (>= 1,500): (a) not fired, (b) record-only
+  line not met; **(e) does not apply** (committed poll lines carry a parseable `finished_utc`; the per-record receipt-time reader
+  stands). 1,024 eligible units over 447 events (strata 1: 141, 2-3: 245, 4-9: 61, counted as if all final).
+- Next: J0 record into the M2 text (status, distributions, 9.1 outcome) -> final pre-freeze verification -> freeze by 11-16.
