@@ -1535,3 +1535,16 @@ science reviewer before any table exists.
   fits hold only rows with a full 7-day window (k >= 10-28: the `dir_*` fits from the 11-11 refit, `res_7d` from
   ~11-25) **and** 14 days of scores from those fits (first `dir_2h` read ~11-25, `res_7d` ~12-09). Earlier scores are
   shown labelled development. Promotion is unchanged (`se-promotion-v2` against the champion).
+- **Census result (counts only): FAMILY KILLED.** Run started 12:04:39Z, after the definitions commit `c1eb4c77`
+  (12:04:07Z). Host shas of `rule_edits.py` `11fce999...` and of the script `914f3b8c...` equal the commit. Capture
+  `20261030T103101Z_c1803a16`, 53,973 eligible rows, 11 stream day files (10-20..10-30), 107,804 markets with a
+  known row. Edits over the whole stream: market text 41, event text 198, market `endDate` 1,427. Covered rows 18,864
+  (0.350; non-sports 0.694, sports 0.192). **`re_text_7d` 68 ones (0.0036) and `re_end_7d` 69 ones (0.0037), both
+  under the 0.5% line: both pairs dropped, so the family is killed.** No `re_end_later` line was reached. Information:
+  most recorded end moves are on markets that are no longer eligible at the newest capture. Of the covered rows,
+  end moves are most common in sports (0.0083) and text edits in `unknown` (0.010) and `other:zero_fees` (0.0054).
+  The two flags never overlap. Cold read 4.9 s, 230 MB. Output `census/se_ruleedit_census_2026-10-30.out`.
+- **Consequence.** No aux family, spec or table is built; K is unchanged. `rule_edits.py` and its test stay as the
+  census's committed reader (not wired into `AUX_FAMILIES`). The lines are not revisited on a later capture. A
+  future edit-age family needs a new idea with its own justification (for example, a wider stream frame), not a
+  re-run of this census.
