@@ -15,6 +15,9 @@ data, a host dry run with peak RSS, and the registration commit (spec and code p
 this text are rules (a) and (b) of 9.1 (the window length) and S2's cell list; nothing else can change from its output.
 After the re-check's fix 2 S2's cell list is fixed by rule in section 6, so J0's S2 effect is only to write the list's
 observed distribution into the frozen text; it adds, drops or merges no cell.**
+**J0 has run (q0731; `seals/M1_J0_q0731.json`, sha256 `eedaa2b3…2c3d`, `m1-j0-v2`): rules (a) and (b) did not fire (median full-day
+eligible units 185 >= 100; projected 21-day units 3,885 >= 2,000), so the 21-day window and every date are unchanged; the next step is the final
+pre-freeze verification (17.7). Still DRAFT, not frozen.**
 
 This is research tooling. AREPO never trades. M1 is a measurement: it reads a resolution as the declared payoff of a
 paper route after the window, it is not a verdict, it is not part of any Holm family, it is counted apart from the
@@ -237,6 +240,10 @@ numbers labelled `thin` (never suppressed).
 | S8 | event member count at k | 1, 2-5, 6+ |
 | S9 | tick size at k | 0.001, 0.01, other / missing |
 | S10 | window week | days 1-7, 8-14, 15-21 |
+
+J0 observed distribution of S2 (informed (M1-J0), counts only; 1,232 eligible units): other 997, unknown 223, economics 6,
+politics 3, culture 2, weather 1, finance 0, mentions 0, tech 0, geopolitics 0. Raw `fee_category` to key: `other:zero_fees` -> other 997,
+`unknown` -> unknown 223, economics 6, politics 3, culture 2, weather 1. The cells are unchanged.
 
 Structural zeros (disclosed): S6 `> 0.10` is empty by construction; at tick 0.01 (S9) `c` is a multiple of 0.01, so the
 S6 x S9 cells (0.001, 0.005] at tick 0.01 are empty by construction.
@@ -542,3 +549,37 @@ date, estimand, weight or cost line changed.
 No threshold, date, estimand, weight or cell list changed. M1-J0 (`m1_j0.py`) applied the float edges and the empty-`event_id`
 reading and was corrected with tests (it computes no fee line); its counts change only for units exactly at a 0.90 / 0.10 mid,
 at an S6 edge, at a tick read with float noise, or with an empty `event_id`.
+
+### 17.7 M1-J0 outcome (q0731; `seals/M1_J0_q0731.json`, sha256 `eedaa2b34953ab1d277572ce49c0485e6569f3524da2e3a1993647e926cd2c3d`, informed (M1-J0), counts only, k = 0)
+
+Version `m1-j0-v2`; code sha256 `m1_j0.py` d16b1b8d…, `run_m1_j0.py` e36d7c7a…; queue job q0731, done 2026-10-30T05:41Z; peak RSS 297.6 MB.
+
+- **Span.** 84 captures, 2026-10-22T04:31:03Z to 2026-10-30T04:31:03Z (last 8 days); the first 12 are warm-up only; 6 full UTC days
+  (10-24 to 10-29); no missing slot.
+- **Eligible units.** 1,232 over 740 events. Per day: 10-23 194, 10-24 85, 10-25 106, 10-26 233, 10-27 231, 10-28 192, 10-29 178,
+  10-30 13 (10-23 and 10-30 are partial days).
+- **Rules (a) / (b).** Median full-day eligible units 185 (threshold 100): (a) does not fire. Projected 21-day units 3,885 = 185 x 21
+  (threshold 2,000): (b) does not fire. The 21-day window and all dates stay as drafted.
+- **Rule (c).** Sweep-1 coverage of the favoured side's token with a finite `ask_size_1`: 9 of 1,232 units (0.73%; 10 units have any
+  sweep row; by S1: lt1k 5, 1k-10k 1, 10k-100k 3, ge100k 0; by S7: future 8, missing 1, past <= 24 h 0, past > 24 h 0). Capacity
+  therefore remains a covered-subset print only, as declared in 9.1 and 5.3.
+- **Funnel (3.2, market-capture rows with a `propos` status at k).** unit 1,232; out of scope sports 200,104; already proposed 19,694;
+  disputed at k 4,449; not two-sided 3,923; no k-1 row 1,350; out of scope crypto 292; contested 83; no previous capture 0;
+  not open at k 0; prior proposal state 0; out of scope unknown 0.
+- **Cells S1-S10 (units).** S1 lt1k 287, 1k-10k 569, 10k-100k 370, ge100k 6. S2 as in 6 (other 997, unknown 223, economics 6,
+  politics 3, culture 2, weather 1, others 0). S3 standalone 171, member_winner 976, member_loser 85. S4 fee_free 1,220, fee_on 12.
+  S5 YES 1,147, NO 85. S6 `c <= 0.001` 1,195, (0.001, 0.005] 27, (0.005, 0.01] 6, (0.01, 0.03] 4. S7 future 521, past <= 24 h 631,
+  past > 24 h 79, missing 1. S8 members 1: 171, 2-5: 327, 6+: 734. S9 tick 0.001: 1,221, 0.01: 11. S10 days 1-7: 1,219, days 8-14: 13.
+  S6 x S9: `c <= 0.001` at 0.001 1,184 and at 0.01 11; (0.001, 0.005] at 0.001 27; (0.005, 0.01] at 0.001 6; (0.01, 0.03] at 0.001 4.
+- **Status forms.** 37 distinct normalised forms of `uma_resolution_statuses`, no row overflow of the form list; 5,081 rows carry
+  both `propos` and `disput`. Transitions between consecutive captures: empty -> proposed 229,651; empty -> disputed 70;
+  proposed -> disputed 67; no proposed -> empty and no disputed -> proposed transition appears in the output.
+- **Unavailable classes by category (E5's category at k).** `no_k_minus_1_row`: sports 1,119, crypto 216, non-sports ex-crypto 15;
+  `no_previous_capture` 0.
+- **Receipt gaps.** Sidecar minus row: n 1,232, min / median / p90 / max all 0.0 s. Sweep minus row: n 10, min 144.2 s, median 410.2 s,
+  p90 486.2 s, max 487.3 s.
+- **Engine resolution candidates.** 939 of 1,232 units are in the engine's `res_candidates` (membership only; no resolution value read).
+- **T_U units per event (every unit treated as final-state; counts of events).** 1 unit: 586; 2-3: 94; 4-9: 48; 10+: 12.
+- **Other.** Open binary sidecar rows missing: 0; `prior_proposal_state_gap`: empty.
+
+No estimand, split, cell, threshold, cost line or date changed from J0.
