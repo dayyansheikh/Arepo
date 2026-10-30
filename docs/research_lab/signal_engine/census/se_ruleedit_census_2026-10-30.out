@@ -1,0 +1,11 @@
+run start 2026-10-30T12:04:39.505911Z; rule_edits sha256 11fce9992e7319516adae420603b7890db821911c49718d20dbb88dae4906c3c
+capture 20261030T103101Z_c1803a16 start 2026-10-30T10:31:01.872498Z; eligible rows 53973; stream files read 11 (20261020.jsonl..20261030.jsonl); last slot 2026-10-30T09:00:00Z; markets with a known row 107804; edits over the stream: market text 41, event text 198, market endDate 1427
+covered rows 18864 (0.3495); non-sports 0.6938, sports 0.1918
+  re_text_7d: ones 68 (0.0036) -> DROP; any known edit 68; age h quartiles [33.6, 33.6, 57.6]
+  re_end_7d: ones 69 (0.0037) -> DROP; any known edit 69; age h quartiles [21.6, 21.6, 45.6]
+KEPT []; FAMILY KILLED
+  re_text_7d by category (share, n): {'crypto': (0.0, 940), 'other:zero_fees': (0.0054, 9298), 'sports': (0.0006, 7099), 'unknown': (0.01, 1399)}
+  re_end_7d by category (share, n): {'crypto': (0.0, 940), 'other:zero_fees': (0.0006, 9298), 'sports': (0.0083, 7099), 'unknown': (0.0, 1399)}
+  both 7-day flags: 0
+run end 2026-10-30T12:04:43.894327Z
+rss_kb 229956 wall 4.92

@@ -153,3 +153,40 @@ def test_framein_is_up_has_alone_and_se30_is_its_logistic_control(env):  # noqa:
     s = SP.load_registry()["models"]["se30_lr_framein"]
     assert s["learner"] == "logreg" and s["families"] == ["market_state", "momentum", "framein"] and s["isolates"] == ["framein"]
     assert SP.embargo_of(s, S.epoch("2026-10-31T00:00:00Z")) is None
+
+
+def test_stream_parse_cache_is_value_identical_and_keyed_by_file_and_code(tmp_path):
+    """Section 44: the per-day parse cache never changes a value; an append or a new day file is a miss."""
+    root = tmp_path / "stream_gamma_rules"
+    root.mkdir()
+    cache = tmp_path / "engine" / "cache" / "stream_parse"
+    (root / "20261020.jsonl").write_text(_row(1, "2026-10-20T22:00:00Z", umaBond="250") + _poll("2026-10-20T22:00:00Z", "2026-10-20T22:50:30Z"))
+    (root / "20261021.jsonl").write_text(_row(2, "2026-10-21T00:00:00Z") + _poll("2026-10-21T00:00:00Z", "2026-10-21T00:50:30Z"))
+    t = S.epoch("2026-10-21T02:00:00Z")
+    UP._MEMO.clear()
+    RT._MEMO.clear()
+    plain_u, plain_r = UP.uma_at(root, t), RT.rules_at(root, t)
+    UP._MEMO.clear()
+    RT._MEMO.clear()
+    assert UP.uma_at(root, t, cache) == plain_u and RT.rules_at(root, t, cache) == plain_r  # cold: parse + write
+    files = sorted(p.name for p in cache.rglob("*.pkl"))
+    assert len(files) == 4 and {p.parent.name for p in cache.rglob("*.pkl")} == {"umaparams", "rules"}
+    UP._MEMO.clear()
+    RT._MEMO.clear()
+    assert UP.uma_at(root, t, cache) == plain_u and RT.rules_at(root, t, cache) == plain_r  # warm: read from disk
+    with open(root / "20261021.jsonl", "a") as fh:  # an append is a miss, and the old entry is replaced
+        fh.write(_row(3, "2026-10-21T01:00:00Z") + _poll("2026-10-21T01:00:00Z", "2026-10-21T01:50:30Z"))
+    UP._MEMO.clear()
+    assert set(UP.uma_at(root, t, cache)["known"]) == {1, 2, 3}
+    assert len(list((cache / "umaparams").glob("20261021_*.pkl"))) == 1
+    (cache / "umaparams" / next((cache / "umaparams").glob("20261020_*.pkl")).name).write_bytes(b"torn")
+    UP._MEMO.clear()
+    assert UP.uma_at(root, t, cache)["known"][1] == plain_u["known"][1]  # a torn entry is a miss, not an error
+    today = S.day_of(S.now_ts()).replace("-", "")
+    (root / f"{today}.jsonl").write_text("")
+    UP._MEMO.clear()
+    UP.read_day_file(root / f"{today}.jsonl", cache)
+    assert not list((cache / "umaparams").glob(f"{today}_*.pkl"))  # today's growing file is never cached
+    UP._MEMO.clear()
+    UP.uma_at(root, t)
+    assert len(list(cache.rglob("*.pkl"))) == 4  # cache_dir None writes nothing

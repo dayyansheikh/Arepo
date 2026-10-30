@@ -5339,3 +5339,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   breach)**, code_sha `1e9b084f…198b` (= the R1-R3 code), dry-run spec_sha `7c7f4d34…94` (by construction not the real
   spec). Store `m1_ch263_dryrun` (not canonical; never read by the analysis). Next: reviewer diff check of R1-R3, then the
   registration commit by 2026-11-22T23:59Z.
+
+## Signal engine: `ruleedit` family (CH228 + CH187's end-date moves) killed at census, 2026-10-30 ~12:05Z (signal-engine autopilot session 36; development, nothing counted, k = 0)
+- **Definitions before the run:** DESIGN_V1 §43, `signal_engine/rule_edits.py` and
+  `census/se_ruleedit_census_2026-10-30.py` committed `c1eb4c77` (12:04:07Z); census started 12:04:39Z with the
+  committed hashes. Counts only: no label, price change, prediction or outcome read. Disclosed: an aggregate count of
+  the stream's changed rows by field was viewed before §43 was written (counts only).
+- **Census:** capture `20261030T103101Z_c1803a16`; covered 18,864 of 53,973 eligible rows. 7-day text edits 68
+  (0.36%) and 7-day end-date moves 69 (0.37%) of covered rows, both under the 0.5% kill line fixed in §43 (CH228's):
+  **family killed**. No aux family, challenger or table built; K unchanged.

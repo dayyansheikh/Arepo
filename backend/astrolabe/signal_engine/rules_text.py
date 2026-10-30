@@ -64,12 +64,20 @@ class RulesGap(Exception):
 _MEMO: dict = {}  # path -> (size, mtime_ns, parsed); day files are append-only, so a same-size file is unchanged
 
 
-def read_day_file(p: Path) -> dict:
+def read_day_file(p: Path, cache_dir: Path | None = None) -> dict:
     """{"rows": [(slot, market_id, cols)], "polls": {slot: finished_ts}} of one day file (memoised by size and mtime)."""
     st = p.stat()
     hit = _MEMO.get(str(p))
     if hit is not None and hit[0] == st.st_size and hit[1] == st.st_mtime_ns:
         return hit[2]
+    from . import stream_cache
+
+    out = stream_cache.cached_parse(cache_dir, "rules", p, st, code_sha256(), _parse_day_file)
+    _MEMO[str(p)] = (st.st_size, st.st_mtime_ns, out)
+    return out
+
+
+def _parse_day_file(p: Path) -> dict:
     from . import store as S
 
     rows, polls = [], {}
@@ -93,12 +101,10 @@ def read_day_file(p: Path) -> dict:
                 except ValueError:
                     continue
                 rows.append((r.get("slot"), mid, parse_rule(r["data"])))
-    out = {"rows": rows, "polls": polls}
-    _MEMO[str(p)] = (st.st_size, st.st_mtime_ns, out)
-    return out
+    return {"rows": rows, "polls": polls}
 
 
-def rules_at(root: Path, cap_start: float) -> dict:
+def rules_at(root: Path, cap_start: float, cache_dir: Path | None = None) -> dict:
     """{"known": {market_id: cols} known at ``cap_start``, "first_poll": ts or None, "files": [...], "last_slot": ...}."""
     root = Path(root)
     known: dict[int, list[float]] = {}
@@ -124,7 +130,7 @@ def rules_at(root: Path, cap_start: float) -> dict:
     for p in sorted(root.glob("*.jsonl")):
         if p.stem > cap_day:
             break
-        day = read_day_file(p)
+        day = read_day_file(p, cache_dir)
         ok = {s for s, ts in day["polls"].items() if ts <= cap_start}
         if not ok:
             continue

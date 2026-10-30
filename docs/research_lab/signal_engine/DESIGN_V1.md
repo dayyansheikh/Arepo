@@ -1483,3 +1483,86 @@ with no token requested), so **no embargo applies**. Ideas only: no evidence yet
      capture's own day at any hour. Section 41's "only before ~00:50Z" is the intent, not what the code checks. A lost
      same-day file leaves that day's captures on the previous day's known rows; the next day's captures then refuse.
      Disclosed for both families.
+
+## 43. `ruleedit` (CH228 rule freshness + CH187's end-date moves): definitions fixed before the census (2026-10-30; development family)
+
+**Why.** CH228 (CREATIVE_HYPOTHESES_2026-10-29) proposes the hours since a market's or its event's rule text last
+changed as a level, read first on `res_7d` (a market whose rules were just clarified may resolve differently from what
+its price says). It is engine-first, with no test and no token. **Disclosed before this section:** an aggregate
+count of the stream's `changed` rows by day and by which fields differed was viewed on the host (counts only; no
+price, label or outcome). It showed that almost every market `changed` row is an `endDate` move (100-320 a day). Text
+edits are rare: market text 0-23 a day; event text 10-30 a day, mostly `resolutionSource`. So the family carries both kinds as separate
+columns. **Embargo check:** an end-date-change column was covered by the `deadline` token (LT6 D, CH187), which was
+**withdrawn 2026-10-22 ~12:00Z** when LT6 D died at its census, and `config.EMBARGO` holds it with that `until`. The
+`tte` token (E014, until 11-14) covers time-to-end levels and near-close indicators. This family reads only *that*
+the end moved, *when* and *which way*, never the end value, so it adds no time-to-end column. This is put to the
+science reviewer before any table exists.
+- **Input and clock.** Identical to sections 41-42: `stream_gamma_rules/` day files; a row is known at capture k iff
+  its slot's `poll` line in the same file has `ok` true and `finished_utc` <= k's start; `RulesGap` on a missing day
+  file (section 42 review item 6's same-day looseness applies). Code: `signal_engine/rule_edits.py` (own reader and
+  sha256 in every table's metadata; `rules_text.py` and `uma_params.py` are not edited).
+- **Edit (diff-based).** An edit is a known row of a key whose watched fields differ from that key's *previous known*
+  row. The stream's `reason` is not used, and a key's first known row is never an edit, so a market that entered the frame
+  already edited has no known edit (NaN, never its row time). Text: `m:` `question`, `description`,
+  `resolutionSource`, `groupItemTitle`, `outcomes`; or `e:` `title`, `description`, `resolutionSource` for an event
+  in the market's latest known `event_ids`. End: the `m:` row's `endDate` string. Not edits: the UMA fields
+  (section 42's), `startDate`, `negRiskOther`, the event's `endDate`, and `event_ids` membership. **Edit time** = the
+  slot's poll `finished_utc` (when it became known). The real edit lies between the key's previous poll and this one:
+  up to 1 h earlier in the hourly top-3,000 frame, up to 6 h in the volume frame, and longer for a market that left
+  the frame and came back. Disclosed; never back-dated.
+- **Columns (`se-aux-ruleedit-v1`), NaN for a market with no known `m:` row and for the whole table before the
+  stream's first finished poll.** `re_text_7d` = 1 if the newest known text edit (market or event) is within 168 h
+  of k's start, else 0. `re_text_age` = log1p(hours since that edit), NaN if none is known. `re_end_7d`, `re_end_age`:
+  the same for the newest `endDate` move. `re_end_later` = 1 if that move went later, 0 if earlier, NaN if none or
+  unparseable. Frame membership is **not** a column: `framein` (se30) is the control. **Disclosed limit:** a 0 means
+  "no edit seen while observed", and observation starts 10-20 (top frame) / 10-21 (volume frame). Captures before
+  ~10-28 have a truncated 7-day window. The reading rule below waits for that.
+- **Census (counts only, newest capture; script `census/se_ruleedit_census_2026-10-30.py`, committed with this
+  section).** Over the covered rows: `re_text_7d` is kept iff its 1s hold >= 0.5% (CH228's kill line) **and** >= 100
+  of the covered rows, and `re_text_age` goes with it. `re_end_7d` / `re_end_age` follow the same line.
+  `re_end_later` is kept iff the end pair is kept and its minority value holds >= 10% and >= 50 of the rows where it
+  is finite. Kill the family if neither 7-day flag is kept, or if covered rows are < 5% of eligible rows. A dropped
+  column leaves the version's column list before any table is written. Information only: stream edit counts, the
+  7-day shares by category, age quartiles, the overlap of the two flags, and corr of each kept column with
+  `ms_log_liq` and `ms_hours_to_end`.
+- **Challenger if the census passes: `se31_lr_ruleedit`.** The champion's logistic learner and params on market_state
+  + momentum + ruleedit; isolates `ruleedit`; read against `se0_champion_lr_mm`. Targets `dir_2h`, `dir_6h`,
+  `dir_24h`, `res_7d` (CH228 reads `res_7d` first; information, the primary target stays `dir_2h`).
+  `require_full_coverage` with `require_sources: ["ruleedit"]`. Not broad. K rises by one.
+- **Reading rule (section 42 item 3's, with a later start).** Credit to edit age needs se31's gain minus se30's gain
+  > 0, with the per-day 95% interval above 0, **and** a positive difference in at least 2 of 3 category groups.
+  Otherwise the gain is reported as a frame or category stand-in. Because of the truncated window, nothing is credited until the
+  fits hold only rows with a full 7-day window (k >= 10-28: the `dir_*` fits from the 11-11 refit, `res_7d` from
+  ~11-25) **and** 14 days of scores from those fits (first `dir_2h` read ~11-25, `res_7d` ~12-09). Earlier scores are
+  shown labelled development. Promotion is unchanged (`se-promotion-v2` against the champion).
+- **Census result (counts only): FAMILY KILLED.** Run started 12:04:39Z, after the definitions commit `c1eb4c77`
+  (12:04:07Z). Host shas of `rule_edits.py` `11fce999...` and of the script `914f3b8c...` equal the commit. Capture
+  `20261030T103101Z_c1803a16`, 53,973 eligible rows, 11 stream day files (10-20..10-30), 107,804 markets with a
+  known row. Edits over the whole stream: market text 41, event text 198, market `endDate` 1,427. Covered rows 18,864
+  (0.350; non-sports 0.694, sports 0.192). **`re_text_7d` 68 ones (0.0036) and `re_end_7d` 69 ones (0.0037), both
+  under the 0.5% line: both pairs dropped, so the family is killed.** No `re_end_later` line was reached. Information:
+  most recorded end moves are on markets that are no longer eligible at the newest capture. Of the covered rows,
+  end moves are most common in sports (0.0083) and text edits in `unknown` (0.010) and `other:zero_fees` (0.0054).
+  The two flags never overlap. Cold read 4.9 s, 230 MB. Output `census/se_ruleedit_census_2026-10-30.out`.
+- **Consequence.** No aux family, spec or table is built; K is unchanged. `rule_edits.py` and its test stay as the
+  census's committed reader (not wired into `AUX_FAMILIES`). The lines are not revisited on a later capture. A
+  future edit-age family needs a new idea with its own justification (for example, a wider stream frame), not a
+  re-run of this census.
+
+## 44. Per-day parse cache for the `gamma_rules` readers (2026-10-30; operational, no model, target, column or value change)
+
+**Why.** Every tick process re-parses every `stream_gamma_rules/` day file: `rules_text` 18.8 s and `uma_params` 2.6 s
+cold on the host at 314 MB of stream (measured 2026-10-30 ~12:20Z, 230 MB RSS). The stream grows ~26 MB a day, so the
+`rules` read alone would pass ~60 s around late November.
+- **What.** New `signal_engine/stream_cache.py`. `rules_at`, `uma_at` and `read_day_file` take an optional
+  `cache_dir`. The aux builders (`rules`, `umaparams`, `framein`) pass `<engine>/cache/stream_parse/`. A day file's
+  parse (the same `{"rows", "polls"}` the reader built before) is pickled per reader tag, keyed by the file's size,
+  its mtime and the reader's code sha256. Any append, restore or code change is a miss and a fresh parse. Only days
+  before the current UTC day are written (today's file grows each hour), and one entry per day file is kept. A torn
+  entry is a miss, never an error. `cache_dir` None (tests, censuses, the default) behaves as before.
+- **Invariance.** The cache holds derived data only: deleting it changes nothing. The parse logic is unchanged
+  (moved into `_parse_day_file`). The clock rule (`poll` finished <= capture start) is applied after the cache
+  on every read, so the cache cannot let a row through earlier. A test checks that cold, warm, appended and torn
+  reads return values identical to the uncached reader.
+- **Shas.** `rules_text.py` and `uma_params.py` get new shas. Tables record the sha they were built with, so older
+  tables keep the older sha. No spec, registry pin, fit or reading rule refers to a reader sha.
