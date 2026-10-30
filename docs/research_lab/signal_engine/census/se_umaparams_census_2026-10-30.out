@@ -1,0 +1,31 @@
+run start 2026-10-30T07:14:36.348738Z; uma_params sha256 ba4b46b38e056844c05dec6799f6a55cc887d4ff7fab988e37128f75c5cf5d57
+capture 20261030T063102Z_e595297a start 2026-10-30T06:31:02.345108Z; eligible rows 53332; stream files read 11 (20261020.jsonl..20261030.jsonl); last slot 2026-10-30T05:00:00Z; markets with a known row 106485
+up_has share: all 0.3400; non-sports 0.6913 (n 16874); sports 0.1775 (n 36458)
+FAMILY coverage PASSES (line: up_has share >= 0.05)
+covered eligible rows 18135; raw rows matched 18135
+  umaBond: {'500': 12896, '250': 4541, '2500': 630, 'None': 20, '25000': 13, '750': 12, '10000': 11, '50000': 8}
+  umaReward: {'5': 11995, '0.8': 3630, '3.5': 906, '0.6': 837, '20': 638, '1.5': 74, '10': 22, 'None': 20}
+  customLiveness: {'0': 13009, 'None': 2449, '900': 2272, '600': 255, '1800': 78, '7200': 56, '3600': 16}
+  hasReviewedDates: {'True': 18135}
+  fallbackResolutionType: {'none': 15756, 'equal_split': 2379}
+  resolvedBy top 5: [('0x69c47de9d4d3dad79590d61b9e05918e03775f24', 9096), ('0x65070be91477460d8a7aeeb94ef92fe056c2f2a7', 7967), ('0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d', 1059), ('0x157ce2d672854c848c9b79c49a8cc6cc89176a49', 8), ('none', 5)]
+RESOLVER_TOP candidate (pin in code): 0x69c47de9d4d3dad79590d61b9e05918e03775f24
+  up_log_bond: non-NaN 0.9989; off-mode rows 5219 (0.2878) -> keep
+  up_log_reward: non-NaN 0.9989; off-mode rows 6120 (0.3375) -> keep
+  up_live_custom: non-NaN 0.8650; share 1 0.1707; minority rows 2677 -> keep
+  up_unreviewed: non-NaN 1.0000; share 1 0.0000; minority rows 0 -> DROP
+  up_fallback: non-NaN 1.0000; share 1 0.1312; minority rows 2379 -> keep
+  up_resolver_top: non-NaN 0.9997; share 1 0.5017; minority rows 9034 -> keep
+KEPT ['up_has', 'up_log_bond', 'up_log_reward', 'up_live_custom', 'up_fallback', 'up_resolver_top']; FAMILY PASSES
+  up_log_bond by category (mean, n): {'crypto': (6.025, 953), 'other:zero_fees': (6.287, 9201), 'sports': (5.826, 6470), 'unknown': (6.26, 1387)}
+  up_log_reward by category (mean, n): {'crypto': (1.424, 953), 'other:zero_fees': (1.768, 9201), 'sports': (1.103, 6470), 'unknown': (1.807, 1387)}
+  up_live_custom by category (mean, n): {'crypto': (0.278, 953), 'other:zero_fees': (0.064, 9201), 'sports': (0.4, 6470), 'unknown': (0.0, 1387)}
+  up_fallback by category (mean, n): {'crypto': (0.162, 953), 'other:zero_fees': (0.019, 9201), 'sports': (0.317, 6470), 'unknown': (0.0, 1387)}
+  up_resolver_top by category (mean, n): {'crypto': (0.097, 953), 'other:zero_fees': (0.646, 9201), 'sports': (0.375, 6470), 'unknown': (0.404, 1387)}
+corr(up_has, ms_log_liq) 0.291
+  corr(up_log_bond, rc_occur_by) 0.086 (n 18115)
+  corr(up_log_reward, rc_occur_by) 0.155 (n 18115)
+  corr(up_live_custom, rc_occur_by) -0.171 (n 15686)
+  corr(up_fallback, rc_occur_by) -0.149 (n 18135)
+  corr(up_resolver_top, rc_occur_by) -0.342 (n 18130)
+run end 2026-10-30T07:15:00.548854Z

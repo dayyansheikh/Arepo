@@ -1435,3 +1435,23 @@ with no token requested), so **no embargo applies**. Ideas only: no evidence yet
 - **Reading rule (section 41's, applied from the start).** No se29 gain is credited to `umaparams` until its fits hold
   no pre-stream rows (the `dir_*` fits from the 2026-11-04 refit on, `res_7d` from ~11-18) and it has 14 days of
   scores from those fits (first `dir_2h` read ~11-18). Earlier se29 scores are shown, labelled development.
+- **Census result (counts only).** Run started 07:14:36Z, after the definitions commit `9d21cad7` (07:14:28Z; host
+  sha of `uma_params.py` `ba4b46b3...` and of the script `0cfb54ae...`, both equal to the commit). Capture
+  `20261030T063102Z_e595297a`, 53,332 eligible rows, 11 stream day files (10-20..10-30), 106,485 markets with a known
+  row. **`up_has` 0.340 of eligible rows: coverage passes** (non-sports 0.691 of 16,874, sports 0.178 of 36,458).
+  Covered rows 18,135. Value counts: `umaBond` 500 12,896 / 250 4,541 / 2,500 630 / rarer; `umaReward` 5 11,995 /
+  0.8 3,630 / 3.5 906 / 0.6 837 / 20 638; `customLiveness` 0 13,009 / None 2,449 / 900 2,272 / 600 255; **`hasReviewedDates`
+  true on all 18,135**; `fallbackResolutionType` none 15,756 / equal_split 2,379; `resolvedBy` three addresses hold
+  18,122 rows (`0x69c4...5f24` 9,096, `0x6507...f2a7` 7,967, `0x2f5e...aa9d` 1,059). Lines: `up_log_bond` kept (5,219
+  off-mode rows, 0.288), `up_log_reward` kept (6,120, 0.338), `up_live_custom` kept (minority 2,677), `up_fallback`
+  kept (2,379), `up_resolver_top` kept (minority 9,034), **`up_unreviewed` dropped (minority 0)**. Family passes.
+  Information: the flags track category strongly (`up_live_custom` sports 0.40, crypto 0.28, other 0.06; `up_fallback`
+  sports 0.32, other 0.02; `up_resolver_top` crypto 0.10, other 0.65), so much of any se29 gain may be a category
+  proxy: the reading compares se29 with se0 **within category** before crediting the desk-parameter story.
+  corr(`up_has`, `ms_log_liq`) 0.291; corr with `rc_occur_by`: `up_resolver_top` -0.342, others |r| <= 0.171.
+  Output `census/se_umaparams_census_2026-10-30.out`.
+- **Built (post-census, counts only, before any table existed):** `RESOLVER_TOP` pinned to `0x69c4...5f24`;
+  `up_unreviewed` removed from `se-aux-umaparams-v1` (final columns: `up_has`, `up_log_bond`, `up_log_reward`,
+  `up_live_custom`, `up_fallback`, `up_resolver_top`). Aux family `umaparams` (`aux.umaparams_features`,
+  `_umaparams_builder`; reads `Paths.rules_stream`), challenger `se29_lr_uma` (registry 30 models). Cold read on the
+  host 2.9 s, 155 MB (no text regexes; the `rules` reader takes 20 s). Commit `9d1184e5`.
