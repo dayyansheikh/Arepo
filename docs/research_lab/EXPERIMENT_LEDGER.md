@@ -5590,3 +5590,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   q0162's tempfails are benign (one snapshot day a day). **Follow-up (code, not done):** the health check could stream the
   manifests and keep only the newest; other jobs that call it will hit the same wall as captures accumulate (check
   whether `cb2_weather.py` is pinned by any registered test before changing it).
+
+## M2 code-freeze check ACCEPT_WITH_FIXES, 2026-10-30 18:15Z (experiments autopilot; nothing counted)
+- `reviews/M2_CODE_FREEZE_CHECK_2026-10-30.md` on code_sha `f09e23a8…c705` (text saved by the orchestrator; probes run
+  inline, not kept): pins and design sha match, 91 tests, nothing post-k reaches a unit, void conditions implemented,
+  l.19 items 1-4 tested. **MUST:** (1) after the window `merge_rule_ledger` returns before freeing `rules.by_mid`, so every
+  post-window J1 pass holds two copies of the rule data (about 540 passes); free or skip it, add a test. (2) J3 retries
+  can be < 1 h apart (gap timed from the round start; probe 3,501 s); time it per request, tighten the test. (3) l.19 item 5
+  (dry-run ledger padding) needs a test that fails on wrong code. (4) Record in a code note the reading that "state holds
+  only rule records committed at or before `t_d`" is guaranteed as visibility (`lookup_records`), not storage.
+  SHOULD: pins required for j2 / j3; implement or remove the unused dumps guard; manifest-listed unit files only; void
+  record on an analysis pin mismatch; coarse rule 5 label; `interval_spans_missing` scope; read-out sha check; banned-word
+  check must not kill the one-shot analysis on a data string.
+- q0754 (dry run) may be promoted after the MUSTs with a diff-only check. Fixes delegated (`feat/m2-cf-fixes`).
