@@ -5317,3 +5317,14 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   line not met; **(e) does not apply** (committed poll lines carry a parseable `finished_utc`; the per-record receipt-time reader
   stands). 1,024 eligible units over 447 events (strata 1: 141, 2-3: 245, 4-9: 61, counted as if all final).
 - Next: J0 record into the M2 text (status, distributions, 9.1 outcome) -> final pre-freeze verification -> freeze by 11-16.
+
+## M1 R1-R3 fixed; q0750 host dry run promoted; M2 final verification started, 2026-10-30 07:50Z (experiments autopilot; nothing counted)
+- `feat/m1-code` 230baa5d (merged 479d5a3d; 68 tests, the 6 new ones fail on the pre-fix code): R1 a slot is decided only once
+  `now >= grid + 6 h` and a slot with any chain status is skipped (the reviewer's duplicate-capture probe is now a test; live
+  and catch-up pick the same capture); R2 not closed = pending for every final state incl. `split_50_50`; R3 absent /
+  unparseable `finished_utc` = `late_capture_ignored` (`finished_utc_absent`); S1-S3. **M1 code_sha `1e9b084f…198b`**,
+  spec_sha `3afd6ad6…68b0`, design text `7982f199…7639` (frozen + amendment 18), pins ok.
+- **q0750 (M1 host dry run) promoted**: the newest 3 days of real captures as a stand-in window into
+  `m1_ch263_dryrun` (never the real store; a different spec_sha by construction), peak RSS recorded; nothing counted. A reviewer
+  diff check of R1-R3 follows before the registration commit (by 2026-11-22T23:59Z).
+- M2: J0 recorded in the text (33a9a265, sha256 `eacc0d37…5aa0`); final pre-freeze verification running.
