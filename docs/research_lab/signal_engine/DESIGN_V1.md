@@ -1194,3 +1194,14 @@ embargoed models are never read (their scores would leak through the column). On
 - **Reading.** Both lines pass -> a builder section (columns of CH265, the shuffled placebo, the isolate challengers)
   follows after an independent science review. Either kill -> `resid` is not built; the result is recorded here and in
   CANDIDATES' builder status. The census is not re-run with other thresholds or windows.
+- **Result (2026-10-30 ~03:45Z; development look, not a score).** Script committed in `a3e6adf1` before the run (sha256
+  `e2902cc2...0324`, the same file as the host's `/tmp/se_resid_census.py`); output `census/se_resid_census_2026-10-30.out`.
+  Slots 134 .. 348; 104 captures without a champion prediction (before 10-21 or not predicted), 1 without labelled rows.
+  **Lag-1 autocorrelation -0.0912** over 4,639,835 pairs in 182,994 markets (market-clustered 95% CI -0.0934 .. -0.0890;
+  market-demeaned -0.1238, information, biased negative by the short per-market series). **Pearson(`rs_2h_m6`,
+  `mo_chg_1d`) 0.2178** (passes); Pearson(`rs_2h_l1`, `mo_d2h`) 0.5997 (information); coverage 0.831. Peak RSS 1,083 MB
+  (above CH265's "< 300 MB" planning figure; inside the host budget). **Reading as written: killed (reversal).** The
+  champion's 2 h residuals revert rather than continue, so CH265's continuation family is not built. The strong reversal
+  is information only: it is a property of the logistic champion (it holds `mo_d2h` linearly), and se1's trees may
+  already take most of it. Any reversal family is a new idea with its own definition, judged against se1 and reviewed
+  before any census; this result is not re-read with another sign or threshold.
