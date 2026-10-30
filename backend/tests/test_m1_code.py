@@ -583,7 +583,8 @@ def test_must2_j1_refuses_before_registered_and_records_noncomplete(tmp_path):
 
 
 def test_must2_q0751_cron_line_notes_the_gate_and_pins():
-    d = json.loads((Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue" / "drafts" / "q0751_m1_j1.json").read_text())
+    q = Path(__file__).resolve().parents[2] / "docs" / "research_lab" / "queue"
+    d = json.loads(next(p for p in (q / "jobs" / "q0751_m1_j1.json", q / "drafts" / "q0751_m1_j1.json") if p.exists()).read_text())  # promoted at registration (f939c0b5)
     assert "REGISTERED_UTC" in d["notes"] and "--pins" in d["notes"] and "--pins" in " ".join(d["argv"])
 
 
