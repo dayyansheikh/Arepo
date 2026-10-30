@@ -1,20 +1,21 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 13:24 UTC+1
+**Last updated:** 2026-10-30 13:51 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **M1 (the discount left after an outcome is proposed):** the independent check found one rare timing trap that could
-  have stopped the collection mid-window, plus a close-of-window job scheduled 40 minutes too early. Both fixed and
-  tested; the server rehearsal is re-running on the fixed code. Registration before 22 Nov; window 24 Nov to 14 Dec.
-- **M2 (the overdue favourite): design FROZEN today.** The final check asked for four wording fixes and six honest
-  disclosures (for example: many of these markets have very wide books, so the result will probably be coarse). Its
-  remaining code is being written now; registration before 22 Nov, same window as M1.
-- **The 3 Nov analyses of E009/E010 (the Kalshi lead tests):** no server job existed yet for them, so I am preparing them
-  now (they must run exactly once, after the pre-declared gap-fill step).
+- **M1 (the discount left after an outcome is proposed):** the independent checker found two more rare timing traps in
+  its collection code; both fixed, and the third check passed cleanly. A final server rehearsal is queued; if it stays
+  under its memory limit, M1 gets registered (before 22 Nov). Window 24 Nov to 14 Dec.
+- **M2 (the overdue favourite): design FROZEN today.** Its remaining code is being written; registration before 22 Nov.
+- **M3, new (from ideas round 20): "the wait".** Once a favourite first trades at 95 cents, how long until an outcome is
+  proposed, by kind of rule? This turns "a cheap near-certain bet" into an honest yield-per-day number. Drafted, and the
+  challenger asked for nine changes (being made now). Aim: freeze by 16 Nov, same window as M1/M2.
+- **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.** The job checks
+  that the code is exactly the registered code before it runs, and can only run once.
 - **LT14 (the engine's top picks against trading costs):** its first step failed on the server for a boring reason (the
   memory limit was too small to even load the code; nothing was read). Re-queued with a bigger limit; the 17 Nov chain
   is unchanged.
