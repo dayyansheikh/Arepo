@@ -353,20 +353,51 @@ def test_the_rank_tolerance_is_max_n_p_times_eps_times_sigma_max():
     assert t.resolve_aliased_controls(D2, "zs", ["p_k", "own6", "log1p_liq"], {})["status"] == "unavailable"
 
 
-def test_the_declared_control_list_is_exactly_collinear_stage_A_finding_A3(tmp_path):
-    """3.3 + 1.7 as written: K holds spread_k, 3.3 adds spread_{k-1} and the own innovation spread_k - spread_{k-1}. None is in groups (1)-(3): the rule returns NaN. Documented, not resolved."""
-    u, cnt, by, spec, store, reg = units(tmp_path, n_batches=6, per_batch=6, singles=20, slots=range(0, 40))
+def _declared_fit_frame(tmp_path):
+    by, spec, store, reg = prepare(tmp_path, slots=range(0, 40), n_batches=6, per_batch=6, singles=20)
+    u = pd.concat([t.units13(store, reg.batches(), k, spec)[0] for k in range(14, 38)], ignore_index=True)
     T = u[u["arm"] == "primary"].copy()
-    s = T["mbar"].std(ddof=0)
-    T["zs"] = T["mbar"] / s
+    T["zs"] = T["mbar"] / T["mbar"].std(ddof=0)
     T["thin_x_zs"] = T["thin"] * T["zs"]
     A = T.assign(event_id=T["batch_id"])
     A, fcn, lev = t.fee_cat_dummies(A)
-    declared = t.load_spec()
-    cols = t.controls13(A, fcn, declared)
-    assert {"spread_km1_c", "spread_c", "own_ds_c"} <= set(cols)
+    return A, fcn, lev
+
+
+def test_the_amended_control_list_has_full_rank_and_drops_spread_km1_section_13a(tmp_path):
+    A, fcn, lev = _declared_fit_frame(tmp_path)
+    cols = t.controls13(A, fcn, t.load_spec())
+    assert "spread_km1_c" not in cols and {"spread_c", "own_ds_c"} <= set(cols) and "spread_km1_c" not in t.DECLARED["controls_own"]
     res = t.resolve_aliased_controls(lt12.demeaned_frame(A, ["zs", *cols]), "zs", cols, lev)
-    assert res["status"] == "unavailable" and not set(res["dropped"]) & {"spread_km1_c", "spread_c", "own_ds_c"}
+    assert res["status"] == "ok" and res["rank"] == res["n_cols"] and res["dropped"] == []
+    assert "zero_variance_dropped" in res  # clause (b)
+
+
+def test_b_bt_is_identical_whichever_of_the_three_collinear_columns_is_dropped(tmp_path):
+    A, fcn, lev = _declared_fit_frame(tmp_path)
+    cols = [c for c in t.controls13(A, fcn, t.load_spec()) if c not in ("spread_c", "own_ds_c")]
+    full = [*cols, "spread_c", "own_ds_c", "spread_km1_c"]
+    D = lt12.demeaned_frame(A, ["zs", *full]).replace([np.inf, -np.inf], np.nan).dropna(subset=["zs", *full])
+    y = np.random.default_rng(0).normal(size=len(D)) + 0.3 * D["zs"].to_numpy()
+    betas = []
+    for drop in ("spread_c", "own_ds_c", "spread_km1_c"):
+        keep = [c for c in full if c != drop]
+        X = np.column_stack([np.ones(len(D)), D["zs"].to_numpy(), D[keep].to_numpy()])
+        betas.append(np.linalg.lstsq(X, y, rcond=None)[0][1])
+    assert betas[0] == pytest.approx(betas[1], rel=1e-6, abs=1e-8) and betas[0] == pytest.approx(betas[2], rel=1e-6, abs=1e-8)
+
+
+def test_an_unknown_fee_class_is_nan_not_zero_and_the_unit_is_excluded_and_counted(tmp_path, monkeypatch):
+    real = t.series13_frame
+
+    def unknown(rows, ext, spec, day):
+        ser, st = real(rows, ext, spec, day)
+        ser.loc[ser["market_id"].str.startswith("b0_"), "fclass"] = "unknown"
+        return ser, st
+
+    monkeypatch.setattr(t, "series13_frame", unknown)
+    u, cnt, *_ = units(tmp_path, n_batches=3, per_batch=6, singles=4)
+    assert cnt["fee_class_unknown"] >= 6 and not u["market_id"].str.startswith("b0_").any() and u["fee_on"].notna().all()
 
 
 # --- provenance, scope and hygiene -------------------------------------------------------------------------------------------------------------
@@ -401,9 +432,14 @@ def test_declared_thresholds_are_exactly_the_design_values():
     assert t.declaration_sha256() == hashlib.sha256(t._canon(t.DECLARED).encode()).hexdigest()
 
 
-def test_the_design_text_hash_constant_is_the_frozen_file():
-    assert b.sha256_file(t.DESIGN_PATH) == t.DESIGN_TEXT_SHA256 == "ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738"
-    assert t.design_text_error() is None  # the real ledger carries the freeze line
+def test_the_design_text_is_the_freeze_plus_the_appended_section_13(tmp_path):
+    txt = t.DESIGN_PATH.read_text()
+    assert b.sha256_file(t.DESIGN_PATH) == t.DESIGN_TEXT_SHA256 and t.PREDECESSOR_SHA256 == "ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738"
+    head, _, tail = txt.partition("\n## 13. Amendment after the design-text freeze")
+    assert hashlib.sha256(head.encode()).hexdigest() == t.PREDECESSOR_SHA256  # append only: nothing above changed
+    assert "(a) 3.3's control `spread_{i,k−1}` is removed" in tail and "(b) A control identically zero after demeaning" in tail
+    assert t.design_text_error(ledger=sx.write_ledger(tmp_path / "L.md")) is None
+    assert "error" in t.design_text_error(ledger=tmp_path / "none.md")
 
 
 def _sources():

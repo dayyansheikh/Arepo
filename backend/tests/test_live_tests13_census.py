@@ -23,6 +23,14 @@ TRIALS = t.ROOT / "docs" / "research_lab" / "trials.jsonl"
 TRIALS_SHA0 = b.sha256_file(TRIALS) if TRIALS.exists() else None
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _ledger(tmp_path_factory):
+    mp = pytest.MonkeyPatch()
+    mp.setattr(t, "LEDGER_PATH", sx.write_ledger(tmp_path_factory.mktemp("led") / "LEDGER.md"))
+    yield
+    mp.undo()
+
+
 @pytest.fixture(scope="module")
 def tree(tmp_path_factory):
     root = tmp_path_factory.mktemp("lt13census")
@@ -122,7 +130,8 @@ def test_twin_coverage_fails_alone_when_the_twin_days_are_short(tree, tmp_path):
 @pytest.mark.parametrize("gate,key,val", [("coverage", "coverage_min", 0.99), ("completeness", "completeness_min", 1.01), ("units_projected", "units_projected_min", 1e12),
                                           ("batches_with_unit", "batches_with_unit_min", 10**6), ("batches_ge48", "batches_ge48_min", 10**6), ("vif_w", "vif_w_max", 0.5),
                                           ("placebo_coverage", "placebo_coverage_min", 1.01), ("block_share", "block_share_min", 1.01), ("venue_clock", "venue_clock_max", 0.0),
-                                          ("same_slot", "same_slot_share_max", -1.0), ("ident_nonzero", "ident_share_min", 1.01), ("r_gate", "r_gate_max", -2.0)])
+                                          ("same_slot", "same_slot_share_max", -1.0), ("ident_nonzero", "ident_share_min", 1.01), ("r_gate", "r_gate_max", -2.0),
+                                          ("ident_top1", "leverage_top_share_max", 0.0), ("ident_batch", "leverage_batch_share_max", 0.0), ("corr_zs_log1p_liq", "corr_max", -1.0)])
 def test_each_gate_flips_on_its_own_threshold_and_drops_the_test(tree, tmp_path, gate, key, val):
     spec = sx.loose_spec()
     spec["census_gates"]["CH253"][key] = val
@@ -130,7 +139,22 @@ def test_each_gate_flips_on_its_own_threshold_and_drops_the_test(tree, tmp_path,
     g = res["CH253"]["gate_CH253"]
     assert g[gate] is False, g
     assert res["statuses"] == {"CH253": lt.CENSUS_DROPPED} and res["lists"]["dropped_tests"] == ["CH253"] and res["lists"]["k_tests"] == []
-    assert [k for k, v in g.items() if v is False and k != "pass"] == [gate]  # a single threshold flips a single gate
+    flipped = [k for k, v in g.items() if v is False and k != "pass"]
+    assert flipped == ([gate] if gate != "corr_zs_log1p_liq" else ["corr_zs_log1p_liq", "corr_zs_log_rv24s", "corr_zs_d"])  # one threshold, one gate (corr_max governs the three correlation gates)
+
+
+def test_g_eff_gate_flips_on_its_own_floor(tree, tmp_path):
+    spec = sx.loose_spec()
+    spec["census_gates"]["mde_common"]["g_eff_min"] = 10**6
+    g = _census(tree, spec, tmp_path)["CH253"]["gate_CH253"]
+    assert g["g_eff"] is False and [k for k, v in g.items() if v is False and k != "pass"] == ["g_eff"]
+
+
+def test_the_census_prints_the_rename_count_the_absent_member_share_and_unknown_fee_class_units(passed):
+    c = passed["CH253"]
+    assert "batch_renames" in c["registry"] and {"markets", "old_keys"} <= set(c["registry"]["batch_renames"])
+    assert 0.0 <= c["batch_members_absent_share_of_members"] <= 1.0 and "batch_members_absent_share_of_incomplete" in c
+    assert c["census_prints"]["fee_class_unknown_units"] == 0
 
 
 def test_mde_gates_flip_on_the_floor_and_nan_fails(tree, tmp_path):
@@ -187,10 +211,18 @@ def test_refuses_a_design_text_that_is_not_the_frozen_file_or_a_ledger_without_t
     assert "error" in lt.seal_inputs(snapshot_root=[tree["snap"]], work=tmp_path / "sw2", spec=spec, design_path=d)
     led = tmp_path / "LEDGER.md"
     led.write_text("nothing here\n")
-    _refused(lt.census_captures(seal=seal, snapshot_root=[tree["snap"]], work=tmp_path / "cw2", spec=spec, ledger_path=led), "no 'LT13 DESIGN TEXT FROZEN' line")
-    led.write_text(f"- **LT13 DESIGN TEXT FROZEN:** sha256 `{'0' * 64}`\n")
-    _refused(lt.census_captures(seal=seal, snapshot_root=[tree["snap"]], work=tmp_path / "cw3", spec=spec, ledger_path=led), "no 'LT13 DESIGN TEXT FROZEN' line")
+    _refused(lt.census_captures(seal=seal, snapshot_root=[tree["snap"]], work=tmp_path / "cw2", spec=spec, ledger_path=led), "no 'LT13 DESIGN TEXT AMENDED 13' line")
+    led.write_text(f"- **LT13 DESIGN TEXT AMENDED 13:** old `{t.PREDECESSOR_SHA256}` only\n")  # the new hash is missing
+    _refused(lt.census_captures(seal=seal, snapshot_root=[tree["snap"]], work=tmp_path / "cw3", spec=spec, ledger_path=led), "no 'LT13 DESIGN TEXT AMENDED 13' line")
     _refused(lt.census_captures(seal=seal, snapshot_root=[tree["snap"]], work=tmp_path / "cw4", spec=spec, ledger_path=tmp_path / "missing.md"), "not found")
+
+
+def test_refuses_a_census_whose_code_differs_from_the_seals_code_sha256(tree, tmp_path):
+    spec = sx.loose_spec()
+    s = json.loads(_seal(tree, spec, tmp_path).read_text())
+    s["code_sha256"] = {**s["code_sha256"], "live_tests13.py": "2" * 64}
+    (tmp_path / "c.json").write_text(json.dumps(s))
+    _refused(lt.census_captures(seal=tmp_path / "c.json", snapshot_root=[tree["snap"]], work=tmp_path / "cw", spec=spec), "code files differ from those at seal time")
 
 
 def test_refuses_a_seal_with_another_design_hash(tree, tmp_path):

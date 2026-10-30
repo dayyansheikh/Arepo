@@ -145,6 +145,8 @@ def _load_for_census(seal: Path, snapshot_root, work: Path, spec: dict, verify: 
         return {"error": "the batch join's code sha256 differs from the one pinned in the seal: census refused", "pinned": pinned, "code": t.batch_join_sha()}
     if (ierr := imported_error()):
         return ierr
+    if seal_d.get("code_sha256") != t.code_hashes():
+        return {"error": "the LT13 code files differ from those at seal time (code_sha256): census refused", "seal": seal_d.get("code_sha256"), "code": t.code_hashes()}
     if seal_d.get("imported_sha256") != t.imported_hashes():
         return {"error": "the imported helper files differ from those at seal time: census refused"}
     if (serr := t.scope_error(spec)):
@@ -220,6 +222,8 @@ def census_units(*, seal: Path, snapshot_root, work: Path, spec: dict | None = N
     tot: dict = {}
     cells, qual, fee_counts = Counter(), Counter(), {}
     gap_mk, gap_slot, gap_val, changes, per_cap = [], [], [], [], {}
+    prev_key = None
+    renamed = {"markets": 0, "batch_keys": set()}
     for k in sorted(s_ for s_ in by_slot if s_ <= ORG[-1]):
         cap = by_slot[k]
         store.limit = None
@@ -230,7 +234,15 @@ def census_units(*, seal: Path, snapshot_root, work: Path, spec: dict | None = N
             b._fee_counts(ser, fee_counts)
         if k not in org_set:
             continue
-        u, cnt = t.units13(store, reg.batches(), k, spec, commit=commit)
+        bt_k = reg.batches()
+        keys_k = pd.Series(np.array(bt_k.key, dtype=object)[bt_k.bid], index=pd.Index(bt_k.ids)) if len(bt_k.ids) else pd.Series(dtype=object)
+        if prev_key is not None and len(keys_k):  # A5: a batch renamed because an earlier-created member joined the chain
+            old = prev_key.reindex(keys_k.index)
+            ch = old.notna() & (old != keys_k)
+            renamed["markets"] += int(ch.sum())
+            renamed["batch_keys"] |= set(old[ch].unique())
+        prev_key = keys_k
+        u, cnt = t.units13(store, bt_k, k, spec, commit=commit)
         ex = cnt.pop("_extras", {})
         store.limit = k
         changes.append({"slot": k, "slot_utc": iso(b.slot_time(k, spec)), **class_changes(store.ser(k), store.ser(k - 1))})
@@ -256,7 +268,7 @@ def census_units(*, seal: Path, snapshot_root, work: Path, spec: dict | None = N
     bt = reg.batches()
     return {"head": head, "cov": cov, "by_slot": by_slot, "ORG": ORG, "parts": parts, "tot": tot, "cells": dict(cells), "qual": dict(qual), "fee_counts": fee_counts, "changes": changes,
             "per_cap": per_cap, "gaps": (np.concatenate(gap_mk) if gap_mk else np.zeros(0, object), np.concatenate(gap_slot) if gap_slot else np.zeros(0, int), np.concatenate(gap_val) if gap_val else np.zeros(0)),
-            "registry": {"markets": int(len(reg)), "batches": int(len(bt.start)), "size_hist": _size_hist(bt.size), "cross_event_batches_ge3": int(bt.cross.sum()),
+            "registry": {"batch_renames": {"markets": renamed["markets"], "old_keys": len(renamed["batch_keys"])}, "markets": int(len(reg)), "batches": int(len(bt.start)), "size_hist": _size_hist(bt.size), "cross_event_batches_ge3": int(bt.cross.sum()),
                          "cross_event_share_of_batches_ge3": float(bt.cross.sum() / max(int((bt.size >= 3).sum()), 1))}}
 
 
@@ -328,7 +340,8 @@ def census_ch253(U: pd.DataFrame, cu: dict, spec: dict) -> dict:
     coverage = tot.get("elig_in_cross_batch", 0) / n_elig if n_elig else float("nan")
     completeness = tot.get("bc_complete", 0) / tot["bc_members"] if tot.get("bc_members") else float("nan")
     res: dict = {"covered_days": cd, "twin_days": td, "counts": {k_: v_ for k_, v_ in tot.items() if isinstance(v_, (int, float))}, "coverage_cross_event_batch": coverage,
-                 "batch_completeness_pooled": completeness, "registry": cu["registry"]}
+                 "batch_completeness_pooled": completeness, "batch_members_absent_share_of_members": (tot.get("bc_members_absent", 0) / tot["bc_members"]) if tot.get("bc_members") else float("nan"),
+                 "batch_members_absent_share_of_incomplete": (tot.get("bc_members_absent", 0) / (tot["bc_members"] - tot["bc_complete"])) if tot.get("bc_members", 0) > tot.get("bc_complete", 0) else float("nan"), "registry": cu["registry"]}
     T0 = U[U["arm"] == "primary"] if len(U) else U
     if T0.empty:
         res["gate_CH253"] = {"batch_join_pinned": True, "units": False, "pass": False, "no_units": True}
@@ -400,7 +413,7 @@ def census_ch253(U: pd.DataFrame, cu: dict, spec: dict) -> dict:
             "units_by_fee_type_x_fee_category": _by_cells(T, ["fee_type", "cat"]), "pseudo_candidates_by_fee_type_x_fee_category": dict(sorted(cu["cells"].items())),
             "placebo_none_by_fee_type_x_fee_category": _by_cells(T[~np.isfinite(T["zs_pb"].to_numpy(float))], ["fee_type", "cat"]),
             "units_by_fee_type_x_sports_slug": _by_cells(T, ["fee_type", "slug_sports"]), "rows_by_fee_type_x_sports_slug_x_sports_class": dict(sorted(cu["qual"].items())),
-            "fee_class_and_category_changes_per_capture": cu["changes"], "sidecar_missing": int(tot.get("sidecar_missing", 0)), "series_not_registered": int(tot.get("series_not_registered", 0)),
+            "fee_class_and_category_changes_per_capture": cu["changes"], "fee_class_unknown_units": int(tot.get("fee_class_unknown", 0)), "sidecar_missing": int(tot.get("sidecar_missing", 0)), "series_not_registered": int(tot.get("series_not_registered", 0)),
             "arms_total_unit_lines": int(n_all)},
     })
     gate = {"batch_join_pinned": True, "coverage": bool(np.isfinite(coverage) and coverage >= g["coverage_min"]), "completeness": bool(np.isfinite(completeness) and completeness >= g["completeness_min"]),

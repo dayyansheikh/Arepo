@@ -44,8 +44,10 @@ SPEC_PATH = Path(__file__).resolve().parent / "model_specs" / "live_tests13_v1.j
 DESIGN_PATH = ROOT / "docs" / "research_lab" / "LIVE_TESTS_13.md"
 LEDGER_PATH = ROOT / "docs" / "research_lab" / "EXPERIMENT_LEDGER.md"
 SEALS = ROOT / "docs" / "research_lab" / "seals"
-DESIGN_TEXT_SHA256 = "ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738"  # LIVE_TESTS_13.md design-text freeze (ledger: "LT13 DESIGN TEXT FROZEN", commit d940c0ab)
+PREDECESSOR_SHA256 = "ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738"  # the design-text freeze (ledger "LT13 DESIGN TEXT FROZEN", commit d940c0ab)
+DESIGN_TEXT_SHA256 = "737f8b1529906093a3f132c13891b32af962a9cd43377b8c7a9c089aa8b2b2a2"  # freeze + appended section 13 (amendment)
 LEDGER_FREEZE_MARKER = "LT13 DESIGN TEXT FROZEN"
+LEDGER_AMEND_MARKER = "LT13 DESIGN TEXT AMENDED 13"
 TEMPFAIL = 75
 EPS = 1e-9
 TESTS = ("CH253",)
@@ -70,8 +72,8 @@ DECLARED: dict = {
     "receipt_span_s": 120.0,
     "rv": {"rv24_window": 12, "rv24_min_obs": 10, "rv_floor_ticks": 0.5},
     "tiers": {"cuts_usd": [1000, 10000, 100000]},
-    "controls_own": ["own_ds_c", "cbar", "spread_km1_c", "thin", "thin_x_zs", "fee_on", "absd"],  # 3.3: the own innovation, cbar, spread_{i,k-1}, thin, thin x zs, fee class, |d|; K (lt12.K_COMMON, incl. spread_k, d, rewarded_k) is added
-    "controls_note": "AS WRITTEN IN 3.3 + 1.7: K holds spread_k, 3.3 adds spread_{k-1} AND the own innovation spread_k - spread_{k-1}: the three are exactly collinear (stage A ambiguity A3, not resolved here)",
+    "controls_own": ["own_ds_c", "cbar", "thin", "thin_x_zs", "fee_on", "absd"],  # 3.3 as amended by section 13 (a): spread_{i,k-1} removed (exact identity with K's spread_k and the own innovation); K (lt12.K_COMMON, incl. spread_k, d, rewarded_k) is added
+    "controls_note": "section 13 (a): thin_i still reads spread_{i,k-1} (column spread_km1_c is built but is not a control); clause (b): zero-variance demeaned controls are removed before the rank",
     "batch": {"chain_gap_s": 120.0, "min_markets": 3, "min_events": 2, "min_mates": 2, "max_mates": 30, "completeness_min": 0.6, "pseudo_min_age_days": 7.0, "pseudo_deciles": 10,
               "event_key": "neg_risk_market_id where present, else Gamma event_id, else m:<condition_id>",
               "category_reading": "verbatim sidecar fee_category (null-like -> the literal 'unknown'); other:zero_fees is a literal level; no topic is reconstructed (1.4.4, 1.7)"},
@@ -155,7 +157,7 @@ def load_spec(path: Path = SPEC_PATH) -> dict:
 
 
 def design_text_error(path: Path | None = None, ledger: Path | None = None) -> dict | None:
-    """Refuse unless LIVE_TESTS_13.md hashes to the frozen constant AND the ledger records that hash on its ``LT13 DESIGN TEXT FROZEN`` line."""
+    """Refuse unless LIVE_TESTS_13.md hashes to the amended constant AND the ledger has a ``LT13 DESIGN TEXT AMENDED 13`` line carrying the predecessor (freeze) hash and the new hash."""
     p = Path(path or DESIGN_PATH)
     got = b.sha256_file(p)
     if got != DESIGN_TEXT_SHA256:
@@ -163,9 +165,9 @@ def design_text_error(path: Path | None = None, ledger: Path | None = None) -> d
     led = Path(ledger or LEDGER_PATH)
     if not led.exists():
         return {"error": f"ledger {led} not found: the freeze hash cannot be checked against it: refused"}
-    hit = [ln for ln in led.read_text().splitlines() if LEDGER_FREEZE_MARKER in ln and DESIGN_TEXT_SHA256 in ln]
+    hit = [ln for ln in led.read_text().splitlines() if LEDGER_AMEND_MARKER in ln and DESIGN_TEXT_SHA256 in ln and PREDECESSOR_SHA256 in ln]
     if not hit:
-        return {"error": f"the ledger has no '{LEDGER_FREEZE_MARKER}' line carrying {DESIGN_TEXT_SHA256}: refused", "ledger": str(led)}
+        return {"error": f"the ledger has no '{LEDGER_AMEND_MARKER}' line carrying both {PREDECESSOR_SHA256} (predecessor) and {DESIGN_TEXT_SHA256}: refused", "ledger": str(led)}
     return None
 
 
@@ -556,6 +558,8 @@ def units13(store: SlotStore13, bt: BatchTable, k: int, spec: dict, role: str = 
     cnt["elig_in_cross_batch"] = int(cross[el_rows].sum())
     bs_with = np.unique(g[el_rows[cross[el_rows]]]) if len(el_rows) else np.zeros(0, int)  # 6: pooled over cross-event batch-captures with an eligible member
     cnt["bc_members"], cnt["bc_complete"], cnt["bc_batches"] = int(bt.size[bs_with].sum()), int(n_comp[bs_with].sum()), int(len(bs_with))
+    absent = ~(J["bid"].notna().to_numpy() & P["bid"].notna().to_numpy())  # no two-sided series row at k - 1 or k (closed, one-sided or gone): A8
+    cnt["bc_members_absent"] = int(absent[np.isin(g, bs_with)].sum()) if len(bs_with) else 0
     cnt["bc_incomplete_batches"] = int((share[bs_with] < bcfg["completeness_min"] - 1e-12).sum())
     lines = el_rows[cross[el_rows]]
     inc = share[g[lines]] < bcfg["completeness_min"] - 1e-12
@@ -615,7 +619,7 @@ def units13(store: SlotStore13, bt: BatchTable, k: int, spec: dict, role: str = 
     out = pd.DataFrame({
         "market_id": mk, "condition_id": cond[lines], "batch_id": [bt.key[int(j)] for j in g[lines]], "ekey": bt.ekey[lines], "fam": J["fam"].to_numpy(object)[lines], "cat": ucat,
         "fee_type": J["fee_type"].fillna("").astype(str).to_numpy(object)[lines] if "fee_type" in J else "",
-        "slug_sports": [bool(s_ and b.SPORTS_SERIES_RE.match(s_)) for s_ in slug1], "fee_on": (fclass == "fee_on").astype(float), "fclass": fclass, "arm": arm, "n_mates": nm,
+        "slug_sports": [bool(s_ and b.SPORTS_SERIES_RE.match(s_)) for s_ in slug1], "fee_on": np.where(fclass == "unknown", np.nan, (fclass == "fee_on").astype(float)), "fclass": fclass, "arm": arm, "n_mates": nm,
         "n_sports_mates": SP_mates[lines], "batch_members": bt.size[g[lines]], "batch_complete_share": share[g[lines]], "batch_age_days": (t_dec - bt.first_created[g[lines]]) / DAY_S,
         "own_ds_c": innov[lines], "mbar": S_mates[lines] / nm, "cbar": cbar, "spread_km1_c": spk1[lines], "thin": thin, "mbar_pb": pb["mbar_pb"], "age_decile": pb["decile"],
         "f_end_ok": f_end_ok[lines].astype(float), "t_row_unit": trk[lines]})
@@ -623,7 +627,7 @@ def units13(store: SlotStore13, bt: BatchTable, k: int, spec: dict, role: str = 
     out["absd"] = np.abs(out["d"].to_numpy(float))
     out["day"] = b._utc_day(cap["start"])
     out["slot"], out["t_row"], out["role"], out["code_commit"] = k, t_dec, role, commit
-    out = b._drop_missing(out, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_status_nan", "tk1": "tier_missing"})
+    out = b._drop_missing(out, cnt, {"log_rv24s": "rv24_undefined", "rewarded": "reward_status_nan", "tk1": "tier_missing", "fee_on": "fee_class_unknown"})
     cnt["units_primary"] = int((out["arm"] == "primary").sum())
     cnt["placebo_none"] = int(((out["arm"] == "primary") & ~np.isfinite(out["mbar_pb"].to_numpy(float))).sum())
     bats = {int(j): (bt.members(int(j)), bt.ekey[bt.start[int(j)]: bt.start[int(j)] + bt.size[int(j)]]) for j in np.unique(g[lines])}

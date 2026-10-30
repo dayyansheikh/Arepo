@@ -79,7 +79,6 @@ def loose_spec(first: int = 14, last: int = 40) -> dict:
             g[k] = 1e9
     g["block_min_captures"], g["same_slot_min_units"], g["events_min_units"] = 2, 2, 2
     g["ident_nonzero_min"] = 1
-    spec["controls_own"] = [c for c in spec["controls_own"] if c != "spread_km1_c"]  # the declared list is exactly collinear (A3); the happy-path tests drop the redundant column
     spec["census_gates"]["mde_common"]["g_eff_min"] = 0
     spec["census_gates"]["mde_common"]["mde_max_c"] = {"CH253": 1e9}
     spec["census_gates"]["mde_common"]["f_mde_max_c"] = {"CH253": 1e9}
@@ -88,3 +87,9 @@ def loose_spec(first: int = 14, last: int = 40) -> dict:
     ci["min_covered_days"] = {"CC13": 1.0, "CC13_twins": 1.0}
     ci["refuse_at_or_after_utc"] = sy.iso(sy.slot_dt(100))
     return copy.deepcopy(spec)
+
+
+def write_ledger(path: Path) -> Path:
+    """A tmp ledger carrying the amendment line the code expects (the real ledger entry is written by the coordinator after merge)."""
+    path.write_text(f"- **{t.LEDGER_AMEND_MARKER}:** old sha256 `{t.PREDECESSOR_SHA256}` -> new sha256 `{t.DESIGN_TEXT_SHA256}`\n")
+    return path
