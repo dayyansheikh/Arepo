@@ -5377,3 +5377,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `finished_utc <= grid + 6 h`, never by J1's run time (code fix in the code-freeze list). Disclosures D1-D6 (wide books,
   fee lines on zero-fee markets, short fold, cluster sizes, `no_rules` 21.7%, survivorship). Once applied, a diff check that
   only those lines moved is enough to freeze (due by 11-16). Delegated on `feat/m2-ch264`.
+
+## M2 DESIGN TEXT FROZEN; M1 diff-check fixes merged, q0750b dry run queued, 2026-10-30 13:10Z (experiments autopilot; nothing counted)
+- **M2:** final-verification fixes applied (fadc8fcf: MUST 1-4, D1-D6, SHOULD 1/4/5/8, section 22); freeze diff check
+  `reviews/M2_FREEZE_DIFF_CHECK_2026-10-30.md` NOT_READY on two wording defects (A: the l.19 code-freeze list lacked three
+  items section 22 points to; B: the D5 `scheduled` count's span) plus optional C/D; all four applied as a pure text edit
+  (no further round, as the reviewer stated). **`MEASUREMENT_M2_CH264.md` FROZEN at 689de040, sha256
+  `bb7c27e05d94e6585af09a8e8d5b2add274b149c89035dfe4fe6c8b783f7cbb0`, 794 lines** (merged into this branch). Role
+  `prospective_measurement` (rule 26), k = 0, no Holm family. Window 2026-11-24..12-14; read-out on or after 2027-01-29;
+  registration by 2026-11-22T23:59Z. Next: J2 / J3 / analysis code and the l.19 code-freeze list (`run_available` by
+  `finished_utc`, rule-ledger lookup by commit time, missing-slot status files, `seen_without_k_minus_1_row`, end-of-window
+  ledger size in the dry run), then the code-freeze check, a host dry run, registration.
+- **M1:** diff-check MUST 1-2, SHOULD 1-3 fixed (ee8ce2b6, merged; 96 M1 tests, 3 new ones fail on the old code). New
+  **code_sha `e27b5d5b733915184bda380250792de4d9e8f377f2f7f664b6e6d7fff938f3b1`** (spec_sha `3afd6ad6…68b0` unchanged).
+  q0751b J2 not_before 12-15T07:00Z. Deviation (implementer): dup / late side files are written only for slots with a chain
+  status. **q0750b** queued: the dry run again on this code, in a fresh store `m1_dryruns/q0750b/research_lab/m1_ch263_dryrun`
+  (q0750's store holds another dry window's state; moving it is blocked by the evidence hook, correctly, so it stays).
