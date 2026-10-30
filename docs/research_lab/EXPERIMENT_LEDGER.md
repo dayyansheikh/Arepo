@@ -5470,3 +5470,16 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   CH237's 5% non-sports line: **family killed**. Nothing built; K unchanged.
 - **§44 (operational, no value change):** per-day parse cache for the `rules` / `umaparams` / `framein` readers under
   the engine root; host check: cold 22.7 s, warm 1.8 s, values identical to the uncached readers; 19 MB.
+
+## M3 designer response to challenger R1, 2026-10-30 15:05Z (experiments autopilot; design only, nothing counted)
+- `MEASUREMENT_M3_CH274.md` at e485c737 (merged), sha256 `b1a2a669fd3c3ec1e607cc5a11a0c6de1a10baa26ac6c9bf87c1ad0f0effc2da`,
+  1,145 lines; section 19 maps every R1 item; none declined. Headline now `F_S(7 d)` (all units, event bootstrap, CR1 beside;
+  S8 = 1 line, W50 / W50- in the same line); J0 rule (a) below 48 units a day -> 42 days; void scoped to M3's reads; receipt-time
+  brackets; status-semantics line dropped from J0; capacity dropped ("not measured (no book read)"); day-block bootstrap and
+  Aalen-Johansen dropped (disclosed); J3 shared with M2 by reference (M2 unchanged); two extra fetch passes for M3's ids
+  -> **analysis on or after 2027-02-05T12:00Z**; J2 not before 12-15T07:00Z.
+- **CH276 ordering (R1 MUST 5):** this response is committed (and merged here) before q0760 runs or its output is opened. M3's
+  only population gate is M3-J0 rule (a); CH276's line-7 early-settlement share was removed from CH276 (681128c8); any other
+  CH276 output read by the designer before the freeze is listed in the freeze commit.
+- **Correction** to the 13:50Z entry: the draft's section 18 had **twelve** open questions, not eleven.
+- Next: re-check (`science-reviewer`).
