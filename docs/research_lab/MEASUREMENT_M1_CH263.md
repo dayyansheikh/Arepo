@@ -1,7 +1,9 @@
 # Measurement M1 (CH263, "the carry"): the favoured side's discount after a UMA proposal state is first seen, against the reversal tail and the recorded cost, held to resolution, k = 0 (DRAFT)
 
-**Status: DRAFT 2026-10-30, third draft plus the fee-line / S4 / float fix of 17.6 (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
-GO_WITH_CHANGES, and the pre-freeze re-check, `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY; every item applied,
+**Status: final text after the final pre-freeze verification (NOT_READY -> fixes and disclosures applied); next: diff-only check, then the design-text freeze commit.
+2026-10-30, third draft plus the fee-line / S4 / float fix of 17.6 and the final-verification fixes of 17.8 (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
+GO_WITH_CHANGES, the pre-freeze re-check, `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY, and the final verification,
+`reviews/M1_FINAL_VERIFY_2026-10-30.md`, NOT_READY -> FREEZE_OK_WITH_DISCLOSURES once applied; every item applied,
 mapped in section 17), not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS). Drafted on branch `feat/m1-ch263`
@@ -118,9 +120,11 @@ A market enters at capture k if all of the following hold, checked in this order
   (case-insensitive; the CH269 map's reading) and not `disput`; at k - 1 the market has a row and a sidecar row and its status
   contains neither `propos` nor `disput` nor `resolv`. Classes: `disputed_at_k`, `no_k_minus_1_row`, `already_proposed`.
 - **E3 One-shot.** No proposal or dispute state for the market in any capture since the look-back start (every retained
-  capture before `REGISTERED_UTC`, at least 84; section 2), and no earlier M1 unit for the market. Whether the status field
-  keeps history is unverified (R1): a dispute reset followed by a new proposal more than the look-back earlier than k could
-  still enter as a new unit; J0 counts the forms the status string takes (9.1) and the residual is disclosed. Else `prior_proposal_state` (a re-proposal after a dispute is
+  capture before `REGISTERED_UTC`, at least 84; section 2), and no earlier M1 unit for the market. J0: the status
+  field is a list that accumulates history (forms such as `["proposed","disputed","proposed",...]`). In the span, J0 saw no
+  transition from proposed to empty and none from disputed to proposed. `prior_proposal_state` was 0. A re-proposal after a
+  dispute therefore carries `disput` and is excluded as `disputed_at_k`. The E3 residual remains only for a market whose list
+  resets, or that leaves the sidecar universe and returns; J0 cannot see either case. Else `prior_proposal_state` (a re-proposal after a dispute is
   never a new unit).
 - **E4 Open at k.** `binary = 1`, `closed` false, `active` true, `accepting_orders` not false. Else `not_open_at_k`.
 - **E5 Scope.** Capture k's sidecar row exists (else `sidecar_missing`) and its category, by the CH269 map's reader
@@ -131,6 +135,13 @@ A market enters at capture k if all of the following hold, checked in this order
   `mid_k = round((bid + ask) / 2, 6)`; `ask_f`, `bid_f`, `c` and `h` of 3.3 each rounded to 6 dp; the tick rounded to 6 dp
   before S9's equality. The rounded values are the recorded values (exact at the venue's 0.001 / 0.01 ticks).
 - **E6 Two-sided at k.** `0 < bid < ask <= 1` on the row at k. Else `not_two_sided`.
+- **E6 note (ask = 1; J0 disclosure).** E6 admits `ask = 1`, but the venue's grid tops out at 0.999 or 0.99, so an ask of exactly
+  1.0 cannot be a resting order. It is probably a placeholder for an empty ask side. The NO side is treated asymmetrically,
+  because `bid > 0` excludes the bid placeholder. A unit with `ask_f = 1.000` (`c = 0`) is kept as declared. Its entry price is
+  a venue placeholder, not an order, and "two-sided" means `0 < bid < ask <= 1`. These units are counted (`ask_f_at_1`) and
+  their share is printed beside `theta`. The bias is toward lower `theta`. S9's tick is the recorded field and may be stale
+  (J0 found 11 units with tick 0.01 in `c <= 0.001`; each is either `c = 0` or a stale tick at 0.999, so the structural-zero
+  note of 6 rests on the recorded tick being current).
 - **E7 Readable side.** `mid_k = (bid + ask) / 2`; the favoured side is YES if `mid_k >= 0.90`, NO if `mid_k <= 0.10`.
   Else `contested` (counted class, its own c reported descriptively in 8.2; never folded into the headline).
 
@@ -160,6 +171,11 @@ No cap: weights are declared instead (4).
 - **S47, a lagging flag.** If the sidecar's proposal state lags the on-chain proposal by one capture, the first capture with
   the flag is one slot later than the first after the proposal, so the measured `c` is lower than at the true first
   capture (the discount decays as liveness runs). The direction of this reading is disclosed; its size is not measured.
+- **Markets leave the universe (J0; D2).** There are no ->resolved transitions because markets leave the sidecar universe after
+  the proposal capture (empty->proposed 229,651 against already_proposed 19,694). With 2-hourly captures and a 2 h UMA
+  liveness, k is usually the only capture showing the proposal, at an unknown point in liveness. Seen proposals are a
+  length-biased sample: the chance of being seen grows with how long the flag is visible, so longer-liveness proposals are
+  over-represented. The wait and the capital line are expected to be near zero.
 - **S48, a side mis-read.** The favoured side at 0.90 may not be the proposed side; the `contested` class is never folded,
   and section 13's wording names the favoured side, not the proposed side.
 
@@ -203,7 +219,16 @@ No cap: weights are declared instead (4).
     `p = 0.99` this is at most about 0.07c a share. **L1 is the headline** (the ruling's conservative fee); **L2 feeds
     `theta_low`** (7.2) and a `theta` under L2 printed beside.
 - **Capital** `cap_i = ask_f * 0.05 * w_i / 8760` (5% a year; `w_i` in hours). Recorded with the line, not tuned.
-- `costs.py` is E026-frozen; M1 imports it and never edits it; its sha256 is recorded in M1's pins. Staleness haircut,
+- `costs.py` is E026-frozen; M1 imports it and never edits it; its sha256 is recorded in M1's pins.
+  **Pins of class-setting imports.** The sha256 of each imported module that sets a class or cell (`boundary_map_ch240`,
+  `population_map_ch251`, the `tier_of` source, `costs`, `calibration`) is a spec pin; a mismatch at run time refuses and after
+  `REGISTERED_UTC` is void 11.1. Here the `tier_of` source is `census_map_ch269.py` (S1; it imports `boundary_map_ch240` and
+  `population_map_ch251`), and `boundary_map_ch240.category_of` (E5) imports `cb17_census` and `live_tests8_base`, which are
+  pinned too (`live_tests8_base` because `category_of` calls its `crypto_class`). The full pin list is `boundary_map_ch240.py`,
+  `population_map_ch251.py`, `census_map_ch269.py`, `cb17_census.py`, `live_tests8_base.py`, `calibration.py`, `costs.py`;
+  their sha256 values are recorded in J0's successor seal and at registration.
+- **Fees are immaterial here (J0; D4).** At p ~ 0.999 any rate gives at most about 0.007c a share. S4 has fee_on 12 of 1,232.
+  L1 and L2 are expected to be indistinguishable. Staleness haircut,
   liquidity rewards, holding rewards and rebates are not in any line (disclosed).
 
 ### 5.2 The wait
@@ -218,7 +243,8 @@ with `depth_ask_1c` beside it; **the sweep coverage share is printed with it**. 
 `panel.py:14, 53-63`, `forecast.py:32`), so sweep coverage **depends on price by construction** and is probably far below
 50% (the median half-spread at k of 0.0005 suggests most units sit at mid above 0.98). Capacity is therefore always printed
 as **"covered subset only (coverage X%)"**, with the covered subset's S6 (price zone) and S7 (scheduled end) composition
-beside the population's, and labelled **not the population's capacity**. **No dedicated book fetch is added** (it would be
+beside the population's, and labelled **not the population's capacity**. J0: sweep 1 covered 9 of 1,232 units (0.73%), all with S7 "future" or "missing";
+the capacity print is expected to rest on about 30 units and is not interpretable beyond them. **No dedicated book fetch is added** (it would be
 a new collector before the freeze deadline, and its receipt would move `t_d` past the touch; R1 MUST 4). Capacity never
 selects or weights a unit.
 
@@ -246,7 +272,8 @@ politics 3, culture 2, weather 1, finance 0, mentions 0, tech 0, geopolitics 0. 
 `unknown` -> unknown 223, economics 6, politics 3, culture 2, weather 1. The cells are unchanged.
 
 Structural zeros (disclosed): S6 `> 0.10` is empty by construction; at tick 0.01 (S9) `c` is a multiple of 0.01, so the
-S6 x S9 cells (0.001, 0.005] at tick 0.01 are empty by construction.
+S6 x S9 cells (0.001, 0.005] at tick 0.01 are empty by construction. This rests on the recorded tick being current; see the
+E6 note in 3.2 (J0's 11 units at tick 0.01 in `c <= 0.001` are `c = 0` or a stale tick at 0.999).
 
 Hours to liveness end is **not** a split: the sidecar carries no proposal time (CH269 `not_mapped.proposal_time`).
 
@@ -311,7 +338,7 @@ record's `umaResolutionStatus` (dispute history) is printed as a descriptive cou
 - **Cross-check (read-out only, never a substitute):** for units also present in the engine's resolution log, agreement of
   state and `y` is printed (counts). Disagreements are listed; the pinned source governs.
 - **Coverage floor.** Source coverage = share of eligible units whose fetch returned a record (any class except `not_found`
-  and `unavailable (fetch)`). **Floor 0.95 of units, and 0.95 of events.** Below either, M1 is **void** (11). The share of
+  and `unavailable (fetch)`). **Floor 0.95 of units, and 0.95 of events.** `contested` units are not units (E7) and are outside the coverage denominator. Below either, M1 is **void** (11). The share of
   final-state units among eligible units is printed beside it (the coarse rule of 10 uses it).
 
 ## 9. Collectors, stores and the job list (DRAFT specs in text only; no queue file, no code yet)
@@ -342,6 +369,7 @@ Store: `data-dumps/research_lab/m1_ch263/` on the host (write-once files; never 
 - Memory: under 600 MB (CH269's 8-day map peaked at 558.8 MB over a wider read); dry run measured.
 
 ### 9.2 M1-J1: window-time extractor (every pass; catch-up allowed within retention)
+- J1 hashes sweep 1 files in its `inputs` (J0's `inputs` hashed snapshots only and left the sweep files out, `m1_j0.py:302-303`).
 - After each pass, for each complete capture k in the window not yet processed: read captures k - 1 and k (rows and sidecar,
   `usecols` only) and sweep 1 of k; apply 3.2; write `units/<capture_id>.jsonl.gz` (unit records of 3.3) and
   `status/<capture_id>.json` (the funnel counts, the capture's completeness, the sweep's presence). Idempotent per capture;
@@ -389,7 +417,14 @@ reversals the bootstrap CI narrows to the spread of `c` and `T_U` carries the ta
 4.38 / E_s, so `T_U` is at least 4.38 / N_F times the sum over non-empty strata of their units per event (at least 1, 2, 4,
 10): about 1,460 units if every event is a single unit, about 24,800 if all four strata are non-empty. With about 4,200
 units, coarse rule 3 is expected to fire and `theta_low` is expected to be dominated by the sparsest stratum; disclosed in
-advance, it changes no rule. Round 19's "net to +-0.1c at 5,000 units" left out the variance of `L` and is not
+advance, it changes no rule.
+
+**J0 update (D3).** J0 found `c <= 0.001` for 1,195 of 1,232 units, so mean `c` is expected to be about 0.1c. With J0's units
+per event, `T_U` with zero reversals is about 4.38 x 21 / N_F, roughly 2-3c at about 3,900 units (planning). `theta_low` is
+therefore expected to be negative whatever the outcome. With zero reversals the headline CI will be narrow and positive, and
+one reversed 10+ event moves `theta` by about 0.3c. Neither result reads as evidence for or against the carry; `T_U` governs.
+
+Round 19's "net to +-0.1c at 5,000 units" left out the variance of `L` and is not
 used.
 
 ## 11. Void conditions
@@ -404,7 +439,9 @@ M1 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 3. unit selection that uses information from after k;
 4. resolution-source coverage below the floor of 8.3;
 5. unit lines whose `spec_sha` or `code_sha` differs from the pins making up more than 1% of the units (below that they are
-   dropped, counted);
+   dropped, counted); the pins include the sha256 of each imported module that sets a class or cell (`boundary_map_ch240`,
+   `population_map_ch251`, `census_map_ch269` as the `tier_of` source, `cb17_census`, `live_tests8_base`, `calibration`,
+   `costs`; section 5): a mismatch at run time refuses, and after `REGISTERED_UTC` is void 11.1;
 6. the window started before the registration commit plus 24 h.
 
 ## 12. Later tests on the same object, and counting
@@ -475,13 +512,13 @@ M1 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 9. **Thresholds of 10** (0.30c, 2%, 75%, 2,000) and the 50% capacity coverage line: set from planning arithmetic only; are
    they acceptable before J0 runs?
 
-## 16. Proposed ledger block (DRAFT; not applied)
+## 16. Proposed ledger block (final text; not applied)
 
 > ## M1 (CH263) measurement design draft, 2026-10-30 (DRAFT, nothing counted)
-> - `MEASUREMENT_M1_CH263.md` second draft (R1 GO_WITH_CHANGES applied, section 17) on `feat/m1-ch263`; role `prospective_measurement` (R19 rule-26 ruling); k = 0; no
+> - `MEASUREMENT_M1_CH263.md` final text (R1, re-check and final-verification items applied, section 17) on `feat/m1-ch263`; role `prospective_measurement` (R19 rule-26 ruling); k = 0; no
 >   Holm; counted apart from registered tests. Headline: unit-weighted mean net per share after cost-model-v1 conservative
 >   fee and 5% capital, ask-based `c`, event-bootstrap CI; event-level tail bound; 10 splits. Window 2026-11-24..12-14,
->   read-out on or after 2027-01-15. Next: R1 re-check, then M1-J0 (counts only).
+>   read-out on or after 2027-01-15. Final text; next: code, code-freeze check, dry run, registration.
 
 ## 17. R1 response (2026-10-30; `reviews/M1_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES on draft `54fd5d49…c0d6`)
 
@@ -554,8 +591,8 @@ at an S6 edge, at a tick read with float noise, or with an empty `event_id`.
 
 Version `m1-j0-v2`; code sha256 `m1_j0.py` d16b1b8d…, `run_m1_j0.py` e36d7c7a…; queue job q0731, done 2026-10-30T05:41Z; peak RSS 297.6 MB.
 
-- **Span.** 84 captures, 2026-10-22T04:31:03Z to 2026-10-30T04:31:03Z (last 8 days); the first 12 are warm-up only; 6 full UTC days
-  (10-24 to 10-29); no missing slot.
+- **Span.** 96 captures read (10-22T06:31Z..10-30T04:31Z within the 8-day span from 10-22T04:31:03Z); the first 12 are warm-up
+  only, 84 processed (first 10-23T06:31Z); 6 full UTC days (10-24 to 10-29); no missing slot.
 - **Eligible units.** 1,232 over 740 events. Per day: 10-23 194, 10-24 85, 10-25 106, 10-26 233, 10-27 231, 10-28 192, 10-29 178,
   10-30 13 (10-23 and 10-30 are partial days).
 - **Rules (a) / (b).** Median full-day eligible units 185 (threshold 100): (a) does not fire. Projected 21-day units 3,885 = 185 x 21
@@ -583,3 +620,21 @@ Version `m1-j0-v2`; code sha256 `m1_j0.py` d16b1b8d…, `run_m1_j0.py` e36d7c7a�
 - **Other.** Open binary sidecar rows missing: 0; `prior_proposal_state_gap`: empty.
 
 No estimand, split, cell, threshold, cost line or date changed from J0.
+
+### 17.8 Final verification response (`reviews/M1_FINAL_VERIFY_2026-10-30.md`, NOT_READY on `076500bf...df9db`; FREEZE_OK_WITH_DISCLOSURES once applied)
+
+No estimand, weight, cell, threshold, cost line, class rule or date changed.
+
+| Item | What changed | Where |
+|---|---|---|
+| MUST 1 pins of class-setting imports | reviewer's pin sentence; `tier_of` source named (`census_map_ch269.py`); `category_of`'s imports `cb17_census`, `live_tests8_base` added; full pin list; mirrored in the pin void condition | 5, 11 item 5 |
+| MUST 2 J0 span | 96 read, 12 warm-up, 84 processed, first 10-23T06:31Z, 6 full UTC days, no missing slot (ledger correction entry is separate; ledger not edited here) | 17.7 |
+| D1 status field history | replaces "unverified" wording in E3 | 3.2 E3 |
+| D2 markets leave the universe | length-biased sample; wait and capital near zero | 3.5 |
+| D3 coarseness near-certain | `T_U` about 2-3c, `theta_low` negative, `T_U` governs | 10 |
+| D4 fees immaterial | at most about 0.007c; L1 and L2 indistinguishable | 5 |
+| D5 capacity | 9 of 1,232 units, about 30 units expected | 5.3 |
+| D6 `ask_f = 1` | kept as declared, counted `ask_f_at_1`, share printed beside `theta`; stale-tick caveat on S6 x S9 | 3.2 (E6 note), 6 |
+| Non-blocking: section 16 ledger block | refreshed ("final text; next: code, code-freeze check, dry run, registration") | 16 |
+| Non-blocking: J1 hashes sweep 1 | note added | 9.2 |
+| Non-blocking: `contested` and coverage | `contested` units are outside the denominator | 8.3 |
