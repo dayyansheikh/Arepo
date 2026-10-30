@@ -1315,3 +1315,44 @@ input depends on it.
   raise of the cap.
 - That activation is destructive retention, so it is not done here (AGENTS.md). Decision needed by ~11-15. Until
   then `disk.warn` turns on at 12.8 GB (~11-14).
+
+## 41. `rules` (CH267 class levels + CH239 text columns): definitions fixed before the census (2026-10-30 ~05:00Z; development family)
+
+**Why.** CH267 (CREATIVE_HYPOTHESES_2026-11-02) allows the rule-class *level* `cl_class` to be built now as a `rules`
+column, with the 44.7% coverage disclosed; its `cl_class x tte_h` interactions wait for LT15's freeze (token `close`,
+not yet requested). CH239 (`ruleclass`, CREATIVE_HYPOTHESES_2026-10-30) proposes barrier / threshold / source columns
+from the same text. Both are engine-first, and no live-test token covers rule text (`deadline` was withdrawn 10-22;
+CH199 `rulesrc` was killed on coverage, not banned). One family holds both, so they share one parse and one isolate.
+Ideas only: no evidence yet.
+- **Input and clock.** `stream_gamma_rules/` day files (the hourly change-only log, frame = the newest complete
+  capture's open markets with 24 h volume, top 3,000 hourly and the whole frame at 00/06/12/18Z). A `m:<id>` row is
+  known at capture k iff the same file holds that slot's `poll` line with `ok` true and `finished_utc` <= k's start.
+  The market's text at k is its last known row over all day files from the first (unchanged text is only
+  hash-checkpointed). Event (`e:`) rows are not read (disclosed: some neg-risk rule text lives only there). Code:
+  `signal_engine/rules_text.py`; its sha256 goes into every table's metadata.
+- **Columns (`se-aux-rules-v1`).** `rc_has` = 1 if the market has a known row at k, 0 if not, NaN if no poll had
+  finished before k (captures before 2026-10-20 ~23:00Z: the whole table is NaN, the `tilt` precedent; missing stays
+  missing). For markets with a known row, else NaN: `cl_sched` / `cl_barrier` (CH269's placeholder lexicons, copied
+  verbatim so the engine's levels match the map's counts), `cl_consensus` (credible reporting), `rc_inclusive` ("or
+  more", "at least", ...), `rc_numeric` (a $ amount, a percentage or a thousands number in the question), `rc_n_hosts`
+  (distinct URL hosts in the description and resolution source, capped at 5), `rc_log_len` (log1p of the description
+  length). CH267's classes are the derived split scheduled = sched and not barrier, barrier = barrier and not sched,
+  both, consensus, other; the flags are kept separate so a logistic model holds the levels as main effects.
+- **Not built (disclosed):** CH239's `rc_resdate_gap_h` (date parsing), `rc_dir`, `rc_other_clause`; CH228's edit age
+  (`ruleedit`) and CH207's bond / liveness fields (`umaparams`), which read the same stream and would be their own family.
+- **Census (counts only, newest capture; script `census/se_rules_census_2026-10-30.py`, committed with this section).**
+  Kill the family if `rc_has` = 1 on < 5% of eligible rows. Keep a 0/1 column iff it is 1 on 5%..95% of covered rows;
+  keep a count / length column iff it is non-NaN on >= 10% of covered rows (CH239's line) and not constant. A dropped
+  column leaves the version's column list before any table is written. Information only: non-sports / sports coverage,
+  the class split, each flag by category (CH239's boring explanation: the classes as a category proxy), the
+  `rc_has` / liquidity correlation (the frame is by volume), and 40 seeded texts for a hand precision audit.
+- **Challenger if the census passes: `se28_lr_rules`.** The champion's logistic learner and params on market_state +
+  momentum + rules; isolates `rules`; read against `se0_champion_lr_mm`. **Logistic, not LightGBM, on purpose:** trees
+  on market_state (which holds `ms_hours_to_end`) + the class levels could form the `cl_class x tte_h` interaction
+  that CH267 keeps for LT15. A LightGBM arm waits for LT15's decision. Targets `dir_2h`, `dir_6h`, `dir_24h`, `res_7d`
+  (CH239 reads `res_7d` first; information, the primary target stays `dir_2h`). `require_full_coverage` with
+  `require_sources: ["rules"]` (all-NaN tables count as present, so it trains on the champion's rows). Not broad.
+- **Embargo:** none (no token names rule text). If LT15 is frozen with a `close` token that names the class levels
+  too, se28 is moved under it then (never earlier).
+- **Replay dependency.** A table depends on every stream day file up to its capture (the proposed 14-day host rule for
+  `stream_gamma_rules/` would move older files to releases only; rebuilding then needs them restored).
