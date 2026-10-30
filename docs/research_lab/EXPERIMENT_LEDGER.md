@@ -5283,3 +5283,19 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `70cd5e98…c48e`; declaration sha256 `d2b89b1af9a8bb79551747ce47465b3961cc34b96eb85e0206635c4c8affd6ab`.
 - **Promoted:** q0744 catalogue refresh, q0743 sidecar restore guard, q0741 seal (not before 11-17T05:01Z), q0742 census
   (not before 11-17T06:00Z); chain q0740 -> q0744 -> q0743 -> q0741 -> q0742. Further LT14 code edits would need a re-announce.
+
+## M1 code re-check ACCEPT_WITH_FIXES; amendment 18 ACCEPTED, 2026-10-30 ~10:40Z (experiments autopilot; nothing counted)
+- `reviews/M1_CODE_RECHECK_2026-10-30.md` on 64df05a0 (merged 668c77aa; 62 tests; 21 of the new tests fail on the old code):
+  MUST 1-7 and SHOULD 1-12 addressed. **New MUST R1:** a duplicate capture can break J1's state chain for the rest of the
+  window and catch-up differs from live (probe) -> decide a slot only once `now >= grid + 6 h`, skip a slot with any chain
+  status; **R2:** open records classed `split_50_50` still final -> not closed = pending for every final state; **R3:** an
+  absent `finished_utc` must be treated as not on time (`late_capture_ignored`, reason `finished_utc_absent`; host manifests
+  do carry the key). SHOULD S1-S3 (unparseable-manifest key, dropped-clause print, `m2_overlap` key-miss count).
+- **M1 DESIGN TEXT AMENDED 18:** old sha256 `3a4f03b917a197cd60b7d6735f2e6c7a47ede6597b029c63a74d4a56c04d492d` -> new sha256
+  `7982f199edaf559fc4e6a5150709cc49d26b16984c869b6b75e2ef7dca107639` (section 18 appended, l. 642-649, append-only verified;
+  after the freeze, before registration, from code reading only, no window data exists). (a) `m2_overlap` from M2's unit files'
+  `market_id` / `capture_id` only, at read-out; (b) survivorship from J1's per-capture in-scope id sets; its "share seen before
+  close" clause is not computed (print-only; adding it would need a further amendment before registration). No estimand,
+  unit, class, threshold, cell or date changed.
+- Next: R1-R3 + S1-S3 (delegated on `feat/m1-code`) -> reviewer diff check -> q0750 host dry run on the final code ->
+  registration commit by 2026-11-22T23:59Z.
