@@ -1,23 +1,24 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 08:16 UTC+1
+**Last updated:** 2026-10-30 13:15 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **M1 design is frozen** (30 Oct, the measurement of the discount left after an outcome is proposed). Its code is written and
-  under independent check; then a host dry run and registration before 22 Nov. The window is 24 Nov to 14 Dec. It was said
-  in advance that the result will almost certainly be "coarse".
-- **M2 (the overdue favourite):** while writing its code, 15 unclear points and 5 real gaps were found and ruled on by the
-  reviewer. Its counting job had already started on the old code, so I stopped it after 3 minutes. It had written nothing,
-  and nothing was looked at. It will re-run on the corrected code.
-- **LT14 (the engine's top picks against trading costs):** code fixed and re-checked. The first step (a schema check) is
-  queued on the server. The reviewer found one more trap: a data-restore step could have silently done nothing. That is
-  being fixed before the 17 Nov seal.
-- **New ideas round 20** (original money-making ideas, Fable at top effort) is still being written.
-- **Server:** busy (batch 4's development job, then the long model run MC1, batch 7's count before 3 Nov, and others).
+- **M1 (the discount left after an outcome is proposed):** design frozen; code fixed after the last check; the server
+  rehearsal ran on 3 days of real data and stayed well inside its memory limit (342 of 600 MB). An independent check of the
+  final fixes is running; then registration before 22 Nov. Window 24 Nov to 14 Dec.
+- **M2 (the overdue favourite):** its counting check ran and kept the planned 21-day window. The final check before its
+  design freeze (due by 16 Nov) is running now.
+- **LT14 (the engine's top picks against trading costs):** its first step failed on the server for a boring reason (the
+  memory limit was too small to even load the code; nothing was read). Re-queued with a bigger limit; the 17 Nov chain
+  is unchanged.
+- **New ideas round 20 is in** (7 ideas). The cheapest new one: what the *losing* sibling outcomes cost once a winner has
+  been proposed. First step is a counts-only map (being coded now). Two ideas went to the signal engine's list.
+- **Server:** busy. Batch 4's development job runs; batch 7's count is moved to the front so it runs before 3 Nov; the long
+  model run MC1 continues in resumable slices (about 4 h each).
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
   E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov), M1 (window from 24 Nov).
 
