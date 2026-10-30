@@ -5787,3 +5787,15 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   address cap), **q0116c / q0116d** (OOM era): superseded by the pinned-panel lineage now running as **q0116k**; never
   re-run. q0116f stays parked (6 h timeout) as a backup only. Outcomes still to log when they finish: q0116k, q0185b (CB9
   kd frame v3, resumable, in progress).
+
+## M2 registration conditions; M1 cron address cap raised (ops), 2026-10-30 18:21Z (experiments autopilot; nothing counted)
+- `reviews/M2_REGISTRATION_CONDITIONS_2026-10-30.md` (`science-reviewer`): a mechanical checklist for M2's registration after
+  q0754b passes (peak RSS <= 600, code_sha `64b5dee0…`, ledger padding >= 800k / 250k, processed slots > 0); pins keys
+  (`spec_sha` = design sha `ff342ff3…`, `code_sha`, `registration_commit_utc`, two manifest hashes null); section 16 is
+  stale DRAFT text, so the registration entry quotes its "Headline" sentences and adds the rest; q0755* promoted with
+  q0755's `depends_on` changed from the cancelled q0754 to q0754b; J1 cron at :50 even hours holding M1's lock too (no
+  overlap either way); empty diff from 9299d2e1; the slide rule needs a code change (dates in `m2_spec.py`), so a late
+  registration needs review. Open: dumps cap trend, untested `unit_events` refusal, q0782.
+- **M1 cron (ops only):** the J1 line's `ulimit -v` raised from 1.5 GiB to 6,000 MB (6144000 KB), the address cap q0750c
+  was tested under; 1.5 GiB was never tested (finding carried over from the M2 conditions, defect 4). Repo and host crontab
+  updated (backup `~/crontab.bak.*`). No M1 code, pin or rule changes.
