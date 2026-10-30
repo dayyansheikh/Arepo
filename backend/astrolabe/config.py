@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -73,6 +74,61 @@ class Settings(BaseSettings):
     digest_max_retries: int = 2
     digest_lease_seconds: int = 900
 
+    # --- Lab hardware security keys (WebAuthn step-up; see docs/lab/SECURITY_KEYS.md) ---
+    # LAB_REQUIRE_HARDWARE_KEY: "auto" (default) = any account with at least one registered key
+    # needs a security-key unlock (step-up) for EVERY signed-in endpoint (account, alerts, saved
+    # markets, /api/users, the Lab and member admin), so nobody is locked out before registering;
+    # "always" = additionally every superuser needs one even before registering (they can still
+    # register a first key); "off" = operator escape hatch (password session alone suffices).
+    lab_require_hardware_key: str = "auto"
+    # WebAuthn relying-party ID. Empty = "arepolabs.com" in production (valid on www and the apex),
+    # otherwise the host of APP_BASE_URL (localhost in development).
+    lab_webauthn_rp_id: str = ""
+    lab_webauthn_rp_name: str = "Arepo Lab"
+    # Comma-separated page origins accepted in WebAuthn clientDataJSON. Empty = the production
+    # site origins in production, plus every CORS/APP_BASE_URL origin on the RP ID's domain.
+    lab_webauthn_origins: str = ""
+    lab_stepup_hours: float = 4.0  # LAB_STEPUP_HOURS: how long one unlock lasts
+    # LAB_TRUSTED_DEVICE_DAYS: how long a device the owner marks as trusted skips the key prompt.
+    # Capped at 30 days (see trusted_device_days); 0 disables device trust entirely.
+    lab_trusted_device_days: float = 30.0
+
+    @property
+    def lab_hardware_key_mode(self) -> str:
+        mode = (self.lab_require_hardware_key or "").strip().lower()
+        # Anything unrecognised fails safe to "auto" (never silently to "off").
+        return mode if mode in ("auto", "always", "off") else "auto"
+
+    @property
+    def trusted_device_days(self) -> float:
+        """Trusted-device lifetime in days: never more than 30, 0 (or less) = trust disabled."""
+        return max(0.0, min(30.0, float(self.lab_trusted_device_days or 0)))
+
+    @property
+    def webauthn_rp_id(self) -> str:
+        if self.lab_webauthn_rp_id.strip():
+            return self.lab_webauthn_rp_id.strip().lower()
+        if self.environment == "production":
+            return "arepolabs.com"
+        return (urlparse(self.app_base_url).hostname or "localhost").lower()
+
+    @property
+    def webauthn_origin_list(self) -> list[str]:
+        explicit = [o.strip().rstrip("/") for o in self.lab_webauthn_origins.split(",")
+                    if o.strip()]
+        if explicit:
+            return explicit
+        rp = self.webauthn_rp_id
+        out: list[str] = []
+        if self.environment == "production" and rp == "arepolabs.com":
+            out += ["https://www.arepolabs.com", "https://arepolabs.com"]
+        for o in [*self.cors_origin_list, self.app_base_url]:
+            o = o.strip().rstrip("/")
+            host = (urlparse(o).hostname or "").lower()
+            if host and (host == rp or host.endswith("." + rp)) and o not in out:
+                out.append(o)
+        return out
+
     @property
     def auth_is_production_insecure(self) -> bool:
         """True when running in production with the default (insecure) auth secret."""
@@ -93,6 +149,12 @@ class Settings(BaseSettings):
     # identical data (never fakes freshness; a new scan is picked up within the window). Applied in
     # production only; 0 disables (dev/test read fresh every call).
     explore_cache_seconds: int = 60
+    # Upper bound on how long an unchanged-scan Explore universe is served from memory before a
+    # forced re-read (the scan-id check normally keeps it until a new scan lands).
+    explore_cache_max_age_seconds: int = 1800
+    # Production-only memo of the live Gamma discovery page (the per-request live probe + the 30 s
+    # /api/status poll). Successes only; 0 disables.
+    live_discovery_cache_seconds: int = 30
 
     # --- Production scheduler (single idempotent tick; see astrolabe/scheduler) ---
     # A hosted runner (GitHub Actions) wakes ~every 5 min and the app decides what is DUE. All of

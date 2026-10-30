@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import NamedTuple
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,15 @@ def _utc(dt: datetime | None) -> datetime | None:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+class EntryRef(NamedTuple):
+    """Narrow, read-only projection of a research entry for the collectors."""
+
+    id: int
+    market_id: str
+    token_id: str
+    expected_close: datetime | None
 
 
 @dataclass
@@ -345,6 +355,44 @@ class ResearchRepository:
         for eid, horizon in res.all():
             out.setdefault(eid, set()).add(horizon)
         return out
+
+    async def get_entry_refs(self, cohort_id: int) -> list[EntryRef]:
+        """The collector's view of a cohort's entries: ONLY (id, market_id, token_id,
+        expected_close), in the same order as :meth:`get_entries`. Avoids egressing the full frozen
+        row (~1.5 KB each, ~166 MB across production cohorts) when only these keys are needed."""
+        res = await self.session.execute(
+            select(
+                ResearchEntryRow.id, ResearchEntryRow.market_id, ResearchEntryRow.token_id,
+                ResearchEntryRow.expected_close,
+            )
+            .where(ResearchEntryRow.cohort_id == cohort_id)
+            .order_by(ResearchEntryRow.rank.is_(None), ResearchEntryRow.rank, ResearchEntryRow.id)
+        )
+        return [EntryRef(*row) for row in res.all()]
+
+    async def cohort_forward_completeness(
+        self, cohort_ids: list[int], horizons: list[str]
+    ) -> tuple[dict[int, int], dict[int, int]]:
+        """({cohort_id: entry count}, {cohort_id: forward-observation count over ``horizons``}) in
+        two grouped COUNT queries (a handful of result rows, no per-entry egress)."""
+        if not cohort_ids:
+            return {}, {}
+        entries = await self.session.execute(
+            select(ResearchEntryRow.cohort_id, func.count(ResearchEntryRow.id))
+            .where(ResearchEntryRow.cohort_id.in_(cohort_ids))
+            .group_by(ResearchEntryRow.cohort_id)
+        )
+        forwards = await self.session.execute(
+            select(ResearchEntryRow.cohort_id, func.count(ResearchForwardRow.id))
+            .join(ResearchEntryRow, ResearchEntryRow.id == ResearchForwardRow.entry_id)
+            .where(
+                ResearchEntryRow.cohort_id.in_(cohort_ids),
+                ResearchForwardRow.horizon.in_(horizons),
+            )
+            .group_by(ResearchEntryRow.cohort_id)
+        )
+        return ({cid: int(n) for cid, n in entries.all()},
+                {cid: int(n) for cid, n in forwards.all()})
 
     async def available_forward_horizons(self, entry_ids: list[int]) -> set[str]:
         """Horizons that have at least one stored observation WITH a usable midpoint, in ONE query.

@@ -12,6 +12,7 @@ can enrich it uniformly.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Protocol
@@ -115,8 +116,30 @@ class LiveSource:
         self._clob = ClobRestClient(settings=self._settings)
         self._rest_health = SourceHealth(name="clob_rest", state=ConnState.UNKNOWN)
         self._gamma_health = SourceHealth(name="gamma", state=ConnState.UNKNOWN)
+        self._markets_memo: tuple[float, list[Market]] | None = None
+        self._markets_lock = asyncio.Lock()
 
     async def markets(self) -> list[Market]:
+        """Live discovery page, memoised for ``live_discovery_cache_seconds`` in production.
+
+        Every API request first PROBES live (``MarketService._select_source``) and then usually
+        reads ``markets()`` again, and every open tab polls /api/status every 30 s, so without a
+        memo each poll/request fetched + parsed the 60-event Gamma page once or twice. Successes
+        only are memoised (a failure always re-probes, preserving the fallback semantics), and
+        concurrent callers share one in-flight fetch. The list is shallow-copied per caller.
+        """
+        ttl = self._settings.live_discovery_cache_seconds
+        if ttl <= 0 or self._settings.environment != "production":
+            return await self._fetch_markets()
+        async with self._markets_lock:
+            if (self._markets_memo is not None
+                    and time.monotonic() - self._markets_memo[0] < ttl):
+                return list(self._markets_memo[1])
+            markets = await self._fetch_markets()
+            self._markets_memo = (time.monotonic(), markets)
+            return list(markets)
+
+    async def _fetch_markets(self) -> list[Market]:
         try:
             raw_events = await self._gamma.list_events(
                 limit=self._settings.discovery_limit, active=True, closed=False
@@ -275,6 +298,47 @@ class CachedSource:
             # MarketRow is the latest complete scan universe. Do not clip it to a display limit:
             # Explore applies filters/sorting to the complete genuine set before pagination.
             return await Repository(session).get_markets(limit=None)
+
+    async def has_markets(self) -> bool:
+        """Cheap existence probe (one ``SELECT id ... LIMIT 1``). Replaces materialising the whole
+        markets cache just to learn that it is non-empty (the live-failure fallback path)."""
+        if not self._session_factory:
+            return False
+        from sqlalchemy import select
+
+        from ..storage.models import MarketRow
+        async with self._session_factory() as session:
+            return (await session.scalar(select(MarketRow.id).limit(1))) is not None
+
+    async def get_market(self, market_id: str) -> Market | None:
+        """One market by primary key (instead of loading the full universe and scanning it)."""
+        if not self._session_factory:
+            return None
+        from ..storage.repository import Repository
+        async with self._session_factory() as session:
+            return await Repository(session).get_market(market_id)
+
+    async def explore_markets(self, *, partition: int = 2000) -> list:
+        """The complete markets cache as memory-lean :class:`LeanMarket` records, streamed in
+        partitions with only the columns Explore/facets/cards/search read (never clipped)."""
+        if not self._session_factory:
+            return []
+        from sqlalchemy import select
+
+        from ..storage.models import MarketRow
+        from .explore_lean import lean_from_row
+        stmt = select(
+            MarketRow.id, MarketRow.question, MarketRow.slug, MarketRow.status,
+            MarketRow.category, MarketRow.tags, MarketRow.volume, MarketRow.volume_24hr,
+            MarketRow.liquidity, MarketRow.end_date, MarketRow.updated_at, MarketRow.outcomes,
+            MarketRow.description,
+        ).order_by(MarketRow.volume.desc().nulls_last())
+        out: list = []
+        async with self._session_factory() as session:
+            result = await session.stream(stmt.execution_options(yield_per=partition))
+            async for part in result.partitions(partition):
+                out.extend(lean_from_row(r) for r in part)
+        return out
 
     async def get_token_data(self, market_id: str, token_id: str) -> TokenData:
         if not self._session_factory:

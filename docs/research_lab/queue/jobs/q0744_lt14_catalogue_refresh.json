@@ -12,10 +12,11 @@
   "cpu": 1,
   "lane": "net",
   "network": "github releases metadata (private data repo, read-only; gh authenticated on the host)",
-  "disk_mb": 200
+  "disk_mb": 200,
+  "as_cap_mb": 2000
  },
  "depends_on": [
-  "q0740_lt14_schema_precheck"
+  "q0740b_lt14_schema_precheck"
  ],
  "not_before": "2026-11-17T05:01:00Z",
  "argv": [
@@ -30,5 +31,5 @@
   "data-dumps/research_lab/live_tests14_census/catalogue/releases.json"
  ],
  "next_action": "q0743 (sidecar restore) reads this catalogue through --catalogue; optionally check releases.json for a data-20261117* release row, but q0743's pre- and post-restore coverage checks are the real guard (a missing 11-17 release shows up as a gap, exit 3). gh is installed and authenticated on the host; the repo catalogue in docs/research_lab/data_catalogue is NOT touched by this job",
- "notes": "DRAFT, not in queue/jobs. Re-check F1 (reviews/LT14_CODE_RECHECK_2026-10-30.md). The command is archive_catalogue.py unchanged (docs/research_lab/data_catalogue/README.md; idempotent, writes only under --out; draft releases are skipped). A scratch --out keeps the host checkout's tracked catalogue unmodified. gh is installed and authenticated on the Oracle host. Counts 0 (descriptive; no trials line). Runs ONCE; max_retries 1 covers a transient network failure. PROMOTED 2026-10-30 ~10:05Z after the F re-check fixes A-D (reviews/LT14_CODE_F_RECHECK_2026-10-30.md promotion conditions met; live_tests14.py eec6f9ba\u2026 re-announced in the ledger)."
+ "notes": "DRAFT, not in queue/jobs. Re-check F1 (reviews/LT14_CODE_RECHECK_2026-10-30.md). The command is archive_catalogue.py unchanged (docs/research_lab/data_catalogue/README.md; idempotent, writes only under --out; draft releases are skipped). A scratch --out keeps the host checkout's tracked catalogue unmodified. gh is installed and authenticated on the Oracle host. Counts 0 (descriptive; no trials line). Runs ONCE; max_retries 1 covers a transient network failure. PROMOTED 2026-10-30 ~10:05Z after the F re-check fixes A-D (reviews/LT14_CODE_F_RECHECK_2026-10-30.md promotion conditions met; live_tests14.py eec6f9ba… re-announced in the ledger). 2026-10-30 ops-only: depends on q0740b (q0740 re-issued after an import MemoryError at the 400 MB cap); as_cap_mb 2000 added."
 }

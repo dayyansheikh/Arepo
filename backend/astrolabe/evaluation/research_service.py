@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..domain.models import utcnow
@@ -21,6 +21,8 @@ from .research_calibration import calibration_status
 from .research_constants import (
     CADENCES,
     MODEL_VERSION,
+    PARTITION_HELDOUT,
+    PARTITION_LIVE,
     RESEARCH_HORIZONS,
 )
 from .research_models import ResearchCohortRow, ResearchEntryRow, ResearchForwardRow
@@ -57,7 +59,50 @@ def _obs_for_horizon(e: ResearchEntryRow, fwd: ResearchForwardRow | None) -> Hor
     )
 
 
+# The reportable sample, as SQL (identical to ``_frozen_entries``: frozen prospective cohorts that
+# are not excessively late, entries whose walk-forward partition ``is_reportable``).
+_REPORTABLE_PARTITIONS = (PARTITION_HELDOUT, PARTITION_LIVE)
+assert all(is_reportable(p) for p in _REPORTABLE_PARTITIONS)
+
+
+def _reportable_scope():
+    return (
+        ResearchCohortRow.provenance_class == "prospective",
+        ResearchCohortRow.frozen.is_(True),
+        ResearchCohortRow.excessively_late.is_not(True),
+        ResearchEntryRow.walk_forward_partition.in_(_REPORTABLE_PARTITIONS),
+    )
+
+
+class _EntryLite:
+    """The entry fields ``_obs_for_horizon``/``_entry_view`` read, from a narrow row."""
+
+    __slots__ = ("direction", "momentum_direction", "orderbook_direction", "tradeflow_direction",
+                 "entry_price", "evidence_families", "midpoint", "spread", "near_mid_depth")
+
+    def __init__(self, *values):
+        for name, value in zip(self.__slots__, values, strict=True):
+            setattr(self, name, value)
+
+
+class _ForwardLite:
+    __slots__ = ("midpoint", "spread", "near_mid_depth")
+
+    def __init__(self, midpoint, spread, near_mid_depth):
+        self.midpoint, self.spread, self.near_mid_depth = midpoint, spread, near_mid_depth
+
+
 class ResearchReadService:
+    """Research status/horizon aggregates.
+
+    Infra fix 2026-10-11: ``status`` used to load every full frozen entry (~110k rows in
+    production) and then issue one ``get_forward`` SELECT per entry per horizon (4x) plus once more
+    for the 24h analysis -- ~550k sequential queries per request, which exhausted Render's 512 MiB
+    and Supabase's Disk IO budget. The same numbers now come from grouped COUNTs (role and horizon
+    coverage; (entry_id, horizon) is UNIQUE so the counts are exact) and one narrow, streamed join
+    for the horizon analysis, iterated in the same order with the same dedup.
+    """
+
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repo = ResearchRepository(session)
@@ -86,20 +131,35 @@ class ResearchReadService:
         observations toward the sample size or the Wilson interval (adversarial review finding 3).
         """
         best: dict[str, tuple[datetime, HorizonObs]] = {}
-        for cohort, e in await self._frozen_entries():
-            if e.direction not in ("up", "down"):
-                continue
-            fwd = (await self.repo.get_forward(e.id)).get(horizon)
-            if fwd is None or fwd.midpoint is None:
-                continue
-            # Dedup by the causal origin (actual prediction time), not the scheduled label.
-            origin = (
-                _utc(cohort.evaluation_origin_at) or _utc(cohort.frozen_at)
-                or _utc(cohort.cutoff_at) or datetime.min.replace(tzinfo=UTC)
+        E, C, F = ResearchEntryRow, ResearchCohortRow, ResearchForwardRow
+        q = (
+            select(
+                C.evaluation_origin_at, C.frozen_at, C.cutoff_at, E.market_id,
+                E.direction, E.momentum_direction, E.orderbook_direction, E.tradeflow_direction,
+                E.entry_price, E.evidence_families, E.midpoint, E.spread, E.near_mid_depth,
+                F.midpoint, F.spread, F.near_mid_depth,
             )
-            prev = best.get(e.market_id)
-            if prev is None or origin > prev[0]:
-                best[e.market_id] = (origin, _obs_for_horizon(e, fwd))
+            .select_from(E)
+            .join(C, C.id == E.cohort_id)
+            .join(F, and_(F.entry_id == E.id, F.horizon == horizon))
+            .where(*_reportable_scope(), E.direction.in_(("up", "down")), F.midpoint.is_not(None))
+            # Same iteration order as the per-cohort loop: cohorts newest cut-off first (cohort id
+            # breaks the previously-unordered tie), entries in get_entries order.
+            .order_by(C.cutoff_at.desc(), C.id, E.rank.is_(None), E.rank, E.id)
+        )
+        result = await self.session.stream(q.execution_options(yield_per=5000))
+        async for part in result.partitions(5000):
+            for row in part:
+                eo, fa, ca, market_id = row[0], row[1], row[2], row[3]
+                # Dedup by the causal origin (actual prediction time), not the scheduled label.
+                origin = (
+                    _utc(eo) or _utc(fa) or _utc(ca) or datetime.min.replace(tzinfo=UTC)
+                )
+                prev = best.get(market_id)
+                if prev is None or origin > prev[0]:
+                    best[market_id] = (
+                        origin, _obs_for_horizon(_EntryLite(*row[4:13]), _ForwardLite(*row[13:16]))
+                    )
         obs: list[HorizonObs] = [o for _cut, o in best.values()]
         bt = baseline_table(obs)
         return {
@@ -115,23 +175,25 @@ class ResearchReadService:
         """The full research-status object (prompt section 13) from real stored rows."""
         now = utcnow()
         cadence_counts = await self.repo.count_cohorts_by_cadence()
-        entries = await self._frozen_entries()
-        total_universe = len(entries)
-        by_role: dict[str, int] = {}
-        for _c, e in entries:
-            by_role[e.role] = by_role.get(e.role, 0) + 1
+        E, C, F = ResearchEntryRow, ResearchCohortRow, ResearchForwardRow
+        role_rows = await self.session.execute(
+            select(E.role, func.count(E.id)).select_from(E).join(C, C.id == E.cohort_id)
+            .where(*_reportable_scope()).group_by(E.role)
+        )
+        by_role: dict[str, int] = {role: int(n) for role, n in role_rows.all()}
+        total_universe = sum(by_role.values())
 
         # Horizon coverage: due, evaluable (have a midpoint), flat/pending.
+        evaluable_rows = await self.session.execute(
+            select(F.horizon, func.count(F.id)).select_from(F)
+            .join(E, E.id == F.entry_id).join(C, C.id == E.cohort_id)
+            .where(*_reportable_scope(), F.midpoint.is_not(None)).group_by(F.horizon)
+        )
+        evaluable_by_h = {h: int(n) for h, n in evaluable_rows.all()}
         horizon_cov: dict[str, dict] = {}
         for horizon in RESEARCH_HORIZONS:
-            evaluable = pending = 0
-            for _c, e in entries:
-                fwd = (await self.repo.get_forward(e.id)).get(horizon)
-                if fwd is not None and fwd.midpoint is not None:
-                    evaluable += 1
-                else:
-                    pending += 1
-            horizon_cov[horizon] = {"evaluable": evaluable, "pending": pending}
+            evaluable = evaluable_by_h.get(horizon, 0)
+            horizon_cov[horizon] = {"evaluable": evaluable, "pending": total_universe - evaluable}
 
         cohorts = await self.repo.list_cohorts(provenance="prospective", frozen=True)
         # Sample range is described by the CAUSAL ORIGIN (actual prediction time), not the label.

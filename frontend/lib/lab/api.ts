@@ -1,0 +1,172 @@
+// Network layer for the owner-only Lab dashboard. Mirrors the account endpoints in lib/api.ts
+// (`accountFetch`): the session lives in an HttpOnly cookie, so every request sends
+// `credentials: "include"`; there is no CSRF header in the existing account convention, and
+// production traffic stays first-party through the Next /api rewrite (API_BASE is "").
+
+import { API_BASE } from "../api";
+import { announceLocked, lockedDetail } from "../stepup-events";
+import type { AnyCommandTarget, CommandAction, LabCommand, LabDashboardResponse, LabMessage } from "./types";
+
+export const SIGNIN_REDIRECT = "/signin?next=/lab";
+
+export type LabLoadResult =
+  | { kind: "ok"; data: LabDashboardResponse }
+  | { kind: "unauthorized" }
+  | { kind: "not_found" }
+  | { kind: "locked"; keys: number }
+  | { kind: "error"; message: string; status: number };
+
+export type LabAction =
+  | { type: "redirect"; to: string }
+  | { type: "not_found" }
+  | { type: "locked"; keys: number }
+  | { type: "data"; data: LabDashboardResponse }
+  | { type: "error"; message: string };
+
+/** Pure mapping from a load result to what the page does (unit tested). */
+export function actionForResult(result: LabLoadResult): LabAction {
+  switch (result.kind) {
+    case "unauthorized":
+      return { type: "redirect", to: SIGNIN_REDIRECT };
+    case "not_found":
+      return { type: "not_found" };
+    case "locked":
+      return { type: "locked", keys: result.keys };
+    case "ok":
+      return { type: "data", data: result.data };
+    default:
+      return {
+        type: "error",
+        message:
+          result.status === 0 || result.status >= 502
+            ? "Can't reach the Arepo API right now. Retrying automatically."
+            : result.message,
+      };
+  }
+}
+
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+export const DASHBOARD_PATH = "/api/lab/dashboard";
+export const COMMANDS_PATH = "/api/lab/commands";
+export const MESSAGES_PATH = "/api/lab/messages";
+
+async function detailOf(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: unknown };
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {
+    // not JSON
+  }
+  return res.statusText || `Request failed with status ${res.status}`;
+}
+
+export async function loadLabDashboard(
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+  signal?: AbortSignal,
+): Promise<LabLoadResult> {
+  let res: Response;
+  try {
+    res = await fetchImpl(`${API_BASE}${DASHBOARD_PATH}`, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
+    return { kind: "error", status: 0, message: "Unable to reach the Arepo API." };
+  }
+  if (res.status === 401) return { kind: "unauthorized" };
+  // A signed-in non-owner gets 404 from the API by design: the page does not reveal it exists.
+  if (res.status === 404) return { kind: "not_found" };
+  if (res.status === 403) {
+    // Security-key step-up needed (or expired): the page shows the unlock screen.
+    const body = await res.json().catch(() => null);
+    const locked = lockedDetail(body);
+    if (locked) return { kind: "locked", keys: locked.keys };
+    return { kind: "error", status: 403, message: "Not allowed." };
+  }
+  if (!res.ok) return { kind: "error", status: res.status, message: await detailOf(res) };
+  try {
+    const data = (await res.json()) as LabDashboardResponse;
+    return { kind: "ok", data: data && typeof data === "object" ? data : {} };
+  } catch {
+    return { kind: "error", status: res.status, message: "The dashboard response was not valid JSON." };
+  }
+}
+
+export type PostResult<T> = { ok: true; value: T | null } | { ok: false; status: number; message: string };
+
+/** POST JSON as the owner; maps 403 step-up, 429 and other failures to a readable message. */
+export async function postOwnerJson<T>(
+  path: string,
+  body: unknown,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+  tooMany = "Too many requests. Try again later.",
+): Promise<PostResult<T>> {
+  let res: Response;
+  try {
+    res = await fetchImpl(`${API_BASE}${path}`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    return { ok: false, status: 0, message: "Unable to reach the Arepo API." };
+  }
+  if (!res.ok) {
+    if (res.status === 403) {
+      const locked = lockedDetail(await res.json().catch(() => null));
+      if (locked) {
+        announceLocked(locked);
+        return { ok: false, status: 403, message: "Unlock with your security key first." };
+      }
+    }
+    const message = res.status === 429 ? tooMany : await detailOf(res);
+    return { ok: false, status: res.status, message };
+  }
+  try {
+    return { ok: true, value: (await res.json()) as T };
+  } catch {
+    return { ok: true, value: null };
+  }
+}
+
+export type CommandPostResult =
+  | { ok: true; command: LabCommand | null }
+  | { ok: false; status: number; message: string };
+
+export async function postLabCommand(
+  target: AnyCommandTarget,
+  action: CommandAction,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<CommandPostResult> {
+  const r = await postOwnerJson<LabCommand>(COMMANDS_PATH, { target, action }, fetchImpl, "Too many commands this hour. Try again later.");
+  return r.ok ? { ok: true, command: r.value } : r;
+}
+
+export type MessagePostResult =
+  | { ok: true; message: LabMessage | null }
+  | { ok: false; status: number; message: string };
+
+export async function postLabMessage(
+  target: string,
+  body: string,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<MessagePostResult> {
+  const r = await postOwnerJson<LabMessage>(MESSAGES_PATH, { target, body }, fetchImpl, "Daily message limit reached (20 a day). Try again tomorrow.");
+  return r.ok ? { ok: true, message: r.value } : r;
+}
+
+export async function cancelLabMessage(
+  id: number,
+  fetchImpl: FetchLike = (i, init) => fetch(i, init),
+): Promise<MessagePostResult> {
+  const r = await postOwnerJson<LabMessage>(`${MESSAGES_PATH}/${id}/cancel`, undefined, fetchImpl);
+  if (!r.ok && r.status === 409) return { ok: false, status: 409, message: "Too late to cancel: the Mac already picked it up." };
+  return r.ok ? { ok: true, message: r.value } : r;
+}

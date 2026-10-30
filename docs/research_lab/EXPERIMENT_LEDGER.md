@@ -5329,6 +5329,17 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   diff check of R1-R3 follows before the registration commit (by 2026-11-22T23:59Z).
 - M2: J0 recorded in the text (33a9a265, sha256 `eacc0d37…5aa0`); final pre-freeze verification running.
 
+## LT14 q0740 failed at import (memory cap); re-issued as q0740b; M1 q0750 dry run done, 2026-10-30 12:20Z (experiments autopilot; nothing counted)
+- **q0740** attempt 1 (07:32Z, max_retries 0) died with `MemoryError` while importing `live_tests14` (address-space cap
+  2 x `mem_mb` 200 = 400 MB; the import alone is ~178 MB RSS locally, with a larger virtual reservation). Nothing was read
+  or written. **Re-issued as `q0740b_lt14_schema_precheck`**, ops-only: `as_cap_mb` 3000; argv, code, outputs and the
+  announced LT14 code hashes unchanged. q0741 / q0743 / q0744 (not yet run) now depend on q0740b and carry `as_cap_mb`
+  3000 / 2000 / 2000 so the same cap cannot stop the seal chain on 11-17. Chain: q0740b -> q0744 -> q0743 -> q0741 -> q0742.
+- **q0750 (M1 host dry run) done** 12:03:47Z (945 s): 36 captures processed, 533 units, **peak RSS 342.4 MB (< 600: no cap
+  breach)**, code_sha `1e9b084f…198b` (= the R1-R3 code), dry-run spec_sha `7c7f4d34…94` (by construction not the real
+  spec). Store `m1_ch263_dryrun` (not canonical; never read by the analysis). Next: reviewer diff check of R1-R3, then the
+  registration commit by 2026-11-22T23:59Z.
+
 ## Signal engine: `ruleedit` family (CH228 + CH187's end-date moves) killed at census, 2026-10-30 ~12:05Z (signal-engine autopilot session 36; development, nothing counted, k = 0)
 - **Definitions before the run:** DESIGN_V1 §43, `signal_engine/rule_edits.py` and
   `census/se_ruleedit_census_2026-10-30.py` committed `c1eb4c77` (12:04:07Z); census started 12:04:39Z with the

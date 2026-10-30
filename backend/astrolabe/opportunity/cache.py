@@ -36,11 +36,18 @@ class _Entry(Generic[T]):
 
 
 class SwrCache(Generic[T]):
-    def __init__(self, *, fresh_ttl: float = 90.0, hard_ttl: float = 900.0):
+    def __init__(self, *, fresh_ttl: float = 90.0, hard_ttl: float = 900.0,
+                 max_entries: int = 8, max_concurrent_builds: int = 1):
         self.fresh_ttl = fresh_ttl
         self.hard_ttl = hard_ttl
+        # Memory bounds (Render Free = 512 MiB; infra 2026-10-11). The key spans top x universe x
+        # view x mode (thousands of combinations), entries were never evicted, and builds for
+        # different keys ran concurrently — each fanning out to dozens of live markets. Keep the
+        # most recent ``max_entries`` boards and run at most ``max_concurrent_builds`` at once.
+        self.max_entries = max(1, max_entries)
         self._entries: dict[str, _Entry[T]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
+        self._build_slots = asyncio.Semaphore(max(1, max_concurrent_builds))
         # Tracks the last outcome for observability/tests: "hit" | "stale" | "miss".
         self.last_status: str | None = None
 
@@ -57,9 +64,26 @@ class SwrCache(Generic[T]):
             entry = self._entries.get(key)
             if entry is not None and (time.monotonic() - entry.stored_at) < self.fresh_ttl:
                 return entry.value
-            value = await builder()
+            async with self._build_slots:
+                value = await builder()
             self._entries[key] = _Entry(value=value, stored_at=time.monotonic())
+            self._evict()
             return value
+
+    def _evict(self) -> None:
+        now = time.monotonic()
+        for k in [k for k, e in self._entries.items() if now - e.stored_at >= self.hard_ttl]:
+            self._drop(k)
+        if len(self._entries) > self.max_entries:
+            for k in sorted(self._entries, key=lambda k: self._entries[k].stored_at)[
+                    : len(self._entries) - self.max_entries]:
+                self._drop(k)
+
+    def _drop(self, key: str) -> None:
+        self._entries.pop(key, None)
+        lock = self._locks.get(key)
+        if lock is not None and not lock.locked():
+            self._locks.pop(key, None)
 
     def _spawn_refresh(self, key: str, builder: Callable[[], Awaitable[T]]) -> None:
         async def _bg() -> None:
