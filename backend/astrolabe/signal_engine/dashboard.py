@@ -6,7 +6,6 @@ embargoed models carry only ``embargoed_until`` (no numbers) until their date.""
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from . import config as C
 from . import specs as SP
@@ -49,7 +48,7 @@ def _attribution(paths: S.Paths, reg: dict, now: float) -> list[dict]:
         if fit is None:
             continue
         try:
-            art = json.loads((Path(fit["_dir"]) / f"{C.PRIMARY_TARGET}.json").read_text())
+            art = T.read_artifact(fit, C.PRIMARY_TARGET)
         except (OSError, ValueError, KeyError):
             continue
         a = art.get("attribution")
@@ -114,6 +113,10 @@ def live_status(paths: S.Paths, now: float) -> dict:
         ih = None
     if ih is not None:
         out["inputs"] = ih
+    try:
+        out["disk"] = S.disk_usage(paths)
+    except Exception:  # noqa: BLE001 - never breaks the dashboard
+        pass
     return out
 
 

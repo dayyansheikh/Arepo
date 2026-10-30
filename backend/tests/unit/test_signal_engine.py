@@ -339,7 +339,8 @@ def test_end_to_end_predict_score_and_embargo(env, monkeypatch):
     assert at and at[0]["hidden"] == ["flow", "tte"] and not {"flow", "tte"} & set(at[0]["families"])
     assert {"market_state", "momentum", "category"} <= set(at[0]["families"]) and at[0]["families"]["momentum"] > 0
     fit = T.latest_fit(paths, "lgb_all", now)
-    raw = json.loads((Path(fit["_dir"]) / "dir_2h.json").read_text())["attribution"]
+    assert fit["artifact_files"]["dir_2h"] == "dir_2h.json.gz" and not (Path(fit["_dir"]) / "dir_2h.json").exists()
+    raw = T.read_artifact(fit, "dir_2h", check_sha=True)["attribution"]
     assert raw["families"]["flow"] >= 0 and raw["block"] == "inner_validation"
     # after the embargo date the same predictions are scored
     later = S.epoch("2026-11-16T00:00:01Z")
@@ -2083,3 +2084,35 @@ def test_dev_refit_full_probe_writes_only_its_own_dev_file(tmp_path, capsys):
     line = [x for x in capsys.readouterr().out.splitlines() if x.startswith("SE_DEV_REFIT_FULL ")][0]
     res = json.loads(line.split(" ", 1)[1])
     assert res["test_days"] and any(v.get("gain_vs_se1") is not None for v in res["targets"].values())
+
+
+def test_fit_artifacts_gzip_and_legacy_plain_json_read_the_same(tmp_path):
+    """DESIGN_V1 §40: new fits store ``<target>.json.gz`` (deterministic bytes, sha of the stored file); fits written
+    before keep plain ``<target>.json`` with no ``artifact_files`` key and load unchanged."""
+    art = {"learner": "lr", "coef": [0.1, -0.2], "temperature": 1.0}
+    raw = json.dumps(art, sort_keys=True, separators=(",", ":")).encode()
+    legacy = tmp_path / "legacy"
+    legacy.mkdir()
+    (legacy / "dir_2h.json").write_bytes(raw)
+    fit_old = {"_dir": str(legacy), "artifact_sha256": {"dir_2h": S.sha256_file(legacy / "dir_2h.json")}}
+    paths = S.Paths(engine=tmp_path / "eng")
+    spec = {"model_id": "m", "_sha256": "x"}
+    T.write_fit(paths, spec, S.epoch("2026-10-30T13:40:00Z"), {"dir_2h": art}, {"targets": {"dir_2h": {"status": "ok"}}})
+    fit_new = T.latest_fit(paths, "m", S.epoch("2026-10-31T00:00:00Z"))
+    p = Path(fit_new["_dir"]) / "dir_2h.json.gz"
+    assert fit_new["artifact_files"] == {"dir_2h": "dir_2h.json.gz"} and gzip.decompress(p.read_bytes()) == raw
+    assert T.load_artifacts(fit_old) == T.load_artifacts(fit_new) == {"dir_2h": art}
+    p.write_bytes(gzip.compress(raw + b" "))  # a changed file fails the sha check
+    with pytest.raises(RuntimeError, match="sha mismatch"):
+        T.load_artifacts(fit_new)
+
+
+def test_disk_usage_flags_the_engine_dir_near_its_cap(tmp_path, monkeypatch):
+    paths = S.Paths(engine=tmp_path / "eng")
+    (tmp_path / "eng").mkdir()
+    monkeypatch.setattr(S, "du_bytes", lambda p: int(0.85 * C.ENGINE_DISK_CAP_GB * 1e9))
+    d = S.disk_usage(paths)
+    assert d["warn"] and d["used_frac"] == 0.85 and d["cap_bytes"] == int(C.ENGINE_DISK_CAP_GB * 1e9)
+    assert D.live_status(paths, S.epoch("2026-10-30T12:00:00Z"))["disk"] == d
+    monkeypatch.setattr(S, "du_bytes", lambda p: 10**9)
+    assert not S.disk_usage(paths)["warn"]
