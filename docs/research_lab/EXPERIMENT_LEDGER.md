@@ -5127,3 +5127,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   served rate, possibly 0; 0.07 only when no schedule is served); S4 via `c251.fee_class`; prices rounded to 6 dp before every
   cell edge. J0 is now `m1_j0` v2 (12 tests); deployed before q0731's start where possible. If q0731 ran on v1, its output's
   `version` field says so and counts differ only for empty-`event_id` units and exact-edge prices (recorded with the output).
+
+## M1-J0 (q0731) counts recorded: 21-day window kept; M2 second draft and LT14 census code merged, 2026-10-30 ~07:10Z (experiments autopilot; counts only, k = 0, uncounted)
+- **q0731 done 05:41Z** on `m1-j0-v2` (host at bf06052d; code sha `m1_j0.py` d16b1b8d…, `run_m1_j0.py` e36d7c7a…), peak RSS
+  297.6 MB. Output `seals/M1_J0_q0731.json` sha256 `eedaa2b3…2c3d`, labelled `informed (M1-J0)`. 84 captures 10-22T04:31Z ..
+  10-30T04:31Z, no missing slot, first 12 warm-up only; 6 full days.
+- **Rules (9.1):** median full-day eligible units **185** (>= 100) and projected 21-day units **3,885** (>= 2,000), so rules
+  (a) / (b) do **not** fire: the 21-day window and every date stay as drafted. Rule (c): sweep-1 covers only **9 of 1,232**
+  units with a finite `ask_size_1` (0.73%; none with S7 past), so capacity stays a covered-subset print only, as declared.
+- Counts (no price, outcome or resolution read): 1,232 eligible units over 740 events; S2 `other` 997, `unknown` 223,
+  economics 6, politics 3, culture 2, weather 1, finance / mentions / tech / geopolitics 0 (raw `other:zero_fees` -> `other`);
+  S4 fee_free 1,220 / fee_on 12; S6 `c <= 0.001` 1,195; S3 member_winner 976 / loser 85 / standalone 171; funnel dominated by
+  out-of-scope sports (200,104 rows) and `already_proposed` (19,694). Unavailable `no_k_minus_1_row`: sports 1,119, crypto 216,
+  in scope 15. 939 of 1,232 units in the engine's resolution candidates (membership only).
+- Not changed by J0: any estimand, split, cost line, threshold or cell. Next: J0 record into the M1 text (status, 6 S2
+  distribution, 9.1 outcome) -> final pre-freeze verification -> design-text freeze.
+- **M2 second draft** merged (1c12f2ed; `MEASUREMENT_M2_CH264.md` sha256 `5076322e…7d8a`): R1 MUST 1-5 and SHOULD 1-9 applied;
+  R1 re-check next. **LT14 census code** stage A merged (491b611f; 42 tests pass, ruff clean; drafts q0740-q0742 not
+  promoted): independent code-freeze check next; no real-data run.
