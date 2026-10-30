@@ -1,13 +1,14 @@
 # Live tests 14 (LT14): the engine at the touch (CH262; the label-origin gross), DRAFT pre-registration
 
-**Status: DRAFT, second draft (2026-10-30 05:49 UTC+1).** This draft applies challenger R1
-(`reviews/LT14_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES, on first-draft sha256 `9012d0d0…d47d`). Every item is mapped in
-section 12. Not frozen, not registered; E-numbers unassigned; nothing counted; no LT14 code, seal or census run. Drafted on
-branch `feat/live-tests-14` (first draft `60bca07f`; this draft on the tip `c2ec0a16`), design-only. LT14 takes the next
-free E-number at its own registration. If its primary drops at the census, LT14 is not registered (a ledger line;
-nothing counted).
+**Status: FROZEN (design text) 2026-10-30, after challenger R1 (`reviews/LT14_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES,
+on first-draft sha256 `9012d0d0…d47d`; section 12), the re-check and pre-freeze verification
+(`reviews/LT14_RECHECK_PREFREEZE_2026-10-30.md`, FREEZE_AFTER_FIXES; fixes 1-7 applied, section 12.y), frozen before the
+2026-11-07T00:00Z deadline (1.1). Not registered; E-numbers unassigned; nothing counted; no LT14 code, seal or census run.
+This file's sha256 is recorded in `EXPERIMENT_LEDGER.md` (the file cannot hold its own hash).** Drafted on branch
+`feat/live-tests-14` (first draft `60bca07f`, second `4e295556`, fixes `5b86863e`), design-only. LT14 takes the next free
+E-number at its own registration. If its primary drops at the census, LT14 is not registered (a ledger line; nothing counted).
 
-Before registration it needs, in order:
+Remaining steps (historical list as drafted; steps 1-2 are now done):
 1. A re-check of this draft and a final pre-freeze verification (`science-reviewer`).
 2. **The design-text freeze commit, before 2026-11-07T00:00Z (hard deadline, 1.1).** The commit records:
    - the sha256 of this file in the ledger;
