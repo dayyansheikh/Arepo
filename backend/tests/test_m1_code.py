@@ -946,3 +946,39 @@ def test_s2_s3_survivorship_states_the_dropped_clause_and_m2_overlap_counts_keyl
     (m2 / "units" / "x.jsonl.gz").write_bytes(gzip.compress(("\n".join(lines) + "\n").encode()))
     res2 = an.run_analysis(store, pins, tmp_path / "o2.json", SPEC, now=ms.after_readout(SPEC))
     assert res2["m2_overlap"]["m2_lines_missing_a_key"] == 3 and res2["m2_overlap"]["m2_unit_ids_read"] == 1
+
+
+def _late_capture(snap, k, name, smin, fmin, src):
+    A = snap / name
+    shutil.copytree(src, A)
+    m = json.loads((A / "manifest.json").read_text())
+    m.update(capture_id=name, started_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=smin)), finished_utc=ms.iso(ms.tcap(k) + ms.timedelta(minutes=fmin)))
+    (A / "manifest.json").write_text(json.dumps(m))
+
+
+def test_must1b_every_on_time_capture_delivered_after_missing_recorded_is_late(tmp_path):
+    """Reviewer probe miss2 (missing): two on-time captures arrive after the slot was recorded missing; both are recorded."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    hold = tmp_path / "hold"
+    ms.move_capture(snap, hold, k)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw, now=ms.tcap(k).timestamp() + 6 * 3600 + 600)
+    _late_capture(snap, k, "X1", 0, 100, hold / ms.cid(k))
+    _late_capture(snap, k, "X2", 5, 120, hold / ms.cid(k))
+    run(store, snap, sw)
+    for n in ("X1", "X2"):
+        assert json.loads((store / "status" / f"late_{n}.json").read_text())["reason"] == "delivered_after_missing_recorded"
+    assert ex.audit_chain(store, SPEC)["ok"]
+
+
+def test_should1b_tie_on_start_uses_the_choosers_key(tmp_path):
+    """Reviewer probe miss2 (tie): same start, smaller id, arrives after the decision: late (would have been chosen), not dup."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    _late_capture(snap, k, "0_tie", 0, 100, snap / ms.cid(k))
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "late_0_tie.json").read_text())["reason"] == "on_time_but_delivered_after_slot_decided"
+    assert not (store / "status" / "dup_0_tie.json").exists()
