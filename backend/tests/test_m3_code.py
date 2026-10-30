@@ -145,7 +145,7 @@ def write_capture(root: Path, k: int, mkts: dict, fin_after_s: float | None = 30
         w.writerow(RCOLS)
         for mid, f in mkts.items():
             f = eff(f, k)
-            if not is_present(f, k):
+            if not is_present(f, k) or any(lo <= k <= hi for lo, hi in f.get("no_row", ())):
                 continue
             bid, ask = at(f["px"], k)
             w.writerow([mid, f["event"], "1", bid, ask, at(f["closed"], k), "true", f["end"], f["liq"], rec, f"t{mid}_0", "YES_WON_SECRET"])
@@ -766,14 +766,17 @@ def test_removing_both_blind_recorders_leaves_units_and_state_byte_identical(tmp
         assert strip_blind(sta[k]) == strip_blind(stb[k]), k
 
 
-def alter_after_k(mkts: dict, mid: int, k_from: int, absent: bool = False) -> dict:
-    """Every field of market ``mid`` changed from capture ``k_from`` on (prices, flags, end date, category, tick, event, liquidity, fee fields, sidecar status), or the row removed."""
+def alter_after_k(mkts: dict, mid: int, k_from: int, absent: bool = False, same_event: bool = False) -> dict:
+    """Every field of market ``mid`` changed from capture ``k_from`` on (prices, flags, end date, category, tick, event, liquidity, fee fields, sidecar status), or the row removed.
+    ``same_event=True`` keeps the market in its own event (the sibling case: an earlier unit of the same event that changes or leaves the listing after its k)."""
     m = copy.deepcopy(mkts)
     f = m[mid]
     f["px"] = [*[x for x in f["px"] if x[0] < k_from], (k_from, ("0.10", "0.12"))]
     f["uma"] = [*[x for x in f["uma"] if x[0] < k_from], (k_from, "garbage")]
     over = {"end": "2026-10-21T00:00:00Z", "created": "2026-10-20T20:00:00Z", "cat": "sports", "acc": "false", "tick": "0.5", "liq": "1", "fe": "true", "fsch": FEE4, "event": "eZ",
             "closed": [(0, "true")]}
+    if same_event:
+        over.pop("event")
     if absent:
         over = {"present": (0, k_from - 1)}
     f["alt"] = (k_from, over)
@@ -858,18 +861,33 @@ def test_j0_writes_no_unit_follow_up_or_state_file_and_prints_rule_a(tmp_path):
         m3.M3Pass(window_start=WS, dry_run=True, store=tmp_path / "x")
 
 
-def test_j0_rule_a_fires_below_48_units_a_day_on_full_days(tmp_path):
+def _j0_pass(n_days: int, per_day: int, caps_per_day: int = 12):
     mp = m3.M3Pass(window_start=WS, dry_run=True)
-    day = "2026-10-20"
     t0 = datetime(2026, 10, 20, 0, 31, tzinfo=UTC).timestamp()
-    mp.classified = [{"id": str(i), "start": t0 + i * 7200.0, "slot": i} for i in range(12)]
-    mp.units = [{"day": day, "event_id": f"e{i}", "cells": {f"S{j}": "x" for j in range(1, 14)}, "rule_class": "other", "cat_k": "politics", "tier": "lt1k", "gap_sidecar_minus_row_s": 60.0}
-                for i in range(47)]
-    rep = mp.report_j0(t0, t0 + 86400.0, None, 12)
-    assert rep["decisions"]["median_full_day_units"] == 47.0 and rep["decisions"]["rule_a_extend_to_42_days"] is True and rep["decisions"]["rule_b_record_only"] is True
-    mp.units.append(dict(mp.units[0], event_id="e47"))
-    rep = mp.report_j0(t0, t0 + 86400.0, None, 12)
-    assert rep["decisions"]["rule_a_extend_to_42_days"] is False and rep["decisions"]["projected_21_day_units"] == 48 * 21
+    days = [(datetime(2026, 10, 20, tzinfo=UTC) + timedelta(days=d)).strftime("%Y-%m-%d") for d in range(n_days)]
+    mp.classified = [{"id": f"{d}-{i}", "start": t0 + dd * 86400.0 + i * 7200.0, "slot": i} for dd, d in enumerate(days) for i in range(caps_per_day)]
+    mp.units = [{"day": d, "event_id": f"e{d}-{i}", "cells": {f"S{j}": "x" for j in range(1, 14)}, "rule_class": "other", "cat_k": "politics", "tier": "lt1k", "gap_sidecar_minus_row_s": 60.0}
+                for d in days for i in range(per_day)]
+    return mp, t0
+
+
+def test_j0_rule_a_fires_below_48_units_a_day_on_full_days():
+    mp, t0 = _j0_pass(3, 47)
+    d = mp.report_j0(t0, t0 + 3 * 86400.0, None, 12)["decisions"]
+    assert d["full_days"] == 3 and d["rule_a_result"] == "extend_42" and d["median_full_day_units"] == 47.0 and d["rule_a_extend_to_42_days"] is True and d["rule_b_record_only"] is True
+    mp, t0 = _j0_pass(3, 48)
+    d = mp.report_j0(t0, t0 + 3 * 86400.0, None, 12)["decisions"]
+    assert d["rule_a_result"] == "keep_21" and d["rule_a_extend_to_42_days"] is False and d["projected_21_day_units"] == 48 * 21 and d["rule_b_record_only"] is False
+
+
+def test_j0_fewer_than_three_full_days_is_not_evaluable_and_extends_to_42_days():
+    """10.1 (MUST 2): a full day has 12 classified captures; fewer than 3 full days -> not_evaluable_extend_42, whatever the unit counts are."""
+    for n_days, caps in ((2, 12), (3, 11), (0, 12)):
+        mp, t0 = _j0_pass(n_days, 500, caps)
+        rep = mp.report_j0(t0, t0 + 4 * 86400.0, None, 12)
+        d = rep["decisions"]
+        assert d["rule_a_result"] == "not_evaluable_extend_42" and d["rule_a_extend_to_42_days"] is True and d["median_full_day_units"] is None and d["rule_b_record_only"] is None
+        assert d["full_days"] == (n_days if caps == 12 else 0) and rep["span"]["full_days"] == (rep["span"]["full_days"] if caps == 12 else [])
 
 
 def test_j0_reads_no_post_k_content_for_a_hypothetical_unit(tmp_path):
@@ -1063,3 +1081,191 @@ def test_counted_missingness_reaches_the_status_files(tmp_path):
     assert ss[f"{cid(8)}.json"]["notes"] == {}
     assert sum(d["counts"].get("t_d_source:receipt", 0) for d in ss.values() if d["kind"] == "processed") == len(read_units(st))
     assert all("units" in d for d in ss.values() if d["kind"] == "processed")
+
+
+# --- MUST 1 (code check 2026-10-30): the event member count never reads an earlier unit's row after its k ----------------------------------
+
+def sibling_world(**kw) -> dict:
+    """Probe p1: markets 1 and 40 of one event; market 1 is a unit at k = 7, market 40 crosses at k = 10."""
+    return {1: mk(event="eP", **kw), 40: mk(px=[(0, ("0.91", "0.93")), (10, ("0.95", "0.96"))], event="eP")}
+
+
+def _unit_of(store: Path, mid: int) -> dict:
+    return next(u for u in read_units(store) if u["market_id"] == mid)
+
+
+def test_must1_event_count_of_a_later_unit_ignores_the_earlier_units_row_after_its_k(tmp_path):
+    base = sibling_world()
+    variants = {"base": base, "closed": alter_after_k(base, 1, 9, same_event=True), "gone": alter_after_k(base, 1, 9, absent=True, same_event=True),
+                "no_row": {**base, 1: {**base[1], "no_row": [(9, 15)]}}}
+    out = {}
+    for name, mm in variants.items():
+        snap, rr = build(tmp_path / name, mm)
+        st = tmp_path / name / "research_lab" / "m3_ch274_dryrun"
+        run(snap, rr, st)
+        out[name] = st
+    u0 = _unit_of(out["base"], 40)
+    assert u0["event_open_binary_members"] == 2 and u0["cells"]["S6"] == "member_yes" and u0["cells"]["S8"] == "2-5"
+    assert _unit_of(out["base"], 1)["event_open_binary_members"] == 2  # market 1 at its own k = 7: market 40 is not yet a unit and its row at k = 7 is open
+    for name in ("closed", "gone", "no_row"):
+        u = _unit_of(out[name], 40)
+        assert u == u0, name  # S6, S8, the count and the whole unit record do not change
+    # the dry (J0) pass gives the same cells
+    for name in ("base", "closed", "gone"):
+        snap = tmp_path / name / "research_lab" / "snapshots"
+        info = m3.discover_all(snap, 0.0, 4.1e9)
+        mp = m3.M3Pass(window_start=WS, window_end=None, rules=m3.RulesIndex.load(tmp_path / name / "research_lab" / "stream_gamma_rules"), dry_run=True)
+        mp.run_available(info["caps"], now=math.inf, side=info)
+        c = next(u for u in mp.units if u["market_id"] == 40)["cells"]
+        assert (c["S6"], c["S8"]) == ("member_yes", "2-5"), name
+
+
+def test_must1_open_siblings_that_are_not_units_are_counted_from_their_rows_at_k_and_unit_meta_carries_the_event(tmp_path):
+    mm = sibling_world()
+    mm[41] = mk(px=[(0, ("0.50", "0.52"))], event="eP")  # never near: counted at k by its row
+    snap, rr = build(tmp_path, mm)
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    run(snap, rr, st)
+    assert _unit_of(st, 40)["event_open_binary_members"] == 3 and _unit_of(st, 1)["event_open_binary_members"] == 3
+    head = json.loads((st / "state.json").read_text().splitlines()[0])
+    assert head["units"]["1"][3] == "eP" and head["units"]["40"][3] == "eP"
+
+
+def test_must1_alter_after_k_same_event_changes_the_sibling_row_but_not_the_unit(tmp_path):
+    mm = alter_after_k(sibling_world(), 1, 8, same_event=True)
+    assert mm[1]["alt"][1].get("event") is None and mm[1]["alt"][1]["closed"] == [(0, "true")]
+
+
+# --- SHOULD 1: the rules index is streamed, only the new bytes, nothing once the window is closed --------------------------------------------
+
+def _ledger_dump(mp) -> dict:
+    return {"recs": {m: mp.ledger.records(m) for m in mp.ledger.markets()}, "shas": mp.ledger.sha_items(), "days": sorted(mp.merged_days)}
+
+
+def test_should1_streamed_merge_equals_the_whole_index_merge_across_growing_day_files(tmp_path):
+    snap, rr = build(tmp_path)
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    mp = m3.M3Pass(window_start=WS, window_end=WE, dry_run=False, store=st, spec_sha="a" * 64, rules_root=rr)
+    mp.merge_rule_ledger()
+    base = _ledger_dump(mp)
+    assert base == _ledger_dump(_eager(rr))
+    # a day file grows (new committed poll, a duplicate of an existing record, a torn tail) and a second day file appears
+    f = rr / f"{T0:%Y%m%d}.jsonl"
+    fin = iso(tcap(12))
+    extra = [json.dumps({"kind": "row", "slot": "s9", "key": "m:1", "reason": "new", "sha": "sh1c", "data": {"question": "it will hit 5", "description": "", "resolutionSource": ""}}),
+             json.dumps({"kind": "poll", "slot": "s9", "ok": True, "started_utc": fin, "finished_utc": fin}),
+             json.dumps({"kind": "row", "slot": "s10", "key": "m:2", "reason": "new", "sha": "sh2b", "data": {"question": "fomc", "description": "", "resolutionSource": ""}})]  # torn tail
+    f.write_text(f.read_text() + "\n".join(extra) + "\n")
+    (rr / "20261021.jsonl").write_text("\n".join([extra[0].replace("s9", "t1"), json.dumps({"kind": "poll", "slot": "t1", "ok": True, "started_utc": fin, "finished_utc": fin})]) + "\n")
+    mp.merge_rule_ledger()
+    now = _ledger_dump(mp)
+    assert now == _ledger_dump(_eager(rr)) and now != base
+    again = _ledger_dump(mp)
+    mp.merge_rule_ledger()  # nothing new: no file is read
+    assert _ledger_dump(mp) == again
+    # the torn tail completes in a later pass and is picked up from the saved offset
+    f.write_text(f.read_text() + json.dumps({"kind": "poll", "slot": "s10", "ok": True, "started_utc": fin, "finished_utc": fin}) + "\n")
+    mp.merge_rule_ledger()
+    assert _ledger_dump(mp) == _ledger_dump(_eager(rr))
+    assert set(mp.rules_offsets) == {"20261020", "20261021"}
+
+
+def _eager(rr):
+    mp = m3.M3Pass(window_start=WS, window_end=WE, rules=m3.RulesIndex.load(rr), dry_run=True)
+    mp.merge_rule_ledger()
+    return mp
+
+
+def test_should1_no_day_file_is_opened_once_the_window_is_closed_and_the_offsets_survive_a_restart(tmp_path, monkeypatch):
+    snap, rr = build(tmp_path)
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    run(snap, rr, st)
+    head = json.loads((st / "state.json").read_text().splitlines()[0])
+    assert head["rules_offsets"]["20261020"][0] == (rr / f"{T0:%Y%m%d}.jsonl").stat().st_size
+    (rr / "20261022.jsonl").write_text("x\n")
+    calls = []
+    monkeypatch.setattr(m3, "parse_day_file", lambda *a, **k: calls.append(a) or 0)
+    run(snap, rr, st)  # a second pass: the window is closed (a slot at or after END has been folded)
+    assert calls == []
+    assert "20261022" not in json.loads((st / "state.json").read_text().splitlines()[0])["merged_days"]
+
+
+# --- SHOULD 2, 4, 6, 7 ----------------------------------------------------------------------------------------------------------------------
+
+def test_should2_the_run_log_carries_timing_per_capture_and_phase(tmp_path):
+    snap, rr = build(tmp_path)
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    rec = run(snap, rr, st)
+    line = json.loads((st / "logs" / "j1_runs.jsonl").read_text().splitlines()[-1])
+    assert line["timing_s"]["pass_total"] >= 0 and {"discover_s", "scan_s", "merge_rules_s", "state_stage_s"} <= set(line["timing_s"])
+    assert len(line["capture_s"]) == len(rec["capture_s"]) == N
+    for p in sorted((st / "status").glob("*.json")):
+        assert "timing" not in p.read_text() and "capture_s" not in p.read_text()  # the status chain stays deterministic
+
+
+def test_should4_a_unit_with_a_sidecar_row_but_no_main_row_keeps_its_status_fields(tmp_path):
+    mm = worlds_markets()
+    mm[1]["no_row"] = [(10, 15)]
+    snap, rr = build(tmp_path, mm)
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    run(snap, rr, st)
+    with gzip.open(st / "followup" / f"{cid(10)}.jsonl.gz", "rt") as fh:
+        lines = [json.loads(x) for x in fh]
+    one = next(x for x in lines if x.get("unit_id") == "m3:1")
+    assert one["row_present"] is False and one["closed"] is None and one["accepting_orders"] == "true" and one["uma_raw"] is not None
+
+
+def test_should6_a_blind_file_is_never_re_read_on_a_crash_re_run(tmp_path, monkeypatch):
+    mp = m3.M3Pass(window_start=WS, window_end=WE, dry_run=False, store=tmp_path / "s", spec_sha="a" * 64)
+    p = tmp_path / "s" / "followup" / "cap1.jsonl.gz"
+    mp._write_once(p, b"blob", blind_key="followup")
+
+    def boom(self):
+        raise AssertionError("a blind file was opened")
+
+    monkeypatch.setattr(Path, "read_bytes", boom)
+    mp._write_once(p, b"blob", blind_key="followup")  # status not written yet: the byte length (stat) matches
+    with pytest.raises(FileExistsError):
+        mp._write_once(p, b"blob2", blind_key="followup")
+    (tmp_path / "s" / "status" / "cap1.json").write_text(json.dumps({"followup": {"sha256": m3.sha256_bytes(b"blob"), "lines": 1}}))
+    mp._write_once(p, b"blob", blind_key="followup")  # the sha256 the status recorded
+    with pytest.raises(FileExistsError):
+        mp._write_once(p, b"blub", blind_key="followup")  # same length, other bytes: the recorded sha256 refuses
+
+
+def test_should7_an_uncaught_exception_exits_4_and_output_exists_stays_1(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(runner, "run_j0_cmd", lambda a: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert runner.main(["j0", "--snapshot-root", str(tmp_path), "--out", str(tmp_path / "o.json")]) == 4
+    assert "boom" in capsys.readouterr().err
+
+
+def test_runner_j0_prints_full_days_and_rule_a_result_and_dry_run_end_is_fixed(tmp_path, capsys):
+    snap, rr = build(tmp_path)
+    out = tmp_path / "research_lab" / "m3_ch274_j0" / "M3_J0.json"
+    assert runner.main(["j0", "--snapshot-root", str(snap), "--rules-root", str(rr), "--last-days", "1", "--lookback-slots", "4", "--out", str(out)]) == 0
+    line = capsys.readouterr().out
+    assert "full_days=0" in line and "rule_a_result=not_evaluable_extend_42" in line
+    assert json.loads(out.read_text())["decisions"]["rule_a_result"] == "not_evaluable_extend_42"
+    st = tmp_path / "research_lab" / "m3_ch274_dryrun"
+    end = iso(tcap(N - 2))
+    assert runner.main(["j1", "--store", str(st), "--snapshot-root", str(snap), "--rules-root", str(rr), "--dry-run-last-days", "1", "--dry-run-end-utc", end, "--no-pad"]) == 0
+    assert runner.main(["j1", "--store", str(st), "--snapshot-root", str(snap), "--rules-root", str(rr), "--dry-run-last-days", "1", "--dry-run-end-utc", end, "--no-pad"]) == 0  # same fixed end: same spec_sha, the stored state is accepted
+    assert runner.main(["j1", "--store", str(tmp_path / "x" / "research_lab" / "m3_ch274_dryrun"), "--snapshot-root", str(snap), "--dry-run-last-days", "1", "--dry-run-end-utc", "nope"]) == 2
+
+
+def test_should3_serial_dry_run_wrapper_only_plans_dry_runs_and_refuses_other_bases(tmp_path, capsys):
+    spec_ = importlib.util.spec_from_file_location("serial_under_test", Path(__file__).resolve().parents[1] / "scripts" / "serial_dryrun_m123.py")
+    ser = importlib.util.module_from_spec(spec_)
+    sys.modules["serial_under_test"] = ser
+    spec_.loader.exec_module(ser)
+    snap, rr = build(tmp_path)
+    base = tmp_path / "research_lab" / "serial_dryrun"
+    args = ["--base", str(base), "--snapshot-root", str(snap), "--rules-root", str(rr), "--sweep-root", str(tmp_path / "sw"), "--dumps-root", str(tmp_path), "--out",
+            str(tmp_path / "research_lab" / "o.json"), "--print-plan"]
+    assert ser.main(args) == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert [p["name"] for p in plan] == ["m1_catch_up", "m2_catch_up", "m3_catch_up", "m3_steady_state"]
+    for p in plan:
+        store = p["argv"][p["argv"].index("--store") + 1]
+        assert "--dry-run-last-days" in p["argv"] and store.endswith(("m1_ch263_dryrun", "m2_ch264_dryrun", "m3_ch274_dryrun"))
+    assert ser.main([args[0], str(tmp_path / "research_lab" / "m3_ch274"), *args[2:]]) == 2  # not a serial_dryrun base

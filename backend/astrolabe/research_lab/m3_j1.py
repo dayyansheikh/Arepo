@@ -296,67 +296,86 @@ class RulesIndex:
             ix.info["files"] += 1
             ix.info["oldest_file"] = ix.info["oldest_file"] or f.name
             ix.info["newest_file"] = f.name
-            day = f.stem
-            ix.days.append(day)
-            pending: list = []
-            with open(f, encoding="utf-8") as fh:
-                for line in fh:
-                    if '"row"' not in line and '"hash"' not in line and '"poll"' not in line:
-                        continue
-                    try:
-                        d = json.loads(line)
-                    except ValueError:
-                        continue
-                    kind = d.get("kind")
-                    if kind in ("row", "hash"):
-                        key = str(d.get("key", ""))
-                        if not key.startswith("m:"):
-                            continue
-                        try:
-                            mid = int(key[2:])
-                        except ValueError:
-                            continue
-                        if kind == "row":
-                            data = d.get("data")
-                            if isinstance(data, str):
-                                try:
-                                    data = json.loads(data)
-                                except ValueError:
-                                    data = {}
-                            if not isinstance(data, dict):
-                                continue
-                            pending.append((d.get("slot"), mid, "row", classify_rule(data), d.get("sha")))
-                        else:
-                            pending.append((d.get("slot"), mid, "hash", None, d.get("sha")))
-                    elif kind == "poll":
-                        ix.info["poll_lines"] += 1
-                        if d.get("ok") is True:
-                            ix.info["poll_ok"] += 1
-                            t = c240.parse_utc(d.get("finished_utc"))
-                            if math.isfinite(t):
-                                ix.info["poll_ok_with_parseable_receipt"] += 1
-                                if c240.day_of(t).replace("-", "") != day:
-                                    ix.info["commits_crossing_midnight"] += 1  # day files are keyed by poll start (streams/common.py:366)
-                                t0 = c240.parse_utc(d.get("started_utc"))
-                                if math.isfinite(t0) and t >= t0:
-                                    ix.info["max_poll_duration_s"] = max(ix.info["max_poll_duration_s"] or 0.0, t - t0)
-                            slot = d.get("slot")
-                            for sl, mid, k2, cls_, sh in pending:
-                                if sl != slot:
-                                    ix.info["rows_torn_or_failed"] += 1
-                                    continue
-                                if not math.isfinite(t):
-                                    ix.info["records_without_receipt"] += 1
-                                ix.by_mid.setdefault(mid, []).append((t if math.isfinite(t) else None, day, k2, cls_, sh))
-                                ix.info["rows_committed" if k2 == "row" else "hash_committed"] += 1
-                                if k2 == "row" and sh:
-                                    ix.sha_class[sh] = cls_
-                        else:
-                            ix.info["rows_torn_or_failed"] += len(pending)
-                        pending = []
-            ix.info["rows_torn_or_failed"] += len(pending)
+            ix.days.append(f.stem)
+
+            def on_rec(mid, rec, _ix=ix):
+                _ix.by_mid.setdefault(mid, []).append(rec)
+                _ix.info["rows_committed" if rec[2] == "row" else "hash_committed"] += 1
+                if rec[2] == "row" and rec[4]:
+                    _ix.sha_class[rec[4]] = rec[3]
+
+            parse_day_file(f, 0, ix.info, on_rec)
         ix.info["markets"] = len(ix.by_mid)
         return ix
+
+
+def parse_day_file(f: Path, start: int, info: dict, on_rec) -> int:
+    """Stream one ``gamma_rules`` day file from byte ``start`` and call ``on_rec(mid, record)`` for every committed ``row`` / ``hash`` record (record = (commit time or None, day,
+    kind, class, sha)) in file order. Rows of a slot without a following ``ok`` poll line are torn and ignored. Returns the byte offset just after the last poll line, so a later pass
+    resumes there (rows after it are not committed yet and are re-read then). Counters go to ``info``."""
+    day = f.stem
+    pending: list = []
+    offset = start
+    pos = start
+    with open(f, "rb") as fh:
+        fh.seek(start)
+        for raw in fh:
+            pos += len(raw)
+            line = raw.decode("utf-8")
+            if '"row"' not in line and '"hash"' not in line and '"poll"' not in line:
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            kind = d.get("kind")
+            if kind in ("row", "hash"):
+                key = str(d.get("key", ""))
+                if not key.startswith("m:"):
+                    continue
+                try:
+                    mid = int(key[2:])
+                except ValueError:
+                    continue
+                if kind == "row":
+                    data = d.get("data")
+                    if isinstance(data, str):
+                        try:
+                            data = json.loads(data)
+                        except ValueError:
+                            data = {}
+                    if not isinstance(data, dict):
+                        continue
+                    pending.append((d.get("slot"), mid, "row", classify_rule(data), d.get("sha")))
+                else:
+                    pending.append((d.get("slot"), mid, "hash", None, d.get("sha")))
+            elif kind == "poll":
+                info["poll_lines"] += 1
+                if d.get("ok") is True:
+                    info["poll_ok"] += 1
+                    t = c240.parse_utc(d.get("finished_utc"))
+                    if math.isfinite(t):
+                        info["poll_ok_with_parseable_receipt"] += 1
+                        if c240.day_of(t).replace("-", "") != day:
+                            info["commits_crossing_midnight"] += 1  # day files are keyed by poll start (streams/common.py:366)
+                        t0 = c240.parse_utc(d.get("started_utc"))
+                        if math.isfinite(t0) and t >= t0:
+                            info["max_poll_duration_s"] = max(info["max_poll_duration_s"] or 0.0, t - t0)
+                    slot = d.get("slot")
+                    for sl, mid, k2, cls_, sh in pending:
+                        if sl != slot:
+                            info["rows_torn_or_failed"] += 1
+                            continue
+                        if not math.isfinite(t):
+                            info["records_without_receipt"] += 1
+                        on_rec(mid, (t if math.isfinite(t) else None, day, k2, cls_, sh))
+                else:
+                    info["rows_torn_or_failed"] += len(pending)
+                pending = []
+                offset = pos
+    info["rows_torn_or_failed"] += len(pending)
+    return offset
+
 
 
 def _day_end_ts(day: str) -> float:
@@ -442,6 +461,12 @@ class Ledger:
 
     def add_class(self, sh: str, cls_name: str) -> None:
         self.sha_class.setdefault(self.pack_sha(sh), self._code(cls_name))
+
+    def set_class(self, sh: str, cls_name: str) -> None:
+        self.sha_class[self.pack_sha(sh)] = self._code(cls_name)
+
+    def has_sha(self, sh: str) -> bool:
+        return self.pack_sha(sh) in self.sha_class
 
     def records(self, mid: int) -> list:
         out = []
@@ -572,13 +597,16 @@ class M3Pass:
     """Folds captures strictly in time order (10.2). See the module docstring for dry (J0) versus J1."""
 
     def __init__(self, *, window_start: float, window_end: float | None = None, rules: RulesIndex | None = None, lookback_from: float | None = None, dry_run: bool = True,
-                 store: Path | None = None, spec_sha: str = "", record_followup: bool = True, record_proposals: bool = True, followup_until: float | None = None) -> None:
+                 store: Path | None = None, spec_sha: str = "", record_followup: bool = True, record_proposals: bool = True, followup_until: float | None = None,
+                 rules_root: Path | None = None) -> None:
         if dry_run and store is not None:
             raise DryModeError("dry mode (M3-J0) writes no units store, no state file, no follow-up file and no proposal-set file")
         if not dry_run and store is None:
             raise ValueError("J1 needs a store directory")
         self.window_start, self.window_end = window_start, window_end
         self.rules = rules or RulesIndex()
+        self.rules_root = Path(rules_root) if rules_root is not None else None  # J1: day files are streamed into the ledger, only the new bytes of each pass
+        self.rules_offsets: dict = {}  # day -> [file size seen, byte offset after the last committed poll line]
         self.lookback_from = lookback_from
         self.ledger = Ledger()
         self.merged_days: set = set()
@@ -599,7 +627,7 @@ class M3Pass:
         self.near_seen: set = set()
         self.near_seen_in_scope = 0
         self.ever_seen: set = set()
-        self.unit_meta: dict = {}  # market id -> [side, k slot, k capture directory id]
+        self.unit_meta: dict = {}  # market id -> [side, k slot, k capture directory id, event_id at its own k]
         self.prev: dict | None = None
         # counts
         self.funnel: Counter = Counter()
@@ -616,6 +644,9 @@ class M3Pass:
         self.side_by_day: Counter = Counter()
         self.notes: Counter = Counter()
         self._cap_funnel: Counter = Counter()
+        self._ev_units: Counter = Counter()
+        self.phase_s: Counter = Counter()  # wall time by phase (run log only; never in a unit, status or state file)
+        self.cap_s: list = []
         self.units: list[dict] = []
         self.classified: list[dict] = []
         self.state_sha = "none"
@@ -642,7 +673,7 @@ class M3Pass:
         tmp = self._state_path().with_suffix(".tmp")
         head = {"version": VERSION, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "last_slot": self.last_slot, "last_start": self.last_t if math.isfinite(self.last_t) else None,
                 "last_capture_id": self.last_id, "last_kind": self.last_kind, "slot_capture": dict(sorted(self.slot_capture.items(), key=lambda kv: int(kv[0]))),
-                "processed_slots": sorted(self.processed_slots), "missing_slots": sorted(self.missing_slots), "merged_days": sorted(self.merged_days),
+                "processed_slots": sorted(self.processed_slots), "missing_slots": sorted(self.missing_slots), "merged_days": sorted(self.merged_days), "rules_offsets": dict(sorted(self.rules_offsets.items())),
                 "near_seen": sorted(self.near_seen), "near_seen_in_scope": self.near_seen_in_scope, "ever_seen": sorted(self.ever_seen),
                 "units": {str(m): v for m, v in sorted(self.unit_meta.items())}}
         with open(tmp, "wb") as fh:
@@ -695,6 +726,7 @@ class M3Pass:
                     self.processed_slots = set(d.get("processed_slots", ()))
                     self.missing_slots = set(d.get("missing_slots", ()))
                     self.merged_days = {str(x) for x in d.get("merged_days", ())}
+                    self.rules_offsets = {str(k): list(v) for k, v in (d.get("rules_offsets") or {}).items()}
                     self.near_seen = {int(x) for x in d.get("near_seen", ())}
                     self.near_seen_in_scope = int(d.get("near_seen_in_scope", 0))
                     self.ever_seen = {int(x) for x in d.get("ever_seen", ())}
@@ -736,8 +768,13 @@ class M3Pass:
     def merge_rule_ledger(self) -> None:
         """Merge the retained day files' committed records into the append-only ledger (never pruned) and record which day files were merged (the source of ``rules_gap``).
         Called at the start of every pass. Once the pass has folded a slot at or after ``window_end`` it stops: no further unit can be created (captures at or after END_UTC are
-        follow-up only), so the ledger keeps its end-of-window size."""
+        follow-up only), so the ledger keeps its end-of-window size, and the day files are not even opened. With ``rules_root`` (J1) each day file is streamed from the byte offset
+        after its last committed poll line (a file whose size has not changed is skipped), grouped per market within the file and deduplicated against the ledger exactly as the
+        whole-index merge does; the output is the same as re-reading every file."""
         if self.window_end is not None and self.last_slot is not None and slot_time(self.last_slot) >= self.window_end:
+            return
+        if self.rules_root is not None:
+            self._merge_streamed()
             return
         for mid, recs in self.rules.by_mid.items():
             have = set(self.ledger.records(mid))
@@ -751,6 +788,41 @@ class M3Pass:
         self.merged_days.update(self.rules.days)
         self.rules.by_mid = {}  # the ledger holds every record from here on; free the second copy (memory cap)
         self.rules.sha_class = {}
+
+    def _merge_streamed(self) -> None:
+        root = self.rules_root
+        if root is None or not root.is_dir():
+            return
+        info = RulesIndex().info
+        pass_shas: set = set()  # shas set during this pass: within one pass the LAST file's class wins (as one load), against earlier passes the first class stays (setdefault)
+        for f in sorted(root.glob("*.jsonl")):
+            day = f.stem
+            self.merged_days.add(day)
+            size = f.stat().st_size
+            seen = self.rules_offsets.get(day)
+            if seen is not None and seen[0] == size:
+                continue
+            start = seen[1] if seen is not None and seen[1] <= size else 0
+            per_mid: dict = {}
+            shas: list = []
+
+            def on_rec(mid, rec, _per=per_mid, _shas=shas):
+                _per.setdefault(mid, []).append(rec)
+                if rec[2] == "row" and rec[4]:
+                    _shas.append((rec[4], rec[3]))
+
+            off = parse_day_file(f, start, info, on_rec)
+            for mid, recs in per_mid.items():
+                have = set(self.ledger.records(mid))
+                for r in recs:
+                    if r not in have:
+                        have.add(r)
+                        self.ledger.append(mid, r)
+            for sh, c in shas:
+                if sh in pass_shas or not self.ledger.has_sha(sh):
+                    self.ledger.set_class(sh, c)
+                pass_shas.add(sh)
+            self.rules_offsets[day] = [size, off]
 
     def unmerged_days(self, k_day: str) -> list[str]:
         """Day files in [RULES_FIRST_DAY, k's day] that were never merged (3.5)."""
@@ -799,7 +871,7 @@ class M3Pass:
                 if not fold:
                     continue
                 seen_now.append(mid)
-                if c240._truthy(tup[2]) and not c240._truthy(tup[5]) and c240._truthy(tup[6]):
+                if mid not in unit_mids and c240._truthy(tup[2]) and not c240._truthy(tup[5]) and c240._truthy(tup[6]):  # an earlier unit's row is never counted (3.4): it joins from state
                     evc[tup[1] if str(tup[1]).strip() else f"market:{mid}"] += 1
                 if mid in near:
                     continue
@@ -818,7 +890,7 @@ class M3Pass:
         p_new: list = []
         ext_pres = None
         ext_p = d / "rows_ext.csv.gz"
-        wanted = set(cand) | set(unit_rows)
+        wanted = set(cand) | set(unit_mids)  # a sidecar row for every unit, even when its main row is absent
         prev_uma = self.prev["uma"] if (want_proposals and self.prev) else None
         if ext_p.exists():
             it2 = iter_csv(ext_p, EXT_COLS)
@@ -859,12 +931,15 @@ class M3Pass:
         after_window = self.window_end is not None and start >= self.window_end
         if not self.dry and not after_window and (self.store / "manifest.json").exists():
             raise sp.M3Refusal("J1 refuses an extractor write: the unit manifest exists (the unit set is closed; J1 continues as the recorder only)")
+        t_feed = time.perf_counter()
         sha_before, id_before = self.state_sha, self.last_id
         notes_before = Counter(self.notes)
         has_prev = self.prev is not None and self.prev["slot"] == s - 1
         classify = in_window and has_prev and self.prev["start"] >= self.window_start
         want_prop = bool(in_window and has_prev and self.record_proposals and not self.dry)
+        t_a = time.perf_counter()
         sc = self._scan(cap, fold=not after_window, want_proposals=want_prop)
+        self.phase_s["scan_s"] += time.perf_counter() - t_a
         day = c240.day_of(start)
         new_units: list[dict] = []
         status: dict = {"kind": "processed", "capture_id": cap["capture_id"], "id": cap["id"], "slot": s, "grid_utc": iso(slot_time(s)), "start_utc": iso(start),
@@ -880,7 +955,9 @@ class M3Pass:
             local["crossed_book"] += sc["crossed"]
             local["wide_book_high_ask"] += sc["wide"]
             if classify:
+                t_a = time.perf_counter()
                 new_units = self._classify(sc, day, local)
+                self.phase_s["classify_s"] += time.perf_counter() - t_a
             else:
                 for mid in sorted(sc["cand"]):
                     if in_window:
@@ -901,12 +978,14 @@ class M3Pass:
             local["near_seen_in_scope"] = self.near_seen_in_scope
         # blind recorders (10.2). Units created at this capture are not included (k < j).
         fu_info = pr_info = None
+        t_a = time.perf_counter()
         if not self.dry and self.record_followup and self.unit_meta and start < self.followup_until:
             fu_info = self._write_followup(cap, sc)
         if want_prop:
             pr_info = self._write_proposals(cap, sc)
+        self.phase_s["blind_write_s"] += time.perf_counter() - t_a
         for u in new_units:
-            self.unit_meta[u["market_id"]] = [u["side"], s, cap["id"]]
+            self.unit_meta[u["market_id"]] = [u["side"], s, cap["id"], u["event_id"]]
         if self.dry:
             self.units.extend(new_units)
         self.last_t, self.last_slot, self.last_id, self.last_kind = start, s, cap["id"], "processed"
@@ -922,13 +1001,18 @@ class M3Pass:
         if classify:
             self.classified.append({"id": cap["id"], "start": start, "slot": s})
         if not self.dry:
+            t_a = time.perf_counter()
             sha_after = self._stage_state()
+            self.phase_s["state_stage_s"] += time.perf_counter() - t_a
+            t_a = time.perf_counter()
             ub = self._write_units(cap, new_units)
             cap_notes = {k: v - notes_before.get(k, 0) for k, v in sorted(self.notes.items()) if v - notes_before.get(k, 0)}  # missing columns, no sidecar, unparseable ids: counted per capture
             status.update({"counts": dict(sorted(local.items())), "funnel": dict(sorted(self._cap_funnel.items())), "notes": cap_notes, "units": len(new_units), "unit_file_sha256": ub,
                            "state_sha256_after": sha_after, "followup": fu_info, "proposals": pr_info, "spec_sha": self.spec_sha, "code_sha": self.code_sha, "role": ROLE})
             self._write_status(cap, status)  # the status is written before the state: a crash in between re-runs the slot and rewrites identical bytes
             self._commit_staged(sha_after)
+            self.phase_s["unit_status_write_s"] += time.perf_counter() - t_a
+        self.cap_s.append([cap["id"], round(time.perf_counter() - t_feed, 3)])
         return status
 
     def _record_missing(self, s: int) -> None:
@@ -956,6 +1040,7 @@ class M3Pass:
         ext = sc["ext"]
         has_fe = bool(sc["ext_pres"][EXT_COLS.index("fees_enabled")]) if sc["ext_pres"] is not None else False
         out: list[dict] = []
+        self._ev_units = Counter(v[3] for v in self.unit_meta.values() if len(v) > 3)  # earlier M3 units per event, from state (never from their rows after their k)
         for mid in sorted(sc["cand"]):
             tup, side, how, _kind, bid, ask = sc["cand"][mid]
             r = ext.get(mid)
@@ -1056,7 +1141,7 @@ class M3Pass:
             local["classed_with_gap"] += 1
         liq = c240._f(tup[8])
         ev = tup[1] if str(tup[1]).strip() else f"market:{mid}"
-        n_open = sc["evc"][ev]
+        n_open = sc["evc"][ev] + self._ev_units[ev]  # open binary members that are not earlier units (rows at k) + earlier units of the event (state)
         h_s = end_k - t_d
         s2 = rl["cls"]
         s4 = s4_cell(h_s)
@@ -1082,12 +1167,22 @@ class M3Pass:
             gz.write(("".join(x + "\n" for x in lines)).encode())
         return buf.getvalue()
 
-    def _write_once(self, p: Path, blob: bytes) -> None:
-        """Create ``p`` exclusively; an existing file is accepted only when its bytes are identical (idempotent re-run after a crash), else refused."""
+    def _blind_matches(self, p: Path, blob: bytes, key: str) -> bool:
+        """A crash re-run of a blind file (follow-up / proposal set) without opening it (10.2: the extractor never opens one): the sha256 the capture's own status recorded, or, when
+        the status was not yet written, the file's byte length (``stat`` only)."""
+        sp_ = self.store / "status" / f"{p.name.split('.')[0]}.json"
+        if sp_.exists():
+            rec = (json.loads(sp_.read_text()).get(key) or {}).get("sha256")
+            if rec is not None:
+                return rec == sha256_bytes(blob)
+        return p.stat().st_size == len(blob)
+
+    def _write_once(self, p: Path, blob: bytes, blind_key: str | None = None) -> None:
+        """Create ``p`` exclusively; an existing file is accepted only when its bytes are identical (idempotent re-run after a crash), else refused. A blind file is never re-read."""
         if self.dry:
             raise DryModeError("no store in dry mode")
         if p.exists():
-            if p.read_bytes() == blob:
+            if (self._blind_matches(p, blob, blind_key) if blind_key else p.read_bytes() == blob):
                 return
             raise FileExistsError(f"refusing to overwrite {p}")
         tmp = p.with_suffix(p.suffix + ".tmp")
@@ -1115,7 +1210,7 @@ class M3Pass:
                                      "row_received_utc": row[9] if row else None, "sidecar_received_utc": x[1] if x else None, "best_bid": row[3] if row else None,
                                      "best_ask": row[4] if row else None, "role": ROLE, "spec_sha": self.spec_sha, "code_sha": self.code_sha}, sort_keys=True))
         blob = self._gz_bytes(lines)
-        self._write_once(self.store / "followup" / f"{cap['id']}.jsonl.gz", blob)
+        self._write_once(self.store / "followup" / f"{cap['id']}.jsonl.gz", blob, blind_key="followup")
         return {"sha256": sha256_bytes(blob), "lines": len(lines) - 1}
 
     def _write_proposals(self, cap: dict, sc: dict) -> dict:
@@ -1128,7 +1223,7 @@ class M3Pass:
         doc = {"capture_id": cap["capture_id"], "prev_capture_id": self.prev["id"] if self.prev else None, "count": len(ids), "ids_delta_gzip_b64": base64.b64encode(z.getvalue()).decode(),
                "role": ROLE, "spec_sha": self.spec_sha, "code_sha": self.code_sha}
         blob = self._gz_bytes([json.dumps(doc, sort_keys=True)])
-        self._write_once(self.store / "proposals" / f"{cap['id']}.json.gz", blob)
+        self._write_once(self.store / "proposals" / f"{cap['id']}.json.gz", blob, blind_key="proposals")
         return {"sha256": sha256_bytes(blob)}
 
     # --- driving -----------------------------------------------------------------------------------------------------------------------------
@@ -1158,11 +1253,15 @@ class M3Pass:
         unprocessed and is recorded as a late / duplicate side file. ``side`` is :func:`discover_all`'s output."""
         by_slot = {c["slot"]: c for c in sorted(caps, key=lambda c: (c["start"], c["id"]))}
         by_id = (side or {}).get("by_id") or {c["id"]: c for c in caps}
+        t_a = time.perf_counter()
         self.merge_rule_ledger()
+        self.phase_s["merge_rules_s"] += time.perf_counter() - t_a
         for s in sorted(by_slot):
             if self.last_slot is not None and s <= self.last_slot and s not in self.processed_slots and s not in self.missing_slots:
                 raise StateOrderError(f"the state holds a capture at or after slot {s} but slot {s} was never processed or recorded missing")
+        t_a = time.perf_counter()
         self.rebuild_prev(by_id)
+        self.phase_s["rebuild_prev_s"] += time.perf_counter() - t_a
         done: list[dict] = []
         if by_slot:  # no capture on disk at all (a misconfigured or unreadable root) must never record every slot missing
             s = (self.last_slot + 1) if self.last_slot is not None else min(by_slot)
@@ -1233,14 +1332,19 @@ class M3Pass:
         full_days = sorted(d for d, n in caps_by_day.items() if n >= spec["j0"]["full_day_captures"])
         per_day = Counter(u["day"] for u in U)
         med = None
+        evaluable = len(full_days) >= spec["j0"]["min_full_days"]  # 10.1: fewer than 3 full days -> rule (a) is not evaluable and the window is extended to 42 days
         if full_days:
             v = sorted(per_day.get(d, 0) for d in full_days)
             n = len(v)
             med = float(v[n // 2]) if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2.0
         ev_units = Counter(u["event_id"] for u in U)
         info = self.rules.info
-        rule_a = None if med is None else bool(med < spec["j0"]["rule_a_units_below"])
-        rule_b = None if med is None else bool(med * 21 < spec["j0"]["rule_b_projected_21_day_units_below"])
+        if not evaluable:
+            rule_a_result, rule_a, rule_b = "not_evaluable_extend_42", True, None
+        else:
+            rule_a = bool(med < spec["j0"]["rule_a_units_below"])
+            rule_a_result = "extend_42" if rule_a else "keep_21"
+            rule_b = bool(med * 21 < spec["j0"]["rule_b_projected_21_day_units_below"])
         cells = {k: dict(sorted(Counter(u["cells"][k] for u in U).items())) for k in (f"S{i}" for i in range(1, 14))}
         classed = [u for u in U if u["rule_class"] in CLASSED]
         by_tier: dict = {}
@@ -1267,8 +1371,11 @@ class M3Pass:
                              "(R1 MUST 6); the look-back is not changed after the output is seen"},
             "decision_rule": {"rule_a_extend_to_42_days_if_median_full_day_units_below": spec["j0"]["rule_a_units_below"], "rule_b_record_only_projected_21_day_units_below":
                               spec["j0"]["rule_b_projected_21_day_units_below"]},
-            "decisions": {"median_full_day_units": med, "projected_21_day_units": None if med is None else med * 21, "rule_a_extend_to_42_days": rule_a, "rule_b_record_only": rule_b,
-                          "note": "null = unavailable (no full day), not a pass; J0's only effect on the text is rule (a)"},
+            "decisions": {"full_days": len(full_days), "full_days_list": full_days, "min_full_days": spec["j0"]["min_full_days"], "rule_a_result": rule_a_result,
+                          "median_full_day_units": med if evaluable else None, "median_full_day_units_if_any_full_day": med,
+                          "projected_21_day_units": None if not evaluable else med * 21, "rule_a_extend_to_42_days": rule_a, "rule_b_record_only": rule_b,
+                          "note": "10.1: a full day is a UTC day with 12 classified captures; fewer than 3 full days -> rule (a) is not evaluable and the window is extended to 42 days "
+                                  "(not_evaluable_extend_42); J0 is not re-run to obtain a different answer; J0's only effect on the text is rule (a)"},
             "eligible_units": {"total": len(U), "per_day": dict(sorted(per_day.items())), "events": len(ev_units),
                                "units_per_event_strata": dict(sorted(Counter(units_bucket(n) for n in ev_units.values()).items())),
                                "note": "7.2 strata (1, 2-3, 4-9, 10+) with every unit treated as final-state; counts of events"},
@@ -1297,7 +1404,7 @@ class M3Pass:
             "t_d_source_counts": dict(sorted(self.t_d_source.items())),
             "receipt_gap_sidecar_minus_row_s": {"n": len(gaps), "median": gaps[len(gaps) // 2] if gaps else None, "min": gaps[0] if gaps else None, "max": gaps[-1] if gaps else None},
             "planned_followup_volume": {"unit_capture_lines_per_unit_assuming_window_midpoint": round(avg_caps, 1),
-                                        "projected_lines_21_days": None if med is None else round(med * 21 * avg_caps), "note": "units x captures to READOUT_UTC; counts only"},
+                                        "projected_lines_21_days": None if not evaluable else round(med * 21 * avg_caps), "note": "units x captures to READOUT_UTC; counts only"},
             "notes": dict(sorted(self.notes.items())),
             "not_printed": "no bid, ask, mid, liquidity value, resolution, label or outcome; prices enter only as S11 zone counts",
         }
@@ -1328,12 +1435,17 @@ def run_j1(snapshot_root: Path, rules_root: Path | None, store: Path, *, window_
     """One J1 pass (10.2): the fixed look-back span ``[window_start - 7 d, window_start)`` and the window, then follow-up captures to READOUT. ``spec_sha`` is given by the caller (the
     registered runner passes the pinned one); see :func:`run_pass` for the gated entry point."""
     fu = READOUT_UTC if followup_until is None else followup_until
+    t0 = time.perf_counter()
     info = discover_all(snapshot_root, window_start - LOOKBACK_SLOTS * GRID_S, fu, window_start=window_start)
-    mp = M3Pass(window_start=window_start, window_end=window_end, rules=RulesIndex.load(rules_root), dry_run=False, store=store, spec_sha=spec_sha,
+    t_disc = time.perf_counter() - t0
+    mp = M3Pass(window_start=window_start, window_end=window_end, dry_run=False, store=store, spec_sha=spec_sha, rules_root=rules_root,
                 record_followup=record_followup, record_proposals=record_proposals, lookback_from=window_start - LOOKBACK_SLOTS * GRID_S, followup_until=fu)
+    mp.phase_s["discover_s"] += t_disc
     if pad and mp.last_slot is None:
         mp.pad_state(*pad)
+    t0 = time.perf_counter()
     mp.run_available(info["caps"], now=now, side=info)
+    mp.phase_s["run_available_s"] += time.perf_counter() - t0
     mp.notes.update({f"discover:{k}": v for k, v in info["notes"].items()})
     return mp
 
@@ -1347,6 +1459,7 @@ def run_pass(snapshot_root: Path, rules_root: Path | None, store: Path, spec: di
     sp.check_real_run(spec)
     sp.check_run_pins(pins, spec)
     sp.check_registration_lead(pins, spec)
+    t_pass = time.perf_counter()
     now = time.time() if now is None else now
     reg, end = sp.ts(spec, "registered_utc"), sp.ts(spec, "end_utc")
     if now < reg:
@@ -1361,7 +1474,8 @@ def run_pass(snapshot_root: Path, rules_root: Path | None, store: Path, spec: di
     rec = {"now_utc": iso(now), "peak_rss_mb": peak_rss_mb(), "spec_sha": mp.spec_sha, "code_sha": mp.code_sha, "last_slot": mp.last_slot, "processed_slots": len(mp.processed_slots),
            "missing_slots": len(mp.missing_slots), "units_total": len(mp.unit_meta), "counts": dict(sorted(mp.extra.items())), "ledger_markets": mp.ledger.n_markets(),
            "ledger_records": mp.ledger.n_records(), "near_seen": len(mp.near_seen), "ever_seen": len(mp.ever_seen), "notes": dict(sorted(mp.notes.items())),
-           "rules_day_files_merged": len(mp.merged_days), "rules_days_unmerged_to_today": mp.unmerged_days(iso(now)[:10])}
+           "rules_day_files_merged": len(mp.merged_days), "rules_days_unmerged_to_today": mp.unmerged_days(iso(now)[:10]),
+           "timing_s": {"pass_total": round(time.perf_counter() - t_pass, 3), **{k: round(v, 3) for k, v in sorted(mp.phase_s.items())}}, "capture_s": mp.cap_s}
     (store / "logs").mkdir(parents=True, exist_ok=True)
     with open(store / "logs" / "j1_runs.jsonl", "a") as fh:
         fh.write(json.dumps(rec, sort_keys=True) + "\n")
