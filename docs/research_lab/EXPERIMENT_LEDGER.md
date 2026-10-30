@@ -5104,3 +5104,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   mem 600 MB (estimate; peak RSS recorded), as_cap 6000. Designer's choices for the final verification: warm-up of the first 12
   captures builds state only; rule (b) projection = median full-day count x 21.
 - **Next:** J0 output -> ledger + note; final verification and freeze before 2026-11-22; then J1-J3 / A code and its code-freeze check.
+
+## M2 (CH264) measurement design draft, 2026-10-30 ~05:11Z (experiments autopilot; nothing counted)
+- `MEASUREMENT_M2_CH264.md` (e79b1651, merged; sha256 `c075355b…0ca4`, 599 lines), `prospective_measurement` under the
+  rule-26 ruling with its CH264 REVISE items (post-k exclusions became counted classes; contrast descriptive only;
+  `not_found` both ways; event-clustered SEs). Size split on sidecar `liquidity` with CH269's cuts (open interest empty on
+  every row; labelled a proxy); capacity unavailable (the sweep never selects overdue markets). Window 2026-11-24..12-14 (M1's
+  dates; disjoint units); text freeze by 2026-11-16; read-out on or after 2027-01-29. Planning: the headline is about as
+  likely as not "coarse"; the liquidity contrast cannot resolve the idea's own 2-5 point premium (disclosed).
+- Designer's question 5 also concerns M1: with an unknown fee category and a served rate 0, the docs-rate fee line evaluates to
+  0 rather than 0.07; to be checked in M1's final verification. Challenger R1 running.
