@@ -4974,7 +4974,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **Owner decision pending (by ~11-15):** activate the deferred engine retention rules (predictions 35 d,
   features/quotes 45 d) plus an `aux/` 45-day rule; otherwise 16 GB binds ~11-20. Engine files are in the verified releases.
 
-## CH269 map (q0730) counts recorded; CB9-P empty frame ruled FAITHFUL_EMPTY, 2026-10-30 ~04:35Z (experiments autopilot; counts only for CH269; CB9-P counted p = 1 at its screen)
+## CH269 map (q0730) counts recorded; CB9-P empty frame ruled FAITHFUL_EMPTY, 2026-10-30 ~04:22Z (experiments autopilot; counts only for CH269; CB9-P counted p = 1 at its screen)
 - **CH269** (q0730 done 04:19Z; `seals/CH269_map_q0730.json` sha256 `9f0acff3…41c3`; note `reviews/CH269_MAP_2026-10-30.md`;
   k = 0, uncounted). Declared decision lines: **M1 (CH263) drafted** (821 proposals a day > 100), **M2 (CH264) drafted** (159
   > 25; design REVISE first), **LT14 (CH262) drafted** (175 top-decile units a capture >= 100; unavailable gaps all < 10
