@@ -1255,3 +1255,21 @@ census says; they change no score and are a separate step. No K, no column, no t
   placebo (promotion-ineligible from registration), raises K; "beats se1" must be declared as its own condition with a
   clustered interval, since `se-promotion-v2` compares against the champion; and any gain may be predicting Gamma-mid
   noise, so the CH262 cost yardstick precedes any economic reading. Not started this session.
+
+## 39. `rsrev` gate probe: se1's residual reversal (engine-side idea, data-suggested; definitions fixed before the run)
+
+**The idea, and where it came from (disclosed).** Section 37's census, run for CH265's continuation hypothesis, found the
+champion's 2 h residuals reverse (lag-1 -0.091). `rsrev` (engine-side idea; a CH number to be assigned by the experiments
+track) asks whether **se1's** own lagged 2 h residuals, as columns beside se1's families, improve se1's forecast. It was
+suggested by that look, so the champion's -0.091 is not its gate and is no evidence for it; only a prospective score
+after registration would be.
+- **Gate (fixed now).** The pooled Pearson of se1's 2 h residuals at consecutive slots, computed exactly as section 37
+  (same script with the model set to `se1_lgbm_mm`: on-time, logged, sha-matched predictions; labels with target <= k;
+  slot-keyed pairs). **Gate met iff <= -0.02.** Anything else: `rsrev` is not built (a positive value is printed and
+  not re-read as a continuation family). Script `census/se_rsrev_se1_probe_2026-10-30.py`, committed with this section;
+  the script prints its own start time, which must follow the commit time.
+- **Information only (cannot change the gate):** the market-clustered CI and the market-demeaned value as in section
+  37; the partial Pearson given `mo_d2h` at k; the pooled Pearson by `ms_spread` tercile at k (cuts from the pairs).
+- **If the gate is met,** a builder section (columns: se1's lagged residuals with rule (c) naming se1 and its fit
+  lineage; the within-capture shuffled-prediction placebo; arms and K; a declared "beats se1" condition with a clustered
+  interval beside `se-promotion-v2`) follows only after an independent review. Nothing is registered by this section.
