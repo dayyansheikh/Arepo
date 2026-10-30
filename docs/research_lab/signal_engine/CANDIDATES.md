@@ -289,6 +289,36 @@ no test.** Per the round-4 rule, please withdraw:
 LT9 note: with LT8 dropped, LT9's window may start from 2026-12-30 (LIVE_TESTS_9.md §1.1 (c')). LT9's tokens stay at their
 filed dates until LT9 asks otherwise. Nothing here moves any LT10 date.
 
+## Idea-level families from creative round 19 (2026-11-02; ideas only, no evidence; not candidates yet)
+
+`CREATIVE_HYPOTHESES_2026-11-02.md` (CH262-CH269; section 2 D gives the engine families' columns, clocks, placebos and
+kill lines; section 3 ranks the round). Status of every note below: **idea, untested, evidence_role none**. Same reading
+rules as round 18 below (one challenger and one K each, `DESIGN_V1.md` section 13; read against se1 and the champion,
+event-clustered, market-deduplicated). CH269 is the counts-only map that prints the round's unprobed numbers (job in
+preparation on `feat/ch269-map`).
+- **`resid` (CH265, residual momentum; engine-first).** Per-market history of the champion's own residuals
+  `sign(dmid) - (P(up) - P(down))` from `predictions/`, using only labels known at k (2 h at k - 1; 6 h at k - 3; 24 h at
+  k - 12). Columns `rs_2h_l1`, `rs_2h_m6`, `rs_2h_m12`, `rs_6h_m4`, `rs_24h_l12`, `rs_abs_m12`, `rs_run`, with counted
+  `unavailable` flags. Isolate `se27_lr_resid` plus a LightGBM version. Declared placebo: the same columns from a
+  within-capture shuffle of the champion's predictions must add < a tenth of the real columns' gain. Kill: |corr(`rs_2h_m6`,
+  `mo_chg_1d`)| > 0.8, within-market lag-1 autocorrelation < 0.02, or no `dir_2h` gain over se1 at 28 days. The round asks
+  for a `DESIGN_V1` section 19 note (its rule 27: a meta-family on the engine's own write-once outputs) before the first
+  column. No token found. Round priors P(census) 0.6, P(beats se1) 0.3.
+- **`fragile` (CH268, quote fragility; hygiene first, no K).** Share of the last 12 origins' 2 h labels `unavailable`
+  (`fr_unavail_12`), its run, one-sided share over 24 h from `quotes/` status, and a 7-day hazard of leaving the
+  two-sided state. First use is a display-pool rule (`fr_unavail_12` > 0.25 leaves the public ranking) and an
+  input-monitor line; a family only if the columns move the flat class's log-loss against se1. Kill: `fr_unavail_12` > 0
+  on < 5% of eligible rows, or |corr| with `log1p liquidity` > 0.8. No token.
+- **Requests on file for future tests (not applied; nothing to do now).** LT15 candidate (CH267, the close by rule
+  class): keep `cl_class x tte_h` interactions unbuilt until LT15's freeze (token `close` requested then); the `cl_class`
+  level alone may be built now as a `rules` column (44.7% coverage disclosed). LT14 candidate (CH262, the champion's top
+  decile by cost tier): no token; an attribution limit `attrlimit_lt14` on any public display of the champion's gross by
+  tier would be requested at its freeze. Neither design exists yet.
+
+**LT13 update (2026-10-29):** CH252 was `withdrawn_pre_census (fee reading unresolved)` under LT13 rule 1.4.3 (b) after the
+q0717 probe found the venue's one-step fee change of 2026-10-20 (ledger). The `payreturn` hold request and token below
+lapse with it; the CH253 `batch` request stands. The round-18 text below is kept as written.
+
 ## Idea-level families from creative round 18 (2026-11-01; ideas only, no evidence; not candidates yet)
 
 `CREATIVE_HYPOTHESES_2026-11-01.md` (CH252-CH261; section 2 gives each family's columns, clock, direction and kill line;

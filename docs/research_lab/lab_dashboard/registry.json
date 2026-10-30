@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-28T11:35:00Z",
+ "updated": "2026-10-30T00:20:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -825,18 +825,19 @@
   {
    "id": "CB3",
    "title": "Quote-vacuum and selective maker",
-   "plain": "Designed: what happens to fair value when one side of a tight book vanishes, and whether a market maker should step back after big prints. Freeze comes after 25 Oct.",
+   "plain": "Designed: what happens to fair value when one side of a tight book vanishes, and whether a market maker should step back after big prints. Its freeze target (26 Oct) passed during the 24-28 Oct gap; an independent ruling says the date was a target and the design's own rules move the later windows. The missing follow-up collection step was reviewed and switched on 30 Oct.",
    "batch": "CB3",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Freeze after 25 Oct",
-   "next_date": "2026-10-25",
+   "next": "Follow-up passes start; record their start time, then the counting check after the moved dev window ends (about 3 Nov at the earliest)",
+   "next_date": "2026-11-03",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/CREATIVE_BATCH_3.md header; docs/AREPO_V2_CHECKPOINT.md (CB3 freeze after q0064, after 10-25)"
+    "verdict": "docs/research_lab/CREATIVE_BATCH_3.md header; docs/AREPO_V2_CHECKPOINT.md (CB3 freeze after q0064, after 10-25)",
+    "status": "docs/research_lab/reviews/CB3_DEADLINE_RULING_2026-10-29.md; reviews/CB3_FOLLOWUP_WIRE_REVIEW_2026-10-29.md"
    },
    "stage_results": {
     "designed": "pass"
@@ -993,19 +994,20 @@
   {
    "id": "CB7",
    "title": "Specificity, geopolitics, Kalshi-skewed maker",
-   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. Downloads are complete; analysis waits for seals.",
+   "plain": "Designed: whether very specific markets are discounted, geopolitics longshots and a maker skewed by Kalshi. The text lookup finished (text found for all 13,148 markets) and the counting check is queued with its inputs pinned.",
    "batch": "CB7",
    "family": "text",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Pre-freeze counting check: a text-lookup step (fixed 28 Oct after the geopolitics label was found missing from the data) runs first, then the census before 30 Oct",
-   "next_date": "2026-10-29",
+   "next": "Pre-freeze counting check (q0147c) must run before 3 Nov while the server holds its snapshots",
+   "next_date": "2026-11-03",
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 fetches complete (q0142, q0143); docs/AREPO_V2_CHECKPOINT.md",
-    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 h_geo: Reading 13 superseded by 13a (2026-10-28); docs/research_lab/reviews/CB7_HGEO_RECHECK_2026-10-28.md"
+    "next": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 h_geo: Reading 13 superseded by 13a (2026-10-28); docs/research_lab/reviews/CB7_HGEO_RECHECK_2026-10-28.md",
+    "status": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 q0147c promoted (2026-10-29)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1086,18 +1088,19 @@
   {
    "id": "CB9",
    "title": "Trade direction, hourly-anchored dailies, flow-skewed maker",
-   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. Smoke test v2 passed. The step that removes markets already used by earlier tests failed on 24 Oct on a market-ID format problem (the same one batch 8 hit); a reviewed fix is queued. No outcome read.",
+   "plain": "Designed: whether trade direction labels are reliable and a few maker ideas. The overlap step and one frame finished; the second frame stopped on a declared output-size limit that was set far too small (about 10 MB for a frame of about 90 MB). A written amendment is being prepared for review. No outcome read.",
    "batch": "CB9",
    "family": "microstructure",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Market-overlap step (q0182b), then the data jobs",
+   "next": "Reviewed amendment of the frame size limit, then the second frame",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md; docs/research_lab/EXPERIMENT_LEDGER.md § CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued (2026-10-24)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § Smokes PASS (CB9 smoke v2); docs/AREPO_V2_CHECKPOINT.md; docs/research_lab/EXPERIMENT_LEDGER.md § CB9 q0182 FAILED x3 (Gamma 422); q0182b fix reviewed, merged, queued (2026-10-24)",
+    "status": "docs/research_lab/EXPERIMENT_LEDGER.md § Ops batch 2026-10-30 (CB9 q0185 held)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1299,18 +1302,19 @@
   {
    "id": "MC1",
    "title": "Full ML development run",
-   "plain": "The big machine-learning run with many signal families. A memory fix was tried on 21 Oct, but the server's memory ran out again (about 4.9 GB used out of 5.6 GB). It now waits for more memory: the second free server, or a free resize of this one (your call).",
+   "plain": "The big machine-learning run with many signal families. It kept failing to resume because each restart rebuilt its data from a rolling window. It now uses one fixed saved dataset (91 two-hour periods) and is running in slices of about 5.5 hours. Development only, not evidence.",
    "batch": "MC1",
    "family": "ml",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Run once the server has more memory (second server or free resize)",
+   "next": "Resumable run q0116k (about 150 hours of slices)",
    "next_date": null,
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § MC1 q0116e (2026-10-21)"
+    "verdict": "docs/research_lab/EXPERIMENT_LEDGER.md § MC1 q0116e (2026-10-21)",
+    "status": "docs/research_lab/EXPERIMENT_LEDGER.md § CB7 q0147c promoted; storage assessment (MC1 fix merged)"
    },
    "stage_results": {
     "designed": "pass"
@@ -1732,19 +1736,20 @@
   {
    "id": "LT13",
    "title": "Planned live tests LT13 (payer's return, listing batch)",
-   "plain": "Two original spread ideas from round 18: after the same quote widening, do fee-charging markets re-tighten faster than fee-free ones; and does a new market's quote move with the markets listed in the same batch. Draft design; an independent challenger said go ahead with changes, building the counting check first. A planning map suggests both may fail their counting checks.",
+   "plain": "Two original spread ideas from round 18. The fee-label probe showed the venue switched about 26,000 markets to zero fees on 20 Oct, so the fee-charging comparison (CH252) is withdrawn before its counting check, as its pre-declared rule says. The listing-batch idea (CH253) continues alone; re-check fixes are applied.",
    "batch": "LT13",
    "family": "mixed",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Design revisions and a small counting-only probe of the fee labels; then a re-check and the design freeze",
-   "next_date": "2026-10-29",
+   "next": "Full re-check of the second draft, then final verification and design freeze",
+   "next_date": null,
    "candidate": false,
    "sources": {
     "verdict": "docs/research_lab/reviews/LT13_CHALLENGER_R1_2026-10-28.md",
-    "next": "docs/research_lab/LIVE_TESTS_13.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 design draft and challenger R1 (2026-10-28)"
+    "next": "docs/research_lab/LIVE_TESTS_13.md (DRAFT); docs/research_lab/EXPERIMENT_LEDGER.md § LT13 design draft and challenger R1 (2026-10-28)",
+    "status": "docs/research_lab/reviews/LT13_Q0717_RECHECK_2026-10-29.md; reviews/LT13_Q0717_RESULT_2026-10-29.md"
    },
    "stage_results": {
     "designed": "pass"

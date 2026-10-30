@@ -4683,6 +4683,31 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - LT13 1.4.3 rule (b) applied as written (a venue-side value change, not a reading defect a declared rule fixes):
   **CH252 `withdrawn_pre_census (fee reading unresolved)`**; CH253 still goes to census (rule (c)). No threshold or reading changed.
 - Next: targeted `science-reviewer` re-check of the q0717 application, then stage A census code for CH253 (R1 MUST 2).
+- Re-check (`reviews/LT13_Q0717_RECHECK_2026-10-29.md`) ACCEPT_WITH_FIXES: withdrawal confirmed; fixes 1-5 applied in
+  LIVE_TESTS_13.md (rule (b) quoted verbatim; verbatim `fee_category` and post-step sports reading declared, no reconstruction;
+  per-capture class-change prints, another venue step a deviation; CH253 *informed (q0717)*). No threshold changed. Open item:
+  LT12 (frozen) uses the same sports classifier on an all-post-step span; not edited. Next: full R1 re-check, then freeze.
+
+## Ops batch: restore copies deleted, CB3 follow-up wired, CB4 q0085 memory fix, CB5 fixes, LT13 fixes, 2026-10-30 ~00:55Z (experiments autopilot; nothing counted)
+- **Restore copies deleted** (host 23:33-23:38Z, the verified `archive_rotate.py --no-archive --delete` path, five
+  `*_census/restore` scans, run early because data-dumps was 48.6 GB against the 50 GB decimal step guard): 926 files deleted,
+  10.92 GB freed; data-dumps 37.76e9 bytes (36 GiB), disk 33 GB free. Every decision is in `deletions.jsonl`.
+- **CB3:** wiring review `reviews/CB3_FOLLOWUP_WIRE_REVIEW_2026-10-29.md` ACCEPT_WITH_FIXES; merged (fix 4: step exit code
+  logged). `sample_trades_followup.py` runs in each complete pass after quote_state. **J4-R pin set final** (declared action;
+  `t_j4r_end` stays 10-21T00Z); **this also opens CB13's t-holdout gate** (`run_cb13.py:641-642`; no q0274 job exists, nothing
+  starts automatically). `T3_fu_start` to be recorded here after the first `cb3_followup/<cid>/manifest.json` exists; the
+  design's top-level `cb3_followup/manifest.json` (§1.2:83) was never implemented. q0064a is created only when now >= the
+  recorded `T3_dev_end` and quote_state is accounted for up to it.
+- **CB4 q0085:** flip-trades loaded every parsed closewin frame with 37 columns (~10 GB for 155 captures / 4.76 M rows). Fix
+  (5e4b36bf): only the 17 columns the flip-trades rules read, plus shared string objects; a test proves identical frames, C2
+  units, strata and condition_id lookups; host run peaked at 3.45 GB RSS. Spec mem 4200 / as_cap 6000. Retried after deploy.
+- **CB9 q0185:** not retried. Its 0.01 GB output cap is DECLARED (`cb9_kd.FRAME_OUTPUT_CAP_GB`, CREATIVE_BATCH_9 §2.8) and the
+  full frame is ~90 MB (38 of ~340 units = 10.6 MB); needs a reviewed amendment, not an ops raise.
+- **CB5:** code freeze check REVISE (`reviews/CB5_CODE_FREEZE_CHECK_2026-10-29.md`); fixes 1-6 on `fix/cb5-freeze-check`
+  (5b534a26; new declaration hash `7c62c037…5cd0`; 115 tests); re-check pending. q0105 is held (frozen grouper found 0 CDF
+  families), so q0106 cannot start: needs a recorded decision.
+- **LT13:** re-check fixes 1-5 applied and merged (DRAFT). Open item: LT12 (frozen) uses the same sports classifier on an
+  all-post-10-20-step span; impact not yet assessed.
 
 ## CB3 freeze target missed; restore-copy dry run, 2026-10-29 ~23:45Z (experiments autopilot; operational, nothing counted)
 - **CB3:** freeze target 2026-10-26T22Z (§8 item 4) missed (no session 10-24..10-28). Ruling
@@ -4765,3 +4790,35 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0518** (`run_se_dev_refit_full.py --base se17_lgbm_mm_900k --days 5`, priority 30): does the whole-window refit add to
   se17's 900k rows? Rule fixed before the run in DESIGN_V1 §34 (the §32 rule against se17: all three direction targets,
   CI excluding zero, >= 4 of 5 days positive). Development / historical; one write-once dev file; no live file changes.
+
+## Creative round 19 recorded: CH262-CH269, 2026-10-30 ~02:20Z (experiments autopilot; ideas only, nothing tested, k = 0)
+- `CREATIVE_HYPOTHESES_2026-11-02.md` (Fable xhigh; 671b2351, merged a5877d70). Eight ideas: CH263 carry after a UMA proposal
+  (hold to resolution; asks the `science-reviewer` to rule on rule 26, registered measurements), CH262 the engine's top decile
+  against the cost model's rungs (LT14 candidate), CH267 into-close spread by rule class (LT15 candidate), CH265 residual
+  momentum and CH268 quote fragility (engine-first, for the signal-engine builder), CH266 "<1%" tails, CH264 the overdue mid,
+  CH269 the counts-only map that decides the rest.
+- No host probe or data read by the round. Next: CH269 counts-only map job (in progress on `feat/ch269-map`).
+
+## CB3 `T3_fu_start` recorded, 2026-10-30 ~02:40Z (experiments autopilot; operational, nothing counted)
+- First complete follow-up pass: capture `20261030T003102Z_e883d896` (pass start 2026-10-30T00:31:02Z; code af8e0381,
+  committed 10-29T23:41:09Z, deployed before that pass). Manifest
+  `cb3_followup/20261030T003102Z_e883d896/manifest.json` sha256 `f4a8af20…2311f`: state complete, 962 requests, 0 x 429,
+  0 not reached, 0 page-cap hits (operational counts only; no rows read).
+- **`T3_fu_start` = 2026-10-30T00:31:02Z.** With `T_J4R_end` 10-21T00Z, `dev_window_end` (`cb3_declaration.py:407-414`)
+  moves `T3_dev_end` to **2026-11-03T00:00Z** (as the wire review computed). q0064a is created only when now >= 11-03T00Z
+  and quote_state is accounted for up to it; q0064 stays held until then. The design's top-level
+  `cb3_followup/manifest.json` was never implemented (per-capture manifests only; disclosed 10-30 ops batch).
+
+## LT13 full R1 re-check GO_WITH_CHANGES; LT12 fee-step impact DISCLOSE, 2026-10-30 ~03:15Z (experiments autopilot; nothing counted)
+- `reviews/LT13_R1_FULL_RECHECK_2026-10-30.md` (on `LIVE_TESTS_13.md` sha256 `09501b14…6efb806`): every R1 MUST / SHOULD
+  discharged; q0717 fix 1 partly ("unexplained" at two lines). CH253 alone (k = 1) is coherent. MUST before stage A code:
+  (1) declare the verbatim `fee_category` reading for `cbar` and disclose it is now near a venue-wide factor; (2) stage A
+  includes the origin-side unit builders, batch join, pseudo-batch rule and twin-state loader (states only). SHOULD 1-5
+  (stale CH252 text and priors, moot coverage argument, "unexplained", aliased-controls rule, twin-state wording). Fixes
+  delegated on `feat/live-tests-13b`.
+- **LT12 (frozen a543db63…): DISCLOSE, not a deviation.** The venue fee step of 2026-10-20T16:31-18:31Z (q0717) moved 1,800
+  markets without a sports slug from sports to non-sports under the pinned `is_sports_sidecar`, and set `fee_category` to
+  `other:zero_fees` for about 0.90-0.95 of non-sports ex-crypto rows. LT12's census and window are wholly after the step,
+  so the rule applies verbatim and consistently. The "non-sports" population includes these former sports markets, and
+  the K category dummies carry little topic content. Crypto is unaffected. Any further venue step inside LT12's window is
+  recorded as an operational deviation.
