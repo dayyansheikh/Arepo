@@ -1,0 +1,40 @@
+{
+ "id": "q0185b_cb9_kd_frame_v3",
+ "title": "CB9-K/D: Gamma frame (life overlap >= 3 d, volume >= $10k, non-weather, non-crypto-updown, non-Pyth), key drops, <= 3 per event, seeded 1,000 markets, event split SCREEN/HOLDOUT (arepo-cb9-kd-split); amended frame output cap 0.4 GB, fresh run directory kd_frame_v3 (amendment 2026-10-30, PENDING REVIEW)",
+ "family": "creative_batch_9",
+ "priority": 42,
+ "expected_value": "K/D population and split",
+ "data": [
+  "public Gamma",
+  "creative_batch9/exclusion_keys.csv.gz"
+ ],
+ "resources": {
+  "mem_mb": 450,
+  "cpu": 1,
+  "lane": "net",
+  "network": "gamma-api",
+  "as_cap_mb": 3000
+ },
+ "depends_on": [
+  "q0182b_cb9_exclusion_keys"
+ ],
+ "argv": [
+  "scripts/run_cb9.py",
+  "kd-frame",
+  "--rps",
+  "2",
+  "--disk-cap-gb",
+  "0.4",
+  "--data-dumps-cap-gb",
+  "50",
+  "--budget-min",
+  "120"
+ ],
+ "timeout_s": 9000,
+ "max_retries": 2,
+ "outputs": [
+  "research_lab/creative_batch9/kd_frame_v3/{frame.csv.gz,sample.csv.gz,split.json,manifest.json}"
+ ],
+ "next_action": "q0186 (its depends_on moves from q0185_cb9_kd_frame to q0185b_cb9_kd_frame_v3 at promotion)",
+ "notes": "DRAFT, PENDING REVIEW (CREATIVE_BATCH_9.md section 11.4). Supersedes q0185_cb9_kd_frame, which stopped on disk_budget (10894465 > 10737418 bytes) after 38 of 338 query units and 603 requests on 2026-10-28 11:28-11:33Z; its spec now refuses (exit 2) because --disk-cap-gb 0.01 differs from the declaration. Promote only after a science-reviewer ruling, with code and seals/cb9_kd_rules_v3.json (rules_sha256 29e781b0...f60d) deployed to the host. Resume handling: FRESH START. cb9_kd.FRAME_RUN is now kd_frame_v3, so the walk starts from unit 1 under its own request clock and the v3 rules hash; attempt 1 (creative_batch9/kd_frame/, frame_partial sha256 47502b18...0a46, sticky disk_budget manifest, rules v2) is left unchanged and no CB9 path reads it. Exit codes as q0185 (cb9_exit.py): 0 complete or terminal, 75 transient incomplete stop, 1 non-transient. --budget-min 120 with timeout_s 9000: the queue never kills the walk mid-unit; a budget stop is transient and exits 75 (not an attempt; re-run after 30 min, resumes in kd_frame_v3). Expected about 3,000-6,000 Gamma requests (about 16 per closed end-date unit, observed) at 2 rps, so usually one session. mem_mb 450 / as_cap_mb 3000 (identical to q0185 attempt 2; mem_mb < 500 keeps the start outside the 02:45-05:30 UTC blackout). Caveat for the reviewer/ops: the assemble step holds frame rows in memory (about 3.4 KB per row), so a frame near the upper row estimate may press on the 3000 MB address-space cap; a MemoryError is a non-transient exit 1 and would need an ops-only as_cap_mb change. Split written before any pmxt or print read. After the run: manifest exclusion_keys_sha256 must equal e613604ab15b4e9741275d7860fdf58180525cbd9cb22fa2088a5efdcc6d375f, and rules_sha256 must equal the v3 hash. Never two multi-GB jobs at once (net lane)."
+}

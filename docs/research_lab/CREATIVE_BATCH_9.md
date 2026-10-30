@@ -1153,3 +1153,36 @@ unchanged (`cb9_rules_v4.json` and `cb9_kd_rules_v2.json` still verify against c
 
 Commits: code and tests `6713379`; rules file `e95bb94`. Drafts changed (section 4): q0181 (rules v5, depends on q0180b), q0188 (rules v5); new draft file
 `queue/drafts/q0180b_cb9_smoke_v2.json`. Deployment: deploy this commit range to the collection host before q0180b runs (the v3 file refuses against the new code).
+
+### 11.4 Amendment: kd frame output cap (2026-10-30; PENDING REVIEW)
+
+**What failed.** `q0185_cb9_kd_frame` (attempt 1, rules `cb9-kd-rules-v2`, rules sha256 `8ee7bf36...6886a1`) stopped on 2026-10-28 (11:28-11:33Z) with
+`disk_budget`: 10,894,465 bytes against the cap of 10,737,418 (0.01 GB). It had finished 38 of 338 query units and made 603 requests. The partial frame
+(`creative_batch9/kd_frame/`, frame_partial sha256 `47502b18...0a46`) is kept unchanged. Nothing was read from it and no result exists.
+
+**Why 0.01 GB was a sizing error, not a scientific bound.** The cap is checked on the whole run directory, which holds the partial walk (about 190 bytes per row)
+and, at assembly, the final frame (about 180 bytes per row). Attempt 1 returned about 1,450 rows per closed end-date unit, so 38 units wrote about 10.9 MB
+(about 287 KB per unit). 0.01 GB therefore held about 28,000 rows, which is under 20 units' worth. All 338 units give about 490,000 rows, about 90 MB of
+partial walk and up to about 90 MB again for the frame (about 180 MB at the very most). The 0.01 GB figure was written without this arithmetic. It restricts
+no estimand, sample or gate; it only stops the walk early.
+
+**The change.** `FRAME_OUTPUT_CAP_GB` 0.01 -> 0.4 (about 2x the 180 MB ceiling). `RULES_VERSION_KD` -> `cb9-kd-rules-v3`; `FRAME_RUN` -> `kd_frame_v3`. The job
+spec (`queue/drafts/q0185b_cb9_kd_frame_v3.json`) passes `--disk-cap-gb 0.4`, which must equal the declaration, as before. The v2 seal is kept and now listed as
+superseded.
+
+**What does not change.** No gate, threshold, floor, sample rule (<= 3 per event, 1,000 markets, seed), unit definition, split, exclusion key, ingress cap
+or estimand. The `books` cap (0.15 GB) is untouched. Only the cap constant, the run directory name and the version label differ; the rules hash changes
+because the declared text and the hashed functions change.
+
+**Attempt 1 is superseded.** The v3 walk starts from unit 1 in `kd_frame_v3/`, under one request clock and one rules hash. No row of the attempt 1 partial
+frame is merged, resumed or consulted, so request clocks are never mixed. `cb9_kd.FRAME_ATTEMPT1` records its facts in the declared rules.
+
+**Disk and ingress.** Frame output is at most 0.4 GB (expected about 0.1-0.2 GB) and counts against the 40 GiB `data-dumps` guard (the job passes
+`--data-dumps-cap-gb 50`, as q0185 did). Ingress: about 3,000-6,000 Gamma requests, small compared with the 180 GB books-stage ingress cap. Resources match q0185
+attempt 2 (`mem_mb` 450, `as_cap_mb` 3000). A frame near the upper row estimate may press on the address-space cap in assembly; that would be an ops-only retry
+(non-transient exit 1), not a rules change.
+
+**Reviewer must check.** (1) The arithmetic above (rows per unit, bytes per row, units) against the attempt 1 manifest and partial file. (2) That the diff changes
+only the cap, run directory, version label, `FRAME_ATTEMPT1` and the declared line, and the seal `cb9_kd_rules_v3.json` equals the code (`rules_sha256`
+`29e781b0b74ecf8c74615df4d59ba4e0a202138166f75c260eea238a24e1f60d`). (3) That no CB9 reader can reach `kd_frame/`. (4) That the draft spec stays in `queue/drafts`
+until a ruling, and that q0186's dependency moves only at promotion.

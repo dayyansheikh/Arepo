@@ -431,6 +431,43 @@ def _frame_books_seal(run):
     return m, b, s
 
 
+def test_amendment_2026_10_30_cap_run_dir_and_rules_v3():
+    """Frame cap 0.01 -> 0.4 GB and a fresh run directory (PENDING REVIEW). Only declared() changes: every other hashed function source equals v2."""
+    assert kd.FRAME_OUTPUT_CAP_GB == 0.4 and kd.FRAME_RUN == "kd_frame_v3" and kd.FRAME_RUN != kd.FRAME_ATTEMPT1["run_dir"]
+    assert kd.FRAME_DIR.name == kd.FRAME_RUN
+    d = kd.declared()
+    assert d["outputs"]["caps_gb"]["frame"] == 0.4 and d["outputs"]["frame"].startswith("kd_frame_v3/") and d["frame_attempt1"]["units_done"] == 38
+    sha, fp = c9.verify_rules("kd", c9.KD_RULES_FILE, require_committed=False)
+    assert c9.KD_RULES_FILE.name == "cb9_kd_rules_v3.json" and c9.RULES_VERSION_KD == "cb9-kd-rules-v3" and fp
+    v3, v2 = json.loads(c9.KD_RULES_FILE.read_text()), json.loads((c9.SEALS_DIR / "cb9_kd_rules_v2.json").read_text())
+    changed = sorted(k for k in set(v3["func_sources_sha256"]) | set(v2["func_sources_sha256"]) if v3["func_sources_sha256"].get(k) != v2["func_sources_sha256"].get(k))
+    assert changed == ["cb9_kd.declared"]
+    assert sorted(k for k in v3["declared"] if v3["declared"][k] != v2["declared"].get(k)) == ["decisions", "frame_attempt1", "outputs"]
+    with pytest.raises(c9.Refused, match="rules hash mismatch"):
+        c9.verify_rules("kd", c9.SEALS_DIR / "cb9_kd_rules_v2.json", require_committed=False)
+    with pytest.raises(c9.Refused):
+        c9.refuse_run_id(kd.FRAME_ATTEMPT1["run_dir"], kd.FRAME_RUN)
+
+
+def test_kd_frame_starts_fresh_beside_a_sticky_attempt1_dir_and_never_touches_it(run):
+    """Attempt 1 (kd_frame/: sticky disk_budget manifest, a partial walk, a pinned request clock) is neither resumed nor read nor changed: the frame
+    is walked in full in kd_frame_v3/ under its own request clock, and every byte of the old directory is unchanged."""
+    old = run["root"] / kd.FRAME_ATTEMPT1["run_dir"]
+    old.mkdir(parents=True)
+    (old / "manifest.json").write_text(json.dumps({"status": cm.DISK_BUDGET_TOKEN, "stopped": "disk_budget: x", "complete": False}))
+    (old / "request_clock.json").write_text(json.dumps({"request_clock_epoch": NOW - 2 * 86400, "request_clock_utc": iso(NOW - 2 * 86400)}))
+    with gzip.open(old / "frame_partial.jsonl.gz", "wt") as fh:
+        fh.write(json.dumps({"day": "2026-04-16|closed=true", "rows": [{"market_id": "999"}]}) + "\n")
+    before = {f.name: f.read_bytes() for f in old.iterdir()}
+    m = kd.kd_frame(run["root"], run["api"], rules_sha="r" * 64, exclusion_keys_path=run["keys"], now=NOW, sleep=nosleep)
+    assert m["status"] == kd.FRAME_COMPLETE and m["complete"] and m["run_id"] == kd.FRAME_RUN
+    new = run["root"] / kd.FRAME_RUN
+    assert (new / kd.FRAME_FILE).exists() and not (new / "frame_partial.jsonl.gz").exists()
+    assert json.loads((new / "request_clock.json").read_text())["request_clock_epoch"] == NOW
+    assert "999" not in {r["market_id"] for r in kd.c7.read_csv_gz(new / kd.FRAME_FILE)}
+    assert {f.name: f.read_bytes() for f in old.iterdir()} == before
+
+
 def test_refuses_before_t_seal_and_on_refused_root(run, tmp_path):
     with pytest.raises(c9.Refused, match="T_seal"):
         kd.kd_frame(run["root"], run["api"], rules_sha="r", exclusion_keys_path=run["keys"], now=c9.T_SEAL_EPOCH - 1, sleep=nosleep)

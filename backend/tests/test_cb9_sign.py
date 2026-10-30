@@ -11,6 +11,7 @@ import pytest
 
 from astrolabe.research_lab import cb8_common as cm
 from astrolabe.research_lab import cb9_common as c9
+from astrolabe.research_lab import cb9_kd as kd
 from astrolabe.research_lab import cb9_sign as sg
 
 KEY = b"k" * 32
@@ -573,10 +574,10 @@ def _smoke_ok(tmp_path):
     return smoke
 
 
-@pytest.mark.parametrize("stalled_run", ["kd_frame", "kd"])
+@pytest.mark.parametrize("stalled_run", [kd.FRAME_RUN, kd.BOOKS_RUN])
 def test_s0b_upstream_stall_is_a_stall_not_a_refusal(tmp_path, stalled_run):
     root = tmp_path / "cb9"
-    c9.write_stall(root / stalled_run, c9.STALL_DISJOINTNESS if stalled_run == "kd_frame" else c9.STALL_UPSTREAM, "x", label="not testable (disjointness unverified)")
+    c9.write_stall(root / stalled_run, c9.STALL_DISJOINTNESS if stalled_run == kd.FRAME_RUN else c9.STALL_UPSTREAM, "x", label="not testable (disjointness unverified)")
     # no sample file exists anywhere: before the fix this was a FileNotFoundError / refusal (exit 2)
     with pytest.raises(sg.UpstreamStall):
         sg.kd_s0b_input(root)
