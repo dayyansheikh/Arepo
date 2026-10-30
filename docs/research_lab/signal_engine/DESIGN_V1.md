@@ -1273,3 +1273,11 @@ after registration would be.
 - **If the gate is met,** a builder section (columns: se1's lagged residuals with rule (c) naming se1 and its fit
   lineage; the within-capture shuffled-prediction placebo; arms and K; a declared "beats se1" condition with a clustered
   interval beside `se-promotion-v2`) follows only after an independent review. Nothing is registered by this section.
+- **Result (development look).** Committed in `7a97b797` at 02:54:20Z (sha256 `3c81d98c...c415`; host copy same hash);
+  the script's own first line `run start 2026-10-30T02:54:22Z`, so the run followed the commit (a log line this time).
+  Output `census/se_rsrev_se1_probe_2026-10-30.out`. Same 4,639,835 pairs in 182,994 markets as section 37. **se1's
+  lag-1 residual autocorrelation -0.0021** (market-clustered CI -0.0037 .. -0.0002; market-demeaned -0.0327, biased
+  negative as in section 37); partial given `mo_d2h` -0.0064; by spread tercile +0.0004 / -0.0036 / -0.0024.
+  **Gate not met: `rsrev` is not built.** Reading: se1's trees already take almost all of the reversal the logistic
+  champion leaves (-0.091 -> -0.002 on the same pairs). That is consistent with, not proof of, part of se1's lead over
+  the champion on `dir_2h` coming from the nonlinear 2 h reversal. Information only; nothing is registered or re-read.
