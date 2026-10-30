@@ -1,19 +1,21 @@
 # Measurement M2 (CH264, "the overdue mid"): the favoured side's realised payoff against its ask in markets first seen 2 h past their `end_date` with an interior mid, held to resolution, k = 0 (DRAFT)
 
-**Status: DRAFT 2026-10-30, first draft, not frozen, not registered, nothing counted.** Evidence role
+**Status: DRAFT 2026-10-30, second draft (after challenger R1, `reviews/M2_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES
+on `c075355b…0ca4`; every item applied, mapped in section 18), not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS for the role, **REVISE** for CH264;
 every REVISE item is mapped in section 17). Drafted on branch `feat/m2-ch264` from the `chore/arepo-claude-setup` tip
 `8eb0ad9f`, a design-only commit. No M2 code, no queue file, no seal, no host read. Structure and every defect class caught
 on M1 (`MEASUREMENT_M1_CH263.md`, its challenger R1 and its pre-freeze re-check) and on LT14's pre-freeze re-check are
 carried over (section 17.2). Before anything is sealed this needs, in order: a challenger review (`science-reviewer`) of this
-text, the designer's response, a re-check, **the counts-only pre-freeze job M2-J0 of 9.1**, a final pre-freeze verification,
+text (R1 done), the designer's response (section 18), a re-check, **the counts-only pre-freeze job M2-J0 of 9.1**, a final pre-freeze verification,
 the design-text freeze commit (sha256 in the ledger), the code, a code-freeze check on synthetic data, a host dry run with
 peak RSS, and the registration commit (spec and code pins plus the ledger block of 16) at least 24 h before
 `REGISTERED_UTC` (section 2). Until the pins exist, every line a reader writes is `prospective_unregistered`.
 **J0 runs before the design-text freeze and is counts only (no resolution, outcome, follow-up state or post-k price). Its
-only effects on this text are rules (a), (b) and (e) of 9.1 (the window length and the choice between two rule-class
-receipt readers declared now); nothing else can change from its output.**
+only effects on this text are rules (a) and (e) of 9.1 (the window length and the choice between two rule-class
+receipt readers declared now; rule (b) is redundant and kept only as a record); nothing else can change from its output.
+J0 is J1 (9.2) run in dry mode with the same pinned code.**
 
 This is research tooling. AREPO never trades. M2 is a measurement: it reads a resolution as the declared payoff of a paper
 route after the window, it is not a verdict, it is in no Holm family, and it is counted apart from the registered tests
@@ -27,7 +29,7 @@ after an origin, P&L or evidence JSON was read to write it (reads listed in 14).
 - **Object.** A non-sports ex-crypto binary market at its **first overdue capture**: the first 2-hourly capture k whose
   manifest start is at least 2 h after the market's `end_date` (as capture k's row states it), where capture k - 1 showed the
   market with a row that was not yet 2 h past its own `end_date`. At k the market must be open and accepting orders, show
-  no UMA state, be two-sided, and have `mid_k` in [0.05, 0.95]. One unit per market (one-shot, rule 24).
+  an empty UMA status (CH269's empty forms, E6), be two-sided, and have `mid_k` in [0.05, 0.95]. One unit per market (one-shot, rule 24).
 - **Favoured side.** YES if `mid_k > 0.5`, NO if `mid_k < 0.5`; `mid_k = 0.5` is its own counted class `no_favourite`
   (the ruling), never in the headline.
 - **Paper route.** Buy one share of the favoured side at its recorded ask at k, hold to resolution. Payoff per share
@@ -36,8 +38,8 @@ after an origin, P&L or evidence JSON was read to write it (reads listed in 14).
   (the ruling's `net = q_eff - ask - fee`), cost-model-v1 conservative fee (L1), touch, size-unlimited; event-bootstrap 95%
   CI. `E[theta] = q_eff - E[ask_f] - E[fee]`, `q_eff = P(win) + 0.5 * P(split)` on final-state units.
 - **Beside it (declared, all reported):** `theta_NF` (`not_found` as a loss of the stake) in the same ledger line; the
-  attrition band `[theta_W, theta_B]`; components (`q_eff`, mean `mid_f`, mean half-spread, mean fee); the gross premium at
-  the mid `q_eff - mean mid_f`; `theta` under L2 and with capital; twelve k-visible splits and two descriptive contrasts;
+  attrition band `[theta_W, theta_B]`; components (`q_eff`, mean `mid_f`, mean half-spread, mean fee); the gross difference
+  at the mid `q_eff - mean mid_f`; `theta` under L2 and with capital; twelve k-visible splits and two descriptive contrasts;
   an event-level bound on the non-payout share; the **proposal hazard under declared right-censoring** (7.3); the time to
   close; post-k descriptive classes (moved `end_date`, closed by k + 1) that **never exclude a unit**.
 - **Window** 2026-11-24T00:00Z .. 2026-12-15T00:00Z (21 days; same calendar as M1, disjoint units by construction, 2);
@@ -76,8 +78,10 @@ after an origin, P&L or evidence JSON was read to write it (reads listed in 14).
 - **Window.** `REGISTERED_UTC = 2026-11-24T00:00Z`, `END_UTC = 2026-12-15T00:00Z` (21 days, 252 slots). A capture belongs to
   the window if its manifest start lies in `[REGISTERED_UTC, END_UTC)`. A unit's oldest state input is capture k - 1, so the
   first possible k is the first capture whose capture k - 1 starts at or after `REGISTERED_UTC` (planned
-  2026-11-24T02:31Z). The overdue look-back (3.2, E2) reads **every retained capture before `REGISTERED_UTC`** (at least 84)
-  as raw rows only (counted `pre_window_source`); fewer than 84 retained is printed, never filled.
+  2026-11-24T02:31Z). The overdue look-back (3.2, E2) reads the **fixed span `[REGISTERED_UTC - 7 d, REGISTERED_UTC)`** (84
+  slots; R1 MUST 5) as raw rows only (counted `pre_window_source`), whatever the host retains beyond it. A slot of that span
+  with no complete capture is counted `missing_lookback_slot`, never filled; a market overdue only in such a slot can enter
+  as a candidate later (disclosed; the count is printed).
 - **Why the same calendar as M1.** M1's unit requires a UMA proposal state first seen at k; M2's unit requires **no** UMA
   state at k. The two unit sets are disjoint as (market, k) objects by construction. A market can be an M2 unit and later an
   M1 unit (a proposal after k); it is counted `m1_overlap` at read-out from unit ids only and never pooled. Overlapping
@@ -122,8 +126,8 @@ after an origin, P&L or evidence JSON was read to write it (reads listed in 14).
 ### 3.2 Eligibility (only state visible at <= k; each exclusion a counted class)
 Every complete capture in the window is processed in chronological order (9.2). The candidates at k are the markets whose
 row at k has `age_k = start_k - end_date_k >= 2 h` (`end_date` parsed as UTC; `start_k` the manifest start) and that are
-**not in the overdue-seen set** (every market of any category seen with `age >= 2 h` at any processed capture since the
-look-back start, k excluded). The overdue stock (about 1,363 past-end markets a capture in CH269) is therefore never re-read
+**not in the overdue-seen set** (every market of any category seen with `age >= 2 h` at any processed capture of the fixed
+look-back span or of the window before k). The overdue stock (about 1,363 past-end markets a capture in CH269) is therefore never re-read
 as new candidates. A candidate becomes a unit if all of the following hold, checked in this order (the first failing rule
 names the class):
 - **E1 Capture.** Captures k and k - 1 are complete and k - 1 is the immediately previous 2 h slot (`grid0 =
@@ -140,8 +144,10 @@ names the class):
 - **E5 Scope.** Capture k's sidecar row exists (else `sidecar_missing`) and its category, by the CH269 map's reader
   (`boundary_map_ch240.category_of(fee_type, fee_category, series_slugs, True)`) applied to **capture k's own sidecar row**,
   is `nonsports_excrypto`. Else `out_of_scope_<category>` (sports and crypto counts printed).
-- **E6 No UMA state at k.** `uma_resolution_statuses` at k contains none of `propos`, `disput`, `resolv`
-  (case-insensitive). Else `uma_state_at_k` (with the token named; first-seen proposals here are M1's domain).
+- **E6 Empty UMA status at k (a whitelist; R1 MUST 2).** `str(uma_resolution_statuses).strip().lower()` at k is one of
+  CH269's empty forms `""`, `"[]"`, `"nan"`, `"none"` (`census_map_ch269.py`, the `ui` reading). Else `uma_state_at_k` if
+  the string contains `propos` (first-seen proposals here are M1's domain), or `uma_other_at_k` for every other non-empty
+  form (counted; the raw form is printed). No form outside the whitelist ever passes.
 - **E7 Two-sided at k.** `0 < bid < ask <= 1`. Else `not_two_sided`.
 - **E8 Interior mid.** `mid_k = round((bid + ask) / 2, 6)` (prices are decimal strings on a >= 0.0001 tick, so the mid lies
   on a 0.00005 grid; rounding to 6 dp makes every boundary comparison exact on the stored value, the LT14 float lesson);
@@ -155,8 +161,12 @@ the funnel so a reader sees how many ended markets close or vanish before a firs
 
 ### 3.3 Unit fields and decision time
 - **Price on the favoured side** (rows' touch at k): YES: `ask_f = ask`, `bid_f = bid`, `mid_f = mid_k`; NO:
-  `ask_f = 1 - bid`, `bid_f = 1 - ask`, `mid_f = 1 - mid_k`. Half-spread `h = (ask - bid) / 2`, so `ask_f = mid_f + h`.
-  Tick at k recorded.
+  `ask_f = round(1 - bid, 6)`, `bid_f = round(1 - ask, 6)`, `mid_f = round(1 - mid_k, 6)`. Spread
+  `spread_k = round(ask - bid, 6)`, half-spread `h = spread_k / 2`, so `ask_f = mid_f + h` (to floating-point error).
+  **Every split boundary (S6, S11) and every boundary test is applied to these rounded values** (R1 MUST 1: unrounded
+  `ask - bid <= 0.01` fails on 80 of 99 one-tick spreads at tick 0.01). Tick at k recorded.
+- **The touch may be stale (disclosed, unmeasured; R1 SHOULD 6).** Gamma's best bid / ask on a past-end market may lag the
+  book; no book is read (5.3), so the staleness of `ask_f` at `t_d` is not measured.
 - **Decision time** `t_d` = the later of the row's `received_utc` and the sidecar row's `received_utc` (no sweep exists for
   these markets). The gap (sidecar minus row) is recorded. The rule-class input must be committed at or before `t_d` (3.5).
 - **Unit record.** Everything above plus `event_id`, the event's open binary member count at k, `end_date_k`,
@@ -170,7 +180,8 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
 ### 3.5 Rule class at `t_d` (the S2 reader; pinned)
 - **Lexicon.** CH269's placeholder lexicon, copied verbatim into M2's own module (CH269's module is not frozen and may change):
   `classify_rule(question + description + resolutionSource)` with CH269's `SCHEDULED_RE` and `BARRIER_RE`, giving
-  `scheduled`, `barrier`, `both` or `other`; no text: `no_rules`. The sha256 of the two pattern strings is a spec pin. It is a
+  `scheduled`, `barrier`, `both` or `other`; no record for the market at or before `t_d`: `no_rules`; a `hash` record whose
+  full row is no longer in a retained day file: `rules_unresolved` (its own cell, never `no_rules`; R1 SHOULD 8). The sha256 of the two pattern strings is a spec pin. It is a
   placeholder reading, **not** CH239's parser, and it does not detect consensus-sourced rules (disclosed; the idea's
   "consensus-sourced" cut is not available).
 - **k-visible reader (declared now; the CH269 map's "last row wins" read rows after k and is not used).** The market's
@@ -207,10 +218,11 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
 - **Declared secondary weighting (reported beside, never substituted):** `theta_E`, event-weighted (each event weight 1,
   split equally over its final-state units).
 - **Components, each with its event-bootstrap CI:** `q_eff`; `P(win)`, `P(loss)`, `P(split)`; mean `mid_f`; mean `h`; mean
-  fee (L1 and L2); the **gross premium at the mid** `pi = q_eff - mean mid_f` (no fill; descriptive) and the identity
-  `theta = pi - mean h - mean fee` (exact on the same units).
-- **Secondaries:** `theta` under L2; `theta_cap = theta - mean cap_i` (5.2); `theta_open` = `theta` without
-  `closed_before_t_d` units, labelled **post-k conditional, descriptive** (8.2); mean `Q` and count for `no_favourite`.
+  fee (L1 and L2); the **gross difference at the mid** `pi = q_eff - mean mid_f` (no fill; descriptive) and the identity
+  `theta = pi - mean h - mean fee` on the same units, **checked within 1e-9, never with `==`** (R1 SHOULD 3).
+- **Secondaries:** `theta` under L2; `theta_cap = theta - mean cap_i` (5.2); mean `Q` and count for `no_favourite`. No
+  secondary drops a unit by a post-k state (the earlier `theta_open` is removed, R1 MUST 4; 8.2 prints each post-k class's
+  count and mean `n_i` only).
 - **Conditioning disclosed (LT14's lesson).** `theta` is conditional on reaching a final state by the read-out. Reaching it is
   after k and may depend on the payoff (ambiguous rules may settle late, split or vanish), so `theta` alone can move with
   attrition alone; this is why `theta_NF` and the band sit in the same line and why coarse rule 3 (10) exists. No reading of
@@ -225,7 +237,8 @@ The cluster is the Gamma `event_id` at k. No cap: weights are declared instead (
   scope reader only). `exponent` = the `fee_schedule`'s exponent where served, else 1.0; `schedule_rate` = its rate where
   served, else None.
   - **L1 (headline):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled, policy="conservative")`: max(served schedule,
-    docs rate), 0 if `fees_enabled` is False.
+    docs rate), 0 if `fees_enabled` is False; **for a key outside the docs table: the served rate, possibly 0** (0.07 only
+    when no schedule is served; `costs.py:93-104`, R1 Q9).
   - **L2 (docs-rate line; rate-0-not-trusted):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled=None,
     policy="conservative")` when `cat_k` is a `CATEGORY_TAKER_RATE` key; **`costs.MAX_TAKER_RATE` (0.07) when it is not**.
     Reason for the second clause: `taker_rate` drops a NaN docs rate, so an unknown key with a served schedule of 0 returns
@@ -274,17 +287,17 @@ during the window it is **not** used; its presence share is printed only.
 | # | Split | Cells |
 |---|---|---|
 | S1 | liquidity at k (proxy; fixed cuts) | low (< 47.46151), mid (< 330.74525), high, na |
-| S2 | rule class at `t_d` (3.5) | scheduled, barrier, both, other, no_rules |
-| S3 | fee category `cat_k` | economics, culture, weather, other, finance, politics, mentions, tech, geopolitics, unknown (10, fixed by rule; J0 prints the distribution) |
-| S4 | fee class at k | fee_free, fee_on, unknown |
+| S2 | rule class at `t_d` (3.5) | scheduled, barrier, both, other, no_rules, rules_unresolved |
+| S3 | fee category `cat_k` | economics, culture, weather, other, finance, politics, mentions, tech, geopolitics, unknown (= any `cat_k` outside those nine keys, including empty; 10 cells fixed by rule; J0 prints the distribution) |
+| S4 | fee class at k, by `population_map_ch251.fee_class(fees_enabled, has_fe_col, fee_schedule)` (CH269's reader) | fee_free (`fees_enabled` served and false, or served schedule rate <= 0), fee_on (served rate > 0), unknown (no parseable schedule) |
 | S5 | favoured side | YES, NO |
-| S6 | favoured mid zone `mid_f` | (0.5, 0.6], (0.6, 0.7], (0.7, 0.8], (0.8, 0.9], (0.9, 0.95] |
+| S6 | favoured mid zone `mid_f` (rounded, 3.3) | (0.5, 0.6], (0.6, 0.7], (0.7, 0.8], (0.8, 0.9], (0.9, 0.95] |
 | S7 | `end_date` moved at k (`end_date_k != end_date_{k-1}`) | no, yes |
 | S8 | event member count at k | 1, 2-5, 6+ |
 | S9 | tick size at k | 0.001, 0.01, other / missing |
 | S10 | window week | days 1-7, 8-14, 15-21 |
-| S11 | spread at k (`ask - bid`) | <= 0.01, (0.01, 0.03], (0.03, 0.10], > 0.10 |
-| S12 | S1 x S2 (the idea's size x class grid) | 4 x 5 = 20 cells |
+| S11 | spread at k (`spread_k`, rounded, 3.3) | <= 0.01, (0.01, 0.03], (0.03, 0.10], > 0.10 |
+| S12 | S1 x S2 (the idea's size x class grid) | 4 x 6 = 24 cells |
 
 **Declared descriptive contrasts (the ruling: a difference with a CI, never an identification):**
 - **D1** = `theta(S1 high) - theta(S1 low)`, and the same for `pi` and for the 24 h proposal incidence of 7.3.
@@ -294,8 +307,10 @@ Each with its event-bootstrap CI (events resampled once; the difference taken wi
 
 Structural notes (disclosed): S7 "yes" is near-empty by CH269 (moved share 0.0); S8 "1" means the event's only open binary
 market; S6 cells mirror S5 under the YES / NO symmetry and are not independent of it; S12 is S1 x S2 and adds no new
-variable. Selection width for later tests: **12 splits, 64 cells** (S1 4, S2 5, S3 10, S4 3, S5 2, S6 5, S7 2, S8 3, S9 3,
-S10 3, S11 4, S12 20) **plus 2 contrasts**.
+variable. **Likely empty or thin cells (disclosed; R1 SHOULD 2; CH269 counts under its looser reader):** S2 `scheduled` 14
+of 1,347 units, so D2's `scheduled` arm is expected `thin`; S12 high x `no_rules` 0; S1 is confounded with rule coverage
+(154 of 180 `no_rules` units in the low cell), so S1 differences mix size and coverage. Selection width for later tests:
+**12 splits, 69 cells** (S1 4, S2 6, S3 10, S4 3, S5 2, S6 5, S7 2, S8 3, S9 3, S10 3, S11 4, S12 24) **plus 2 contrasts**.
 
 ## 7. Inference
 
@@ -310,18 +325,22 @@ interval: **printed as degenerate; the bound of 7.2 is the bound**.
 
 ### 7.2 Event-level bound on the non-payout share
 `split_50_50` and `not_found` may be rare and arrive by event (a voided ladder). Declared, as M1's corrected `T_U`:
-- `I_e = 1` if any unit of event e is `split_50_50` or `not_found` (units at read-out with a record or `not_found`).
-- Strata s = **units per event** (1, 2-3, 4-9, 10+; S = 4; an inference stratum, never a split). In each stratum `p_U,s` is the
-  one-sided Clopper-Pearson upper bound on the event rate at level **1 - 0.05 / S = 0.9875**. `B_U = sum_s (N_s / N) *
+- **Unit basis** (R1 SHOULD 5): final-state units plus `not_found` units (`N_D` units, `E_D` events); `pending` and
+  `unavailable` units are outside it and counted. `I_e = 1` if any basis unit of event e is `split_50_50` or `not_found`.
+- Strata s = **basis units per event** (1, 2-3, 4-9, 10+; S = 4; an inference stratum, never a split). In each stratum `p_U,s` is the
+  one-sided Clopper-Pearson upper bound on the event rate at level **1 - 0.05 / S = 0.9875**. `B_U = sum_s (N_s / N_D) *
   p_U,s`, under the worst case that every unit of a flagged event is flagged. **A stratum with no events contributes 0.**
 - Assumption stated: within a stratum an event's rate does not depend on its unit count (homogeneity); without it `B_U`
   bounds an event-weighted share. Printed beside: the 10 largest events' unit counts and `I_e`; per-stratum events, flags
-  and `p_U,s`. With zero flags `p_U,s` is about 4.38 / E_s.
+  and `p_U,s`. With zero flags `p_U,s` is about 4.38 / E_s, so `B_U` is at least 4.38 / N_D times the sum over non-empty strata of
+  their units per event, and each non-empty stratum adds at least its lower limit (1, 2, 4, 10).
 
 ### 7.3 Proposal hazard (the idea's estimand 2; declared right-censoring)
 - **Data.** The blind follow-up record of 9.2 (status tokens, `closed`, `active`, row presence and `end_date` of each unit's
   market at every processed capture j > k up to `READOUT_UTC`; no price), sealed until the read-out.
-- **Event P:** the first follow-up capture whose status contains `propos`, `disput` or `resolv`. **Competing event C:** the
+- **Event P:** the first follow-up capture whose status string, split on non-letters and lower-cased, contains a **whole
+  token** `proposed`, `disputed` or `resolved` (R1 MUST 2); a non-empty form with none of them is counted
+  `uma_other_followup` (descriptive, not P). **Competing event C:** the
   first follow-up capture at which the row is absent or `closed` is true, with no earlier P. **Censoring:** at the last
   processed capture before `READOUT_UTC` with neither (declared right-censoring at read-out, the ruling). Time is in 2 h slots
   from k; an event observed after one or more `missing_capture` slots is attributed to the first observed capture and counted
@@ -333,7 +352,8 @@ interval: **printed as degenerate; the bound of 7.2 is the bound**.
   showing a state, not the proposal; proposals made and resolved between captures appear as C.
 
 ### 7.4 Time to close (no follow-up read)
-`w_i` of 5.2 as a time-to-event descriptor, right-censored at `fetched_utc` for `pending` units: Kaplan-Meier median and the
+`w_i` of 5.2 as a time-to-event descriptor over final-state and `pending` units, right-censored at `fetched_utc` for
+`pending` units; `not_found` and `unavailable` units are excluded and counted (R1 SHOULD 4): Kaplan-Meier median and the
 share closed by 7 d and 30 d, overall and by S1 and S2; event-bootstrap CIs.
 
 ## 8. Outcome classes, post-k descriptive classes, the resolution source and its floor
@@ -345,8 +365,8 @@ share closed by 7 d and 30 d, overall and by S1 and S2; event-bootstrap CIs.
 | `resolved_other` | `parse_outcome` gives the other side | yes, `Q = 0` | yes |
 | `split_50_50` | reason `split_50_50` | yes, `Q = 0.5` | yes |
 | `pending` | a record exists, not closed, or `parse_outcome` reason `not_resolved` (sub-class `closed_not_uma_resolved` when `closed` is true) | no; counted | no |
-| `not_found` | no Gamma record in either fetch pass (9.4) | no | yes, `Q = 0` |
-| `unavailable` | fetch failed after the declared retries, or `other_price_vector` / `bad_prices` (named sub-classes) | no; counted | no |
+| `not_found` | absence established: no record in either batch pass and a single-id re-query answered HTTP 200 with no record (9.4) | no | yes, `Q = 0` |
+| `unavailable` | `unavailable (fetch)`: no definite answer after the declared retries (including a failed single-id re-query); or `other_price_vector` / `bad_prices` (named sub-classes) | no; counted | no |
 | `no_favourite` (k-time) | E9 | no; count and YES share only | no |
 
 All eligibility classes of 3.2 are k-time exclusions and are counted in the funnel. The read-out record's
@@ -355,8 +375,8 @@ All eligibility classes of 3.2 are k-time exclusions and are counted in the funn
 ### 8.2 Post-k descriptive classes (never exclude; the ruling's REVISE items)
 Read only at read-out from the pinned source; each unit stays in every estimand; counts and mean `n_i` printed per class:
 - `end_date_changed_after_k`: the read-out record's `endDate` differs from `end_date_k` by more than 1 s;
-- `closed_before_t_d`: `closedTime < t_d` (the stale-flag case S50; a fill could not have happened; `theta_open` of 4 is
-  printed beside, labelled post-k conditional);
+- `closed_before_t_d`: `closedTime < t_d` (the stale-flag case S50; a fill may not have been possible; count and mean `n_i`
+  only, the unit stays in every estimand);
 - `closed_within_one_slot`: `t_d <= closedTime < t_d + 2 h`;
 - `m1_overlap`: the market is also an M1 unit (unit ids only);
 - `backlog` label: if `not_found + split_50_50` exceed 30% of units, the line is printed with "the population behaves as the
@@ -373,10 +393,11 @@ brackets every non-final class, and its count and share sit in the ledger line t
   the source: its candidates are markets with a res-eligible feature row, and M2's markets are past the engine's eligibility.
 - **Cross-check (read-out only, never a substitute):** for units also in the engine's resolution log, agreement of state and
   `y` (counts); disagreements listed; the pinned source governs.
-- **Coverage floor.** Coverage = share of eligible units whose fetch returned a record (any class except `not_found` and
-  `unavailable (fetch)`). **Floor 0.95 of units and 0.95 of events.** Below either, M2 is **void** (11). (`not_found` counts
-  against coverage here because a missing record cannot be told from a source gap; if the challenger judges that this makes a
-  backlog-heavy population void by construction, the alternative is a floor on `unavailable (fetch)` alone; open question 4.)
+- **Coverage floor (R1 MUST 3).** A unit is *covered* when the source gave a definite answer: a record, or absence established
+  (`not_found` as 8.1 defines it). Unit coverage = covered units / eligible units, i.e. 1 minus the `unavailable (fetch)`
+  share. Event coverage = share of events all of whose units are covered. **Floor 0.95 of units and 0.95 of events.** Below
+  either, M2 is **void** (11). `not_found` is a counted outcome class, never a coverage failure: it is carried by
+  `theta_NF`, the band, coarse rule 3 and the backlog label, so a backlog-heavy population is reported, not voided.
 
 ## 9. Collectors, stores and the job list (DRAFT specs in text only; no queue file, no code yet)
 
@@ -385,7 +406,8 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
 
 ### 9.1 M2-J0: pre-window counts-only check (before the design-text freeze; uncounted)
 - **What J0 is.** A counts-only pre-freeze job: no resolution, no outcome field, no follow-up state after any unit's k, no
-  price after k. Its only effects on this text are rules (a), (b) and (e); nothing else (estimand, weight, split, cut, cost
+  price after k. **J0 is J1 (9.2) run in dry mode with the same pinned code** (so 3.2, 3.3 and 3.5 are applied exactly; R1
+  feasibility), writing counts only and no follow-up file. Its only effects on this text are rules (a) and (e); nothing else (estimand, weight, split, cut, cost
   line, class rule, threshold, date other than by (a) / (b)) changes from it.
 - Reads the last 8 days of rows and sidecars and the retained `gamma_rules` day files on the host. Applies 3.2, 3.3 and 3.5
   exactly as specified and prints **counts only**: eligible units a day; events and the units-per-event distribution (S8 and
@@ -395,7 +417,8 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   committed `poll` lines carry a parseable receipt time**; `gamma_rules` day-file retention (oldest file); the forms of the
   status string (distinct normalised forms, counts); the planned follow-up volume (units x captures to the read-out).
 - **Decision rules declared now:** (a) eligible units fewer than 75 a day (median full day): window extended to 42 days,
-  dates rewritten before the freeze; (b) fewer than 1,500 eligible units projected over 21 days: extended to 42 days;
+  dates rewritten before the freeze; (b) *redundant, kept as a record only* (fewer than 1,500 projected over 21 days; since 75 x 21 = 1,575 > 1,500, rule (a)
+  always fires first; R1);
   (c) the size split stays the liquidity proxy with CH269's cuts whatever J0 prints; (d) none of J0's numbers changes an
   estimand, split, cut, cost line or threshold; (e) if committed `poll` lines carry no parseable receipt time, S2's reader is
   the day-before rule of 3.5. Output labelled `informed (M2-J0)`, counts only, sealed with its code hash.
@@ -404,7 +427,8 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
 ### 9.2 M2-J1: window-time extractor and blind follow-up recorder (every pass; catch-up within retention)
 - **Extractor.** For each complete capture k in the window not yet processed: read captures k - 1 and k (rows and sidecar,
   `usecols` only) and the committed `gamma_rules` records up to `t_d`; apply 3.2; write `units/<capture_id>.jsonl.gz` and
-  `status/<capture_id>.json` (the funnel counts, completeness). Idempotent per capture; refuses to overwrite; every line
+  `status/<capture_id>.json` (the funnel counts, completeness; **no P or C count and nothing derived from follow-up
+  content**: for follow-up files only their sha256 and line count, R1 Q1; monitoring prints the same and no more). Idempotent per capture; refuses to overwrite; every line
   carries `spec_sha`, `code_sha`, role `prospective_measurement`. State file between runs: the overdue-seen set, the M2 unit
   ids, the folded rule classes with their commit times.
 - **Strictly chronological (M1's re-check fix 3, adopted verbatim).** Captures are processed in increasing manifest start,
@@ -416,16 +440,19 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
   rule records committed at or before `t_d`.**
 - **Blind follow-up recorder (for 7.3 only).** At every processed capture j (in the window and after it, up to
   `READOUT_UTC`), for every M2 unit with k < j, append to `followup/<capture_id>.jsonl.gz`: unit id, row present, `closed`,
-  `active`, `accepting_orders`, the status tokens present, `end_date`. **No price, bid, ask or outcome field.** Every unit is
+  `active`, `accepting_orders`, the raw status string, `end_date`. **No price, bid, ask or outcome field.** Every unit is
   recorded at every capture regardless of its earlier follow-up state, so the writer never reads its own output. The
   extractor never opens a follow-up file; nothing reads one before `READOUT_UTC` (the analysis refuses; no other module
-  imports the reader); each file's sha256 enters the status chain. This is the reading of ruling condition 5 that M2 asks
-  the challenger to accept (open question 1): **the follow-up is written blind during the window because the host keeps
-  captures only about 8 days, and it is read only at the read-out.**
+  imports the reader); each file's sha256 enters the status chain. **Procedural blinding** (R1 Q1, accepted under condition 5:
+  pinned code, no price or outcome field, hashed, read only at the read-out): the follow-up is written blind during the window
+  because the host keeps captures only about 8 days. Its non-reading before the read-out is a procedure, not a property the
+  data can prove (11.2(b)).
 - **Synthetic tests to be written:** (i) out-of-order delivery processes in order and gives the same units; (ii) a state file
   holding a capture at or after k makes the run refuse; (iii) a 12-capture catch-up gives identical unit files; (iv) deleting
   every follow-up file leaves every unit and status file byte-identical; (v) a `gamma_rules` record committed after `t_d`
-  never changes a unit's S2 cell; (vi) `mid_k` boundary cases (0.05, 0.95, 0.5) classify on the rounded value.
+  never changes a unit's S2 cell; (vi) `mid_k` boundary cases (0.05, 0.95, 0.5) classify on the rounded value; (vii) S11 and S6 boundaries: every one-tick
+  spread at ticks 0.01 and 0.001 and the 0.03 / 0.10 / zone boundaries classify into the intended cell on the rounded values
+  (R1 MUST 1); (viii) E6 passes only the four empty forms.
 - Planned peak RSS 300-500 MB; cap 600 MB.
 
 ### 9.3 M2-J2: window close and follow-up close
@@ -435,7 +462,8 @@ Store: `data-dumps/research_lab/m2_ch264/` on the host (write-once files; never 
 
 ### 9.4 M2-J3: read-out resolution fetch (on or after `READOUT_UTC`)
 - For every unit's market id: Gamma `/markets?id=` in batches of 50 with `closed=true`; ids not returned are fetched again
-  without `closed` to separate `pending` from `not_found`. Up to 3 attempts per batch at least 1 h apart; remaining failures
+  without `closed` to separate `pending` from absence; an id absent in both passes is re-queried alone (`/markets?id=<id>`),
+  and only an HTTP 200 with no record makes it `not_found`. Up to 3 attempts per batch at least 1 h apart; remaining failures
   are `unavailable (fetch)`. Records `state`, `y`, reason, `closedTime`, `endDate`, `umaResolutionStatus`, `fetched_utc`.
   About 60-200 requests. Write-once `readout/`.
 
@@ -467,7 +495,7 @@ M2 is reported **coarse** (every number still printed) if any of:
 - Fee scale: L1 0.6-1.25c a share in the interior, the same order as the headline SE.
 - Hazard: the 24 h cumulative incidence over about 2,500 units has an independent SE under 1 point; with DE 2-6, a half-width
   of about 2-5 points.
-- Bound `B_U`: with zero flags it is about 4.38 / N times the sum over non-empty strata of their units per event, as M1's
+- Bound `B_U`: with zero flags it is about 4.38 / N_D times the sum over non-empty strata of their units per event, as M1's
   `T_U`; it is printed, not a coarse rule (non-payout classes are in coarse rule 3 already).
 
 ## 11. Void conditions
@@ -478,20 +506,21 @@ M2 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 2. any read of a resolution, label, Gamma outcome field, follow-up file or any data from after a unit's k before
    `READOUT_UTC` other than the blind write-and-hash of 9.2; named case **(a)**: J1 processed a capture out of chronological
    order, or used state holding a capture at or after k or a rule record committed after `t_d` (audited from the status
-   files' sha256 chain); named case **(b)**: a follow-up file opened by any process other than its writer before
-   `READOUT_UTC`, or the J2 follow-up manifest missing at the analysis;
+   files' sha256 chain); named case **(b)** (procedural blinding; not auditable from the data, only from the process record): a follow-up file
+   opened by any process other than its writer before `READOUT_UTC`, or the J2 follow-up manifest missing at the analysis;
 3. unit selection that uses information from after k (including any exclusion by a post-k class of 8.2);
 4. resolution-source coverage below the floor of 8.4;
 5. unit lines whose `spec_sha` or `code_sha` differs from the pins making up more than 1% of units (below that dropped,
    counted);
-6. the window started before the registration commit plus 24 h.
+6. the window started before the registration commit plus 24 h;
+7. the J2 unit manifest missing, or its committed hash not matching the unit and status files at the analysis (R1 SHOULD 9).
 
 ## 12. Later tests on the same object, and counting
 
-- A later verdict test on the overdue mid, its premium, its hazard, or any S1-S12 cell or D1 / D2 is labelled
+- A later verdict test on the overdue mid, its gross difference at the mid, its hazard, or any S1-S12 cell or D1 / D2 is labelled
   **`informed (M2)`**, uses a window that starts after `READOUT_UTC` (disjoint and later), and counts none of M2's data as its
   evidence.
-- If it targets a split, cell or contrast chosen after seeing M2, it reports M2's selection width: **12 splits, 64 cells, 2
+- If it targets a split, cell or contrast chosen after seeing M2, it reports M2's selection width: **12 splits, 69 cells, 2
   contrasts** (6).
 - M2 may set planning SDs, design effects and population counts for a later design; it never sets a threshold after the fact.
 - M2 is in no Holm family, is counted separately from registered tests (ledger correction entry of 2026-10-30 ~04:36Z), and
@@ -501,11 +530,11 @@ M2 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 
 **Can say (allowed wording):**
 - "Measured (prospective, k = 0): over N units in E events, **counting only non-sports ex-crypto markets seen at their first
-  2 h capture at least 2 h past `end_date`, open, accepting orders, with no UMA state, two-sided and with a mid in [0.05,
+  2 h capture at least 2 h past `end_date`, open, accepting orders, with an empty UMA status, two-sided and with a mid in [0.05,
   0.95] at k**, the mean of (resolution payoff of the side above 0.5 at k, minus its recorded ask, minus the cost-model-v1
   conservative fee) was theta [CI]; booking `not_found` as a loss it was theta_NF [CI]; with every unresolved unit at 0 or 1
   it lay in [theta_W, theta_B]; touch, size-unlimited; capacity unavailable."
-- The gross premium at the mid, the shares won, lost, split, pending and not found, and how each differs across the declared
+- The gross difference at the mid, the shares won, lost, split, pending and not found, and how each differs across the declared
   k-visible splits, as descriptive differences with CIs.
 - How soon a proposal state appeared at a capture after k (cumulative incidence under right-censoring at the read-out), and
   how long markets took to close.
@@ -513,8 +542,8 @@ M2 is **void** (recorded in the ledger, its numbers not reported as a measuremen
   `left_before_overdue_slot`).
 
 **Cannot say:**
-- That anyone could earn this: no fill, queue, latency or size is measured; capacity is unavailable; `closed_before_t_d`
-  units may have been untradeable.
+- That anyone could earn this: no fill, queue, latency or size is measured; capacity is unavailable; the Gamma touch at a
+  past-end market may be stale; `closed_before_t_d` units may have been untradeable.
 - **Why** the mid sits where it does. D1 and D2 are descriptive differences; they identify neither inattention nor ambiguity
   (the ruling). The size cut is liquidity, not open interest; the rule class is a placeholder lexicon that cannot see
   consensus-sourced rules.
@@ -534,7 +563,7 @@ headings and 3. Code read for field semantics only: `costs.py` (`category_key`, 
 lexicon and `read_rules`), `book_sweep.select_tokens`, `panel.eligibility_mask`, `forecast.FORECAST_END_MARGIN_H`,
 `streams/common.py` (the keyless file format), `streams/gamma_rules.py` (the frame).
 
-## 15. Open questions for the challenger (riskiest first)
+## 15. Open questions for the challenger (riskiest first; first draft; answered by R1, see 18.3)
 
 1. **The blind follow-up recorder and ruling condition 5.** The hazard needs proposal states after k, and the host keeps
    captures about 8 days, so they can only be written during the window. Is a blind, write-only, hashed follow-up store read
@@ -561,12 +590,12 @@ lexicon and `read_rules`), `book_sweep.select_tokens`, `panel.eligibility_mask`,
 ## 16. Proposed ledger block (DRAFT; not applied)
 
 > ## M2 (CH264) measurement design draft, 2026-10-30 (DRAFT, nothing counted)
-> - `MEASUREMENT_M2_CH264.md` first draft on `feat/m2-ch264`; role `prospective_measurement` (R19 rule-26 ruling; CH264 REVISE
+> - `MEASUREMENT_M2_CH264.md` second draft (R1 GO_WITH_CHANGES applied, section 18) on `feat/m2-ch264`; role `prospective_measurement` (R19 rule-26 ruling; CH264 REVISE
 >   items applied, section 17); k = 0; no Holm; counted apart from registered tests. Headline: unit-weighted mean of
 >   `Q - ask - fee` (cost-model-v1 conservative fee) at the first overdue capture with an interior mid, event-bootstrap CI;
 >   `theta_NF` and the attrition band in the same line; 12 k-visible splits on a liquidity proxy (open interest empty);
 >   capacity unavailable; proposal hazard under right-censoring at read-out. Window 2026-11-24..12-14 (units disjoint from
->   M1's), read-out on or after 2027-01-29. Next: challenger R1, then M2-J0 (counts only).
+>   M1's), read-out on or after 2027-01-29. Next: R1 re-check, then M2-J0 (J1 in dry mode, counts only).
 
 ## 17. The binding inputs, mapped
 
@@ -596,4 +625,44 @@ lexicon and `read_rules`), `book_sweep.select_tokens`, `panel.eligibility_mask`,
 | Float storage equality (LT14) | mid rounded to 6 dp before every boundary test | 3.2 E8, E9 |
 | Estimand conditional on a post-k state (LT14's null) | conditioning paragraph; `theta_NF`, band, coarse rule 3 | 4, 10 |
 | Sweep coverage depends on price | capacity declared unavailable (no sweep row by construction) | 5.3 |
-| J0 effects limited and named | (a), (b), (e) only | status, 9.1 |
+| J0 effects limited and named | (a) and (e) only; (b) redundant | status, 9.1 |
+
+## 18. R1 response (2026-10-30; `reviews/M2_CHALLENGER_R1_2026-10-30.md`, GO_WITH_CHANGES on `c075355b…0ca4`)
+
+No window, registration, read-out date, threshold, estimand, weight or cost line was loosened. The cell count rises from 64
+to 69 (S2 gains `rules_unresolved`); no cell was dropped.
+
+### 18.1 MUST
+| Item | Fix | Where |
+|---|---|---|
+| 1 S11 / S6 boundaries fail by floating-point maths | `spread_k = round(ask - bid, 6)`, NO-side prices and `mid_f` rounded to 6 dp; every boundary tested on rounded values; synthetic test (vii) | 3.3, 6, 9.2 |
+| 2 E6 a token blacklist | whitelist of CH269's empty forms (`""`, `"[]"`, `"nan"`, `"none"`); other non-empty forms `uma_other_at_k`; follow-up P on whole tokens (`proposed`, `disputed`, `resolved`), others `uma_other_followup`; test (viii) | 3.2 E6, 7.3, 9.2 |
+| 3 Coverage floor contradicts the backlog label | covered = a definite answer (a record, or absence established in both passes plus a single-id re-query with HTTP 200); floor 0.95 on units and events against `unavailable (fetch)` only; event coverage defined; `not_found` an outcome class | 8.1, 8.4, 9.4 |
+| 4 `theta_open` re-introduces a post-k exclusion | removed; 8.2 prints class count and mean `n_i` only | 4, 8.2 |
+| 5 Look-back depends on retention | fixed span `[REGISTERED_UTC - 7 d, REGISTERED_UTC)`, 84 slots; `missing_lookback_slot` counted | 2, 3.2 |
+
+### 18.2 SHOULD
+| Item | Fix | Where |
+|---|---|---|
+| 1 S4 and S3 `unknown` undefined | S4 by `population_map_ch251.fee_class` with its three cells defined; S3 `unknown` = any key outside the nine | 6 |
+| 2 Likely empty cells | `scheduled` 14 / 1,347, high x `no_rules` 0, S1 confounded with rule coverage (154 of 180): disclosed | 6 |
+| 3 Identity checked by `==` | within 1e-9 | 4 |
+| 4 7.4 classes | `not_found` and `unavailable` excluded and counted | 7.4 |
+| 5 7.2 unit basis | final-state plus `not_found` units (`N_D`, `E_D`); lower-limit wording as M1's corrected text | 7.2, 10 |
+| 6 Stale touch | disclosed (unmeasured) | 3.3, 13 |
+| 7 "gross premium" | renamed "gross difference at the mid" | 0, 4, 12, 13 |
+| 8 `hash` record without its row | `rules_unresolved`, its own S2 cell | 3.5, 6 |
+| 9 Void list | J2 unit manifest missing or not matching | 11 |
+
+### 18.3 Designer's questions, as answered by R1
+1. Blind write-only follow-up accepted under condition 5; named **procedural blinding**; void 11.2(b) stated as not auditable
+from the data; J1 status files and monitoring print no P / C counts, only follow-up file hashes and line counts (9.2, 11).
+2. E2 kept. 3. `theta` stays the headline; `theta_NF` and the band mandatory in the same line (1 rule 1). 4. MUST 3 (8.4).
+5. Liquidity proxy with fixed cuts and label kept (6). 6. Placeholder lexicon kept, pinned (3.5). 7. 45 days kept (2).
+8. Coarse thresholds kept (10). 9. L1 now states "unknown key: served rate, possibly 0"; L2 keeps `MAX_TAKER_RATE` for
+unknown keys (5). The same defect in M1's text is recorded for M1's final verification (the ledger note of 26af0e38); M1's
+file is not edited here.
+
+### 18.4 Feasibility (R1)
+J0 is J1 in dry mode with the same pinned code (9.1). J0 rule (b) is redundant (75 x 21 = 1,575 > 1,500) and kept only as a
+record. J1 runs on the host until 2027-01-29 (about 790 captures) beside M1's J1, light, never beside a multi-GB job.
