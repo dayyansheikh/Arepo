@@ -201,3 +201,26 @@ def test_runner_refusals_and_write_once(tmp_path):
     assert runner.main(base + ["--out", str(out)]) == 1
     assert out.read_text() == first
     assert runner.main(["--snapshot-root", str(snap), "--sweep-root", str(sw), "--last-days", "8", "--out", str(out.with_name("b.json"))]) == 0
+
+
+def test_float_edges_rounded_to_6dp():
+    assert j0.zone_of(1 - 0.97) == "(0.01,0.03]"  # 0.030000000000000027 unrounded
+    assert j0.zone_of(1 - 0.995) == "(0.001,0.005]"
+    assert j0.zone_of(1 - 0.999) == "c<=0.001"
+    assert j0.tick_of("0.0010000000001") == "0.001" and j0.tick_of("0.01") == "0.01" and j0.tick_of("") == "other_or_missing"
+
+
+def test_mid_edge_and_empty_event_id(tmp_path, monkeypatch):
+    def edge_spec(k):
+        st = P if k >= 5 else E
+        return [(21, "", "0.85", "0.95", st, "politics", "false"),   # (0.85 + 0.95) / 2 = 0.8999999999999999 unrounded: YES after rounding
+                (22, "", "0.03", "0.05", st, "politics", "false"),   # NO: ask_f = 0.97, c = 0.03 -> (0.01,0.03] after rounding
+                (23, "e23", "0.84", "0.95", st, "politics", "false")]  # mid 0.895: contested
+    monkeypatch.setattr(sys.modules[__name__], "spec", edge_spec)
+    snap, sw, eng = write_stores(tmp_path)
+    rep = j0.run_j0(snap, sw, eng, tcap(0).timestamp(), tcap(N).timestamp(), warmup=2)
+    assert rep["version"] == "m1-j0-v2"
+    assert rep["eligible_units"]["total"] == 2 and rep["funnel"]["contested"] == 1
+    assert rep["eligible_units"]["events"] == 2  # two empty event_ids are two one-market events
+    assert rep["splits_counts"]["S3_ladder"] == {"standalone": 2} and rep["splits_counts"]["S8_members"] == {"1": 2}
+    assert rep["splits_counts"]["S6_zone"] == {"(0.01,0.03]": 1, "(0.03,0.10]": 1}
