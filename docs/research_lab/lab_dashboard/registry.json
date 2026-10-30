@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T07:00:00Z",
+ "updated": "2026-10-30T07:27:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1814,18 +1814,18 @@
   {
    "id": "LT14",
    "title": "Live tests 14: the signal engine's top picks against trading costs (planned)",
-   "plain": "Planned live test from ideas round 19, the economic check beside the signal engine's accuracy: do the engine's strongest calls in mid-liquidity markets move by more than a round-trip trading cost? Design frozen 30 Oct; engine model pinned. Its counting-check code was independently checked and five fixes are being made before it runs. It may fail its counting check.",
+   "plain": "Planned live test from ideas round 19, the economic check beside the signal engine's accuracy: do the engine's strongest calls in mid-liquidity markets move by more than a round-trip trading cost? Design frozen 30 Oct; engine model pinned. Counting-check code written, checked three times and fixed; its jobs are scheduled for 17 Nov. It may fail its counting check.",
    "batch": "LT14",
    "family": "engine",
    "stage": "designed",
-   "status": "waiting",
+   "status": "queued",
    "verdict": "pending",
    "effect": null,
-   "next": "Code fixes and re-check; counting check on the 7-17 Nov engine files; live window 10-31 Dec",
+   "next": "Seal and counting check on 17 Nov (engine files of 7-17 Nov); live window 10-31 Dec",
    "next_date": "2026-11-17",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/LT14_CODE_FREEZE_CHECK_2026-10-30.md",
+    "verdict": "docs/research_lab/reviews/LT14_CODE_F_RECHECK_2026-10-30.md",
     "next": "docs/research_lab/LIVE_TESTS_14.md (FROZEN design text, 485c63dd); docs/research_lab/EXPERIMENT_LEDGER.md § LT14 final verification and DESIGN-TEXT FREEZE (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
