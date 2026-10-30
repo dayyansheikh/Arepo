@@ -4790,3 +4790,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - **q0518** (`run_se_dev_refit_full.py --base se17_lgbm_mm_900k --days 5`, priority 30): does the whole-window refit add to
   se17's 900k rows? Rule fixed before the run in DESIGN_V1 §34 (the §32 rule against se17: all three direction targets,
   CI excluding zero, >= 4 of 5 days positive). Development / historical; one write-once dev file; no live file changes.
+
+## Creative round 19 recorded: CH262-CH269, 2026-10-30 ~02:20Z (experiments autopilot; ideas only, nothing tested, k = 0)
+- `CREATIVE_HYPOTHESES_2026-11-02.md` (Fable xhigh; 671b2351, merged a5877d70). Eight ideas: CH263 carry after a UMA proposal
+  (hold to resolution; asks the `science-reviewer` to rule on rule 26, registered measurements), CH262 the engine's top decile
+  against the cost model's rungs (LT14 candidate), CH267 into-close spread by rule class (LT15 candidate), CH265 residual
+  momentum and CH268 quote fragility (engine-first, for the signal-engine builder), CH266 "<1%" tails, CH264 the overdue mid,
+  CH269 the counts-only map that decides the rest.
+- No host probe or data read by the round. Next: CH269 counts-only map job (in progress on `feat/ch269-map`).
