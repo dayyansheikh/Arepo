@@ -1,6 +1,6 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 19:04 UTC+1
+**Last updated:** 2026-10-30 19:17 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
@@ -13,11 +13,11 @@ running. After a usage limit it waits for the reset time, then continues. **Serv
   exactly that way, so it stays as registered (written note + test; a second checker is confirming).
 - **Batch 7 is FROZEN (30 Oct).** The specificity test could not be run (too few markets) and counts as a test with no
   result. The geopolitics-longshot and Kalshi-maker tests run their one and only screen from 31 Oct, 07:00 UTC+1.
-- **M2 (the overdue favourite):** the same sibling-count issue is NOT allowed by M2's text, so its code is being fixed and
-  a short dated amendment added before registration (no data has been collected, so nothing is informed by results). Its
-  server rehearsal was cancelled and will re-run on the fixed code. Registration still aimed before 22 Nov.
-- **M3 ("the wait")**: the code check asked for fixes (including the same sibling issue), being made. Its decision rule for
-  a short count was declared in writing before any count is seen. Aim: freeze by 16 Nov.
+- **M2 (the overdue favourite):** the same sibling-count issue is NOT allowed by M2's text, so the code was fixed with two
+  short dated amendments before registration (no data collected, so nothing is informed by results); both passed
+  independent review. The server rehearsal is re-queued on the fixed code. Registration still aimed before 22 Nov.
+- **M3 ("the wait")**: code fixed and re-checked; its counts-only check and server rehearsal are queued. Its decision rule
+  for a short count was declared in writing before any count is seen. Aim: freeze by 16 Nov.
 - **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** is queued to run before 1 Nov.
 - **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.**
 - **Fixed:** a holders-collection job (batch 8) ran out of memory at start-up; given more memory and re-queued.

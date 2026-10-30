@@ -8,7 +8,7 @@
 **PHASE 4 IN PROGRESS.** See `implementation/phases/PHASE_04_EDGE_EXPERIMENTS.md` and the ledger `research_lab/EXPERIMENT_LEDGER.md`.
 User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=Etc/GMT-1 date`.
 
-## Experiments autopilot live state (2026-10-30 18:04Z)
+## Experiments autopilot live state (2026-10-30 18:17Z)
 - **Done this session:** **M1 REGISTERED** (f939c0b5, `registration_commit_utc` 2026-10-30T17:17:28Z; J1 cron on host,
   guarded on q0751 `done`); M1 sibling member-count reading note + test (c7d1532e; code_sha unchanged; reviewer
   confirmation running). **CB7 FROZEN** (10722060, `model_specs/cb7_v1.json`, declaration `cf84f910…`; S1 not testable,
@@ -17,12 +17,15 @@ User dashboard: `AREPO_PROGRESS_PLAIN_ENGLISH.md`; its `Last updated` uses `TZ=E
   forbidden by M2's text -> **q0754 cancelled**; fix + appended amendment in progress (`feat/m2-sibling`). M3 code check
   ACCEPT_WITH_FIXES -> fixes in progress (`feat/m3-cf-fixes`); M3 MUST 2 rule (full day = 12 classified captures; < 3
   full days -> extend to 42 days) declared in the ledger before J0. q0163 MemoryError fixed (mem 1000 / as_cap 2048).
-- **In flight (agents):** M2 sibling fix + amendment; M3 code-check fixes; M1 reading confirmation (`science-reviewer`).
-- **Next:** M2: amendment review (`science-reviewer`) + diff check -> promote q0754b (fresh store) -> registration by 11-22.
-  M3: diff check -> promote q0780 (J0) -> q0781 dry run -> final verification -> freeze by 11-16. CB7: after each screen
-  commit the Stage-1 seal copies; ledger results (counted); registry. Verify q0760 ran (before 11-01T02:45Z).
-  E009/E010 on 11-03: commit results into `docs/research_lab/e009_e010_analysis/`, ledger verdicts, registry.
-  **11-24: check q0751 done** (else the M1 cron never starts). Serial M1+M2+M3 J1 timing before M2/M3 registration.
+- **Since:** M1 sibling reading CONFIRMED (no change). M2 amendments 23 + 24 (sibling count, two status counts) reviewed
+  ACCEPT; **M2 code_sha `64b5dee0…1de2`, design sha `ff342ff3…b98c`; q0754b dry run promoted** (q0754 cancelled). M3 diff
+  check ACCEPT; **q0780 (J0) and q0781 (dry run) promoted** at code_sha `345b96c8…07d6d`; q0782 (serial timing) draft.
+- **In flight (agents):** none.
+- **Next:** M2: when q0754b passes (peak RSS, code_sha `64b5dee0…` in `j1_runs.jsonl`) -> registration commit (pins as M1:
+  spec/code/design/modules + `registration_commit_utc`; section-16-equivalent ledger block; q0755* promoted; J1 cron line,
+  serial with M1's) by 11-22; then q0782. M3: after q0780 copy rule (a)'s result into 10.1 by hand; q0781 memory; final
+  verification; freeze by 11-16. CB7: commit Stage-1 seal copies + ledger results after each screen (from 10-31 06:00Z).
+  Verify q0760 ran (before 11-01T02:45Z). E009/E010 on 11-03. **11-24: check q0751 done.**
 - **Queue:** q0116k (MC1, exclusive) running; q0760, q0163 queued; CB7 screens 10-31 06:00Z; q0085 slices; q0086, q0103b,
   q0106, q0064, q0518; LT14 chain from 11-17; E009/E010 chain 11-03. **Keep snapshot retention at 12 days until LT14's
   census (q0742, 11-17).** Do not edit run_ml_dev.py / hashed ml modules or delete ml_cache/38dc17c9... until q0116k
