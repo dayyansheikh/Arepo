@@ -5581,3 +5581,12 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the census (X has 23,760 S prints vs about 75k assumed), per-theme unit counts, G end-date checks.
 - Freeze commit pins (as listed in the review); `T7_X_list` = max(2026-11-03T06:00Z, freeze + 24 h); promote q0148
   (not-testable mode), q0149, q0150. Next: CB7 analysis code (delegated, `feat/cb7-analysis`).
+
+## q0163 (CB8-H prints) MemoryError fixed (ops only), 2026-10-30 18:05Z (experiments autopilot)
+- Cause (reproduced on the host under the 1000 MB address cap, /tmp copy, no network): the collector health check
+  (`cb2_weather.collector_healthy`, via `cb4_data.unhealthy` from `fr.stop_reason()`) parses all 237 capture
+  `manifest.json` files and keeps them in a list, about 490 MB, growing about 25 MB a day. Peak VmPeak 991 MB.
+- Fix af90114e: q0163 `mem_mb` 500 -> 1000, `as_cap_mb` 2048 (no rule or code change); deployed; `retry` issued on the host.
+  q0162's tempfails are benign (one snapshot day a day). **Follow-up (code, not done):** the health check could stream the
+  manifests and keep only the newest; other jobs that call it will hit the same wall as captures accumulate (check
+  whether `cb2_weather.py` is pinned by any registered test before changing it).
