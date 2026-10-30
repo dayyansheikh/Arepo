@@ -5630,3 +5630,13 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   (G waits for S1 and X1; order q0148, q0150, q0149). The census was seen before this code was written, so readings that
   touch testability or power are taken conservatively or justified independently of the counts.
 - Next: `science-reviewer` code-freeze check (running; census copy sha256 `85824be1…e6920` given read-only).
+
+## M3 J1 / J0 code written, 2026-10-30 17:47Z (experiments autopilot; design DRAFT; nothing counted)
+- `feat/m3-code` 76b1d6a6, 7bce38c8, 4d7476db (merged 33cd591c): `m3_spec.py`, `m3_j1.py` (J1 extractor and blind
+  follow-up recorder; J0 dry mode, counts only), `scripts/run_m3.py`; 49 tests (M1 / M2 suites unchanged, 207 together).
+  **code_sha `105587be6f8594ac16bb6f8ce635174927bf9dc94bf778cea3b450fd72ca98ef`**. Drafts q0780 (J0) and q0781 (dry run).
+- Code note `reviews/M3_CODE_NOTE_2026-10-30.md`, readings R1-R17; for the reviewer: R1 (late / duplicate / off-grid ids in
+  their own write-once status files, as M1 / M2, not "the next processed capture's status file", which would not be
+  byte-identical between a live and a catch-up pass), R2 (J1 itself refuses without `registration_commit_utc` or with a
+  window < 24 h after it), R3 (a real J1 refuses until the design sha is pinned at freeze). Import is about 170 MB.
+- Next: code check (`science-reviewer`, running), then J0 (q0780) before the design-text freeze (by 11-16).
