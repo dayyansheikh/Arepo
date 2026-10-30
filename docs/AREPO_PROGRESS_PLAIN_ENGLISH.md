@@ -1,30 +1,29 @@
 # AREPO — Plain-English Progress
 
-**Last updated:** 2026-10-30 13:51 UTC+1
+**Last updated:** 2026-10-30 18:24 UTC+1
 **Phase:** Phase 4 (edge discovery) in progress. Autonomous programme started 15 Oct.
 **Programme state:** RUNNING. Server queue plus **Claude autopilot (approved by you, installed 15 Oct ~20:05 UTC+1)**.
 **Next Claude session:** automatic. The autopilot checks every 30 min and starts a session (up to 5h) whenever none is
 running. After a usage limit it waits for the reset time, then continues. **Server queue:** checks every 2 minutes.
 
 ## 1. Right now
-- **M1 (the discount left after an outcome is proposed):** the independent checker found two more rare timing traps in
-  its collection code; both fixed, and the third check passed cleanly. A final server rehearsal is queued; if it stays
-  under its memory limit, M1 gets registered (before 22 Nov). Window 24 Nov to 14 Dec.
-- **M2 (the overdue favourite): design FROZEN today.** Its remaining code is being written; registration before 22 Nov.
-- **M3, new (from ideas round 20): "the wait".** Once a favourite first trades at 95 cents, how long until an outcome is
-  proposed, by kind of rule? This turns "a cheap near-certain bet" into an honest yield-per-day number. Drafted, and the
-  challenger asked for nine changes (being made now). Aim: freeze by 16 Nov, same window as M1/M2.
-- **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.** The job checks
-  that the code is exactly the registered code before it runs, and can only run once.
-- **LT14 (the engine's top picks against trading costs):** its first step failed on the server for a boring reason (the
-  memory limit was too small to even load the code; nothing was read). Re-queued with a bigger limit; the 17 Nov chain
-  is unchanged.
-- **New ideas round 20 is in** (7 ideas). The cheapest new one: what the *losing* sibling outcomes cost once a winner has
-  been proposed. First step is a counts-only map (being coded now). Two ideas went to the signal engine's list.
-- **Server:** busy. Batch 4's development job runs; batch 7's count is moved to the front so it runs before 3 Nov; the long
-  model run MC1 continues in resumable slices (about 4 h each).
+- **M1 (the discount left after an outcome is proposed) is REGISTERED (30 Oct).** The server rehearsal used 346 MB of its
+  600 MB limit, so the code is now locked by fingerprint and its collection job is scheduled. Window 24 Nov to 14 Dec,
+  read-out from 15 Jan 2027. It is a measurement (a number with an error bar), never called a finding.
+- **M2 (the overdue favourite):** its code is written; an independent code check is running now. Then a server rehearsal
+  and registration before 22 Nov.
+- **M3 ("the wait", how long after a favourite reaches 95 cents until an outcome is proposed):** the challenger's second
+  round asked for four text fixes, now made. Its collection code is being written. Aim: freeze by 16 Nov.
+- **Batch 7's count finished:** the "very specific markets" test has far too few markets for its pre-declared size (787 of
+  3,000 needed), so it counts as a test that could not be run. The geopolitics and Kalshi parts have enough data. An
+  independent check before freezing them is running.
+- **A counts-only map of what losing sibling outcomes do after a winner is proposed (CH276)** passed its code re-check and
+  is queued to run before 1 Nov, when the server rotates its old snapshots.
+- **The Kalshi lead tests E009/E010 are queued for their one and only analysis on 3 Nov, 08:30 UTC.**
+- **Fixing:** a holders-collection job (batch 8) started running out of memory at start-up; being diagnosed.
 - **Registered live tests** keep collecting: E009/E010 (3 Nov), E011 (11 Nov), E012-E014 (13 Nov), E015 (15 Nov), E022 (17 Nov),
-  E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov), M1 (window from 24 Nov).
+  E026 (6 Dec). Frozen and waiting: LT11/LT12 (counting checks from 7 Nov), LT13/LT14 (from 17 Nov). Registered
+  measurement M1 (window from 24 Nov).
 
 ## 2. Approvals needed from you
 1. ~~Automatic Claude sessions~~ **APPROVED and installed 15 Oct** (full power, your call).

@@ -5531,7 +5531,7 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `attempts.jsonl`, because J1 has no lock of its own and the two must not overlap. **Check on 2026-11-24 that q0751 is done**;
   if it fails, the cron never starts and the J1 passes must be restored by hand within the 6 h decision rule.
 
-## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:45Z (experiments autopilot; counts only, k = 0, nothing counted)
+## CH276 map: re-check MUSTs A/B fixed, q0760 PROMOTED, 2026-10-30 17:20Z (experiments autopilot; counts only, k = 0, nothing counted)
 - 97d44e5b (merged 4dd7d896): MUST A, a sibling with no `rows_ext` row is `siblings_ext_missing` (out of U and I, printed);
   line 6 gets an `ext_missing` class. MUST B, the dispute share denominator is first-seen proposal events ∪ disputed events
   (numerator ⊆ denominator; the old first-seen-only share and the missing count are printed beside it). The reading rule
@@ -5561,3 +5561,32 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   the 6,000 MB address-space cap. q0512 mem_mb 3400 -> 4300, as_cap_mb 6000 -> 8000, timeout_s 10800 -> 14400; the engine
   now logs `peak_vm_mb` (VmPeak). se27 (3 direction fits; res_7d insufficient_coverage), se28, se29 and se30 (4 targets
   each) fitted at 13:34Z with `.json.gz` artifacts.
+
+## CB7 freeze check NOT_READY; census write-up corrected, 2026-10-30 18:00Z (experiments autopilot; nothing frozen, nothing counted)
+- `reviews/CB7_FREEZE_CHECK_2026-10-30.md` (`science-reviewer`, read-only; text saved by the orchestrator): **NOT_READY**,
+  because the G1 and X1 analysis code, `cb7_declaration.py` and `run_cb7.py screen` do not exist (`run_cb7.py` is fetch
+  and census only). Census write-up faithful (gate thresholds unchanged since 75708661; 2.7a arithmetic checks out).
+- **Corrections to the census entry above (MUST 4, applied in 2.7a):** S2 does not run (Stage 2 is registered only if S1
+  advanced; q0152 holds S1-rep and S2). Stage-2 k2 = 1 if X1 advances, else 0 (not "at most 2"). Stage 1 k1 = 3 (S1 at
+  p = 1, G1, X1), alpha 0.01; cumulative count +3, +1 only if X1-rep runs.
+- **Written decision (conservative reading, item 2):** the `textorig` pass step is not deployed, q0151 / q0152 / q0156 are
+  not promoted, `T7_S_rep_start` is recorded as not applicable. No CB7 replay capability is lost.
+- Reading 13a ACCEPTED (its text predates the census; both variants give 0.012). Disclosed: h_geo 1.2c is below
+  `HALF_SPREAD`, so robustness (ix) adds nothing. Undeclared risk to disclose at freeze: the geopolitics tag is read at
+  fetch, not at origin (40.0% of the frame is tag-only), so G1 is labelled L1.
+- **MUST before freeze:** (1) G1 / X1 analysis code to the 5.1 spec (placebos, robustness (i)-(x), inverted tail gate,
+  route gate, wrong-side attribution), `cb7_declaration.py`, `run_cb7.py screen`; (2) `cb7_test` and `cb7_replication` in
+  `battery2.KIND_RULES`; (3) `screen --family S` writes the counted S1 not-testable line (p = 1) without q0156;
+  (5) re-check the census declaration hashes; then a `science-reviewer` code-freeze check. SHOULD: MDEs for G1 / X1 from
+  the census (X has 23,760 S prints vs about 75k assumed), per-theme unit counts, G end-date checks.
+- Freeze commit pins (as listed in the review); `T7_X_list` = max(2026-11-03T06:00Z, freeze + 24 h); promote q0148
+  (not-testable mode), q0149, q0150. Next: CB7 analysis code (delegated, `feat/cb7-analysis`).
+
+## q0163 (CB8-H prints) MemoryError fixed (ops only), 2026-10-30 18:05Z (experiments autopilot)
+- Cause (reproduced on the host under the 1000 MB address cap, /tmp copy, no network): the collector health check
+  (`cb2_weather.collector_healthy`, via `cb4_data.unhealthy` from `fr.stop_reason()`) parses all 237 capture
+  `manifest.json` files and keeps them in a list, about 490 MB, growing about 25 MB a day. Peak VmPeak 991 MB.
+- Fix af90114e: q0163 `mem_mb` 500 -> 1000, `as_cap_mb` 2048 (no rule or code change); deployed; `retry` issued on the host.
+  q0162's tempfails are benign (one snapshot day a day). **Follow-up (code, not done):** the health check could stream the
+  manifests and keep only the newest; other jobs that call it will hit the same wall as captures accumulate (check
+  whether `cb2_weather.py` is pinned by any registered test before changing it).

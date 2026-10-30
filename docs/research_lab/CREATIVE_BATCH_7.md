@@ -418,13 +418,15 @@ exactly stamped candle: 6,089,390 of 8,399,070 (Reading 1, stricter than the stu
   closed on S1 as `not_testable` and S1 is not re-screened with other windows, origins, bands, markers, cut points or
   populations (§2.8). The 7.0c MDE is reported, not used to change any floor. The design contains no rescue for a failed GS,
   and none is declared here: the §8 item 5 rule that S1-rep (q0152) is committed only if S1 advanced means S1-rep is not run.
-  Whether the `textorig` pass step / q0151 and S2 (which "has no Stage 1", §2.3) still proceed is not settled by the text and
-  goes to the freeze check (see ledger).
+  S2 does not run either: Stage 2 (which includes S2) is registered only if S1 advanced (line 594), and q0152 holds both
+  S1-rep and S2 (freeze check `reviews/CB7_FREEZE_CHECK_2026-10-30.md` item 2, correcting the first write-up). The
+  `textorig` step / q0151 is not deployed and `T7_S_rep_start` is not applicable: the stop rule (line 618) means that text
+  is never analysed under CB7 (conservative reading, recorded as a written decision in the ledger).
 - **GG and GX hold:** G1 and X1 remain testable; the further analysis-time rules (>= 10 YES clusters for G1; small-G rule and
   testability for X1) are applied then.
 - **Holm family size.** k1 = 3 is unchanged (S1, G1, X1; failed-gate tests are counted with p = 1, §2.5). The Stage-2 k is
-  fixed "when the last Stage-1 result is final" over tests reaching Stage 2, so it can only fall (k <= 3 becomes k <= 2 if S1-rep
-  and S2 do not run).
+  fixed "when the last Stage-1 result is final" over tests reaching Stage 2, so it can only fall: with S1-rep and S2 not run, only X1-rep
+  remains, so k2 = 1 if X1 advances, otherwise 0 (corrected by the freeze check; the first write-up said k <= 2).
   The cumulative-count denominator still includes S1 (3 fixed tests, §2.5).
 
 ### 2.8 Compute, network, disk and stop rules
