@@ -856,6 +856,48 @@ def test_r1_a_slot_with_any_chain_status_is_not_reprocessed_for_another_capture_
     assert (store / STATE_FILE).read_bytes() == before and not (store / "status" / "A_dup.json").exists()
 
 
+def test_must1_late_on_time_capture_never_breaks_the_chain_and_is_recorded_late(tmp_path):
+    """Reviewer probe race2: slot k decided with B at grid + 6 h 10 min, then an earlier-start on-time capture A appears."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    hold = tmp_path / "hold"
+    for kk in range(k + 1, ms.L + ms.W):
+        if (snap / ms.cid(kk)).exists():
+            ms.move_capture(snap, hold, kk)
+    store = tmp_path / "research_lab" / "m1_ch263"
+    g = ms.tcap(k).timestamp()
+    run(store, snap, sw, now=g + 6 * 3600 + 600)
+    _dup_capture(snap, k, start_min=-10, fin_min=355)
+    for kk in range(k + 1, ms.L + ms.W):
+        if (hold / ms.cid(kk)).exists():
+            ms.move_capture(hold, snap, kk)
+    run(store, snap, sw)  # must not refuse
+    late = json.loads((store / "status" / "late_A_dup.json").read_text())
+    assert late["kind"] == "late_capture_ignored" and late["reason"] == "on_time_but_delivered_after_slot_decided"
+    assert json.loads((store / "status" / f"{ms.cid(k + 1)}.json").read_text())["prev_capture_id"] == ms.cid(k)
+    assert not list((store / "status").glob("dup_*.json"))
+    assert ex.audit_chain(store, SPEC)["ok"]
+
+
+def test_must1_duplicate_record_names_the_chain_capture_as_kept(tmp_path):
+    """Reviewer probe dup_label: the capture that was processed is the kept one; the later-arriving earlier-start capture is recorded, not lost."""
+    k = ms.L + 2
+    snap, sw = ms.build_stores(tmp_path / "src")
+    store = tmp_path / "research_lab" / "m1_ch263"
+    run(store, snap, sw)
+    _dup_capture(snap, k, start_min=-10, fin_min=180)
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "late_A_dup.json").read_text())["reason"] == "on_time_but_delivered_after_slot_decided"
+    _dup_capture(snap, k, name="Z_dup", start_min=5, fin_min=180)  # a later-start duplicate: kept is the chain's capture
+    run(store, snap, sw)
+    assert json.loads((store / "status" / "dup_Z_dup.json").read_text())["kept_capture_id"] == ms.cid(k)
+
+
+def test_should1_downgraded_record_has_no_outcome():
+    out = ro.classify_record({"closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["1", "0"]})
+    assert out["state"] == "pending" and out["parse_reason"] == "not_closed" and out["y"] is None
+
+
 def test_r2_open_record_with_split_prices_is_pending_not_closed():
     rec = {"id": "1", "closed": False, "umaResolutionStatus": "resolved", "outcomePrices": ["0.5", "0.5"]}
     out = ro.classify_record(rec)

@@ -458,8 +458,6 @@ def process_capture(store: Path, cap: dict, prev_cap: dict | None, sweeps: dict,
         notes["captures_without_sweep_1"] += 1
     recs = [build_unit(u, cap, prev_cap, k, prev, sweep, spec, sha) for u in units]
     lines = [dumps(x) for x in recs]
-    if cap.get("fin_missing"):
-        notes["finished_utc_absent"] += 1
     sub: Counter = Counter()
     if not has_prev and cap["slot"] == sp.window_slots(spec)[0]:
         sub["no_previous_capture:first_window_slot"] = funnel.get("no_previous_capture", 0)  # the first window slot has no k - 1 by construction
@@ -555,6 +553,7 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
         raise sp.PinMismatch({"spec_sha": {"pin": pins.get("spec_sha"), "actual": sha["spec"]}, "code_sha": {"pin": pins.get("code_sha"), "actual": sha["code"]}})
     if (store / "manifest.json").exists():
         raise M1Refusal("J1 refuses: the window is closed (manifest.json exists)")
+    dups: list = []
     for d in OUTPUTS:
         (store / d).mkdir(parents=True, exist_ok=True)
     loaded = load_state(store)
@@ -563,7 +562,9 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
     sweeps = sweep_dirs(sweep_root)
     slots = sp.window_slots(spec)
     res: Counter = Counter()
-    chain_slots = {d["slot"] for d in load_all_statuses(store)[1]}  # a slot with any chain status is decided, whatever its capture id (R1)
+    chain_by_slot = {d["slot"]: d for d in load_all_statuses(store)[1]}  # a slot with any chain status is decided, whatever its capture id (R1)
+    chain_slots = set(chain_by_slot)
+    by_id = {c["capture_id"]: c for c in [*caps.values(), *extra, *late]}  # every on-disk window capture, so k - 1 is found by the id the chain folded
     for s in slots:
         miss_path = status_path(store, spec, s, None)
         recorded_missing = miss_path.exists()
@@ -579,29 +580,52 @@ def run_pass(store: Path, snap_root: Path, sweep_root: Path | None, spec: dict =
             res["waiting_for_slot"] += 1
             break
         if cap is None:
-            st, _ = missing_status(store, s, st, spec, sha, pin_rec)
+            st, _ms = missing_status(store, s, st, spec, sha, pin_rec)
+            chain_by_slot[s] = _ms
             save_state(store, st)
             res["missing_capture"] += 1
             continue
-        prev_cap = caps.get(s - 1) if (st.last_kind == "processed" and (s - 1) in caps) else None
-        if prev_cap is not None and prev_cap["capture_id"] != st.last_capture_id:
-            raise M1Refusal(f"state's last folded capture {st.last_capture_id} is not capture k - 1 {prev_cap['capture_id']}")
+        # MUST 1: capture k - 1 is the capture the chain of slot s - 1 actually folded (its status's capture id), never a later on-disk pick
+        prev_st = chain_by_slot.get(s - 1)
+        prev_cap = None
+        if st.last_kind == "processed" and prev_st is not None and prev_st.get("kind") == "processed":
+            prev_cap = by_id.get(prev_st["capture_id"])
+            if prev_cap is None or prev_cap["capture_id"] != st.last_capture_id:
+                raise M1Refusal(f"state's last folded capture {st.last_capture_id} is not capture k - 1 {prev_st['capture_id']} (chain status of slot {s - 1})")
         st, _status, nu = process_capture(store, cap, prev_cap, sweeps, st, spec, sha, pin_rec)
+        chain_by_slot[s] = _status
         save_state(store, st)
         res["processed"] += 1
         res["units"] += nu
     # Captures that never enter the chain are counted in write-once status files, so J2's manifest carries them (not only the append log).
     # A late capture is one whose manifest finished after grid + 6 h; a slot recorded missing also keeps an on-time capture that was delivered later.
-    decided = {s for s in slots if status_path(store, spec, s, None).exists() or status_path(store, spec, s, caps.get(s)).exists()}
-    late_all = [(c, "finished_utc_absent" if c["fin_missing"] else "finished_after_grid_plus_6h") for c in late if c["slot"] in decided]
-    late_all += [(caps[s], "delivered_after_missing_recorded") for s in slots if s in caps and status_path(store, spec, s, None).exists()]
+    chain_by_slot = {d["slot"]: d for d in load_all_statuses(store)[1]}
+    decided = set(chain_by_slot)
+    late_all = [(c, "finished_after_grid_plus_6h") for c in late if c["slot"] in decided]
+    for s in slots:
+        d = chain_by_slot.get(s)
+        if d is None:
+            continue  # an undecided slot may still change its pick: nothing is written for it (a write-once file would then contradict the chain)
+        on_time = [c for c in [caps.get(s), *[x for x in extra if x["slot"] == s]] if c is not None]
+        if d["kind"] == "missing_capture":
+            late_all += [(c, "delivered_after_missing_recorded") for c in on_time[:1]]
+            continue
+        kept = by_id.get(d["capture_id"])
+        for c in on_time:
+            if c["capture_id"] == d["capture_id"]:
+                continue
+            if kept is not None and c["start"] < kept["start"]:  # it would have been chosen had it been on disk when the slot was decided
+                late_all.append((c, "on_time_but_delivered_after_slot_decided"))
+            else:
+                dups.append((c, d["capture_id"]))
+    late_all = [(c, "finished_utc_absent" if c["fin_missing"] and w == "finished_after_grid_plus_6h" else w) for c, w in late_all]
     for c, why in late_all:
         _write_once(store / "status" / f"late_{c['capture_id']}.json", dumps({"kind": "late_capture_ignored", "capture_id": c["capture_id"], "slot": c["slot"], "reason": why,
                     "capture_start_utc": sp.iso(c["start"]), "finished_utc": None if c["fin_missing"] else sp.iso(c["fin"])}).encode(), _same_json)
         res["late_capture_ignored"] += 1
-    for c in extra:
+    for c, kept_id in dups:
         _write_once(store / "status" / f"dup_{c['capture_id']}.json", dumps({"kind": "duplicate_slot_capture_ignored", "capture_id": c["capture_id"], "slot": c["slot"],
-                    "kept_capture_id": caps[c["slot"]]["capture_id"], "capture_start_utc": sp.iso(c["start"])}).encode(), _same_json)
+                    "kept_capture_id": kept_id, "capture_start_utc": sp.iso(c["start"])}).encode(), _same_json)
         res["duplicate_slot_capture_ignored"] += 1
     for c in off:
         _write_once(store / "status" / f"offgrid_{c['capture_id']}.json", dumps({"kind": "off_grid_capture_ignored", "capture_id": c["capture_id"], "nearest_slot": c["slot"],
