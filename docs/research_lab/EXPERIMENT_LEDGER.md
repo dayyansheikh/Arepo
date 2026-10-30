@@ -4997,3 +4997,10 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   condition 5 is waived for P only when both host pins match (manifest and `frame.csv.gz` above), else unchanged (exit 75).
   **q0184 recorded "not run (empty frame)"** (draft kept; the shared verifier would refuse the unlisted `frame_partial.jsonl`
   scratch file anyway). No rules hash moved. Diff check ACCEPT_WITH_FIXES, both fixes applied.
+
+## M1 (CH263) measurement design draft, 2026-10-30 ~04:31Z (experiments autopilot; nothing counted)
+- Draft `MEASUREMENT_M1_CH263.md` (1857fefa, merged bec64eb4; sha256 `54fd5d49…c0d6`), role `prospective_measurement` (k = 0)
+  under the rule-26 ruling: ask-based discount, cost line fee + capital (no half-spread), event-level tail bound, declared
+  weights, decision time = latest receipt of row, sidecar and sweep 1; own resolution fetch at read-out (coverage floor 0.95 of
+  units and events); window 2026-11-24..12-14, registration deadline 2026-11-22, read-out on or after 2027-01-15.
+  Informed by the CH269 counts (821 proposals a day). Challenger R1 running.
