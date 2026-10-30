@@ -5768,3 +5768,11 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   10-day development board had been seen; no outcome probe was run. K rises by 1 at registration. Judged by
   `se-promotion-v2` against the champion; the read against se17 is information only. Science review ACCEPT_WITH_FIXES;
   all five fixes applied before the commit.
+
+## M2 amendment-24 diff check ACCEPT; q0754b dry run PROMOTED, 2026-10-30 18:16Z (experiments autopilot; nothing counted)
+- `reviews/M2_A24_DIFF_CHECK_2026-10-30.md`: **ACCEPT**; only the expected M2 lines moved; section 24 append-only; the three
+  new variants fail on aa6182ba; no remaining forbidden read in J1's unsealed outputs (`self.forms` is J0-only, disclosed).
+  Record: **M2 code_sha `64b5dee0…1de2`, design sha256 `ff342ff3…b98c`.** Minor: no test for the `unit_events` refusal;
+  a partial `unit_events` would still raise a KeyError (non-fresh stores only).
+- **q0754b promoted** (fresh store `m2_dryruns/q0754b/...`, dumps root argument, mem 600). Registration once it passes
+  (peak RSS, code_sha `64b5dee0…` in its `j1_runs.jsonl`), by 2026-11-22T23:59Z; then q0782 (serial timing) after q0781.
