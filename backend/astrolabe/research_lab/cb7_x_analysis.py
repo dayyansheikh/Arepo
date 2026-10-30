@@ -37,7 +37,7 @@ FLOOR_MARKOUT = -0.005  # 2.4: mean mark-out (plus forgone rebate) <= -0.5c per 
 MONTH_MIN_PRINTS = 500
 SHIFT_MARGIN_S = 6 * 3600
 REBATE_FROM = "2026-03-30T00:00:00Z"
-MIN_CLUSTERS = {"event": 30, "date": 15}
+MIN_CLUSTERS = {"event": 30, "date": 30}  # literal 2.3 "at least 30 clusters per way" (A1 amendment reverted at the code-freeze check)
 SPORTS = "sports"
 
 
@@ -362,7 +362,7 @@ def _descriptive(res: dict) -> dict:
             "wrong_side": {k: (res.get("wrong_side") or {}).get(k) for k in ("credited", "label")}}
 
 
-def screen_x(cb7_dir: Path, cv_root: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time) -> dict:
+def screen_x(cb7_dir: Path, cv_root: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time, union_recorded_utc: str | None = None) -> dict:
     """q0150: X1 on the C1 pairs with the new prints. Write-once results; the Stage-1 copy goes to ``seals/cb7_x1_stage1.json`` (commit it)."""
     from . import cb7_declaration as D  # noqa: PLC0415
 
@@ -375,11 +375,11 @@ def screen_x(cb7_dir: Path, cv_root: Path, seals_dir: Path, *, freeze: dict, cen
         label = "not testable (xv_prints terminal: " + str(x.get("status")) + ")" if x.get("status") != "ok" else "not testable (GX failed in the census)"
         res = st.not_testable_doc(label, cum, placebo_time_shift={"skipped": label}, route_gate={"ok": None}, wrong_side={})
         return st.finish(TEST, res, out_root=cb7_dir, seals_dir=seals_dir, freeze=freeze, declaration_sha=decl, trials_path=trials_path, placebo=res["placebo_time_shift"],
-                         descriptive={"gate_GX": x.get("gate_GX"), "state": x.get("status")}, header=header, wall_clock=wall_clock)
+                         descriptive={"gate_GX": x.get("gate_GX"), "state": x.get("status")}, header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)
     xv_dir = cb7_dir / xv.XV_RUN_ID
     cc.require_xv_complete(xv_dir)
     ns, sp, info = load_xsets(xv_dir, Path(cv_root))
     res = evaluate_x1(ns, sp, cumulative_count=cum)
     header["inputs"].update(info)
     return st.finish(TEST, res, out_root=cb7_dir, seals_dir=seals_dir, freeze=freeze, declaration_sha=decl, trials_path=trials_path, placebo=res.get("placebo_time_shift"),
-                     descriptive=_descriptive(res), header=header, wall_clock=wall_clock)
+                     descriptive=_descriptive(res), header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)

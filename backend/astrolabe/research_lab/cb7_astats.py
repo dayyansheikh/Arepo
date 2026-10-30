@@ -297,6 +297,20 @@ def cumulative(trials_path: Path) -> int:
     return int(battery2.cumulative_count(trials_path)["total"])
 
 
+def check_seal_pins(seals: dict, spec: dict) -> None:
+    """Screen-time seal pin check: every sha256 ``verify_seal_copies`` returns must equal the freeze spec's ``seals`` pin (code-freeze check SHOULD 5)."""
+    pins = spec.get("seals") or {}
+    for run, got in seals.items():
+        want = (pins.get(run) or {})
+        if want.get("sha256") != got.get("sha256") or want.get("state") != got.get("state"):
+            raise Refused(f"{run}: seal state/sha256 {got.get('state')}/{got.get('sha256')} differs from the freeze spec pin {want.get('state')}/{want.get('sha256')}; refusing")
+
+
+def count_label(union_recorded_utc: str | None) -> str:
+    """The cumulative count feeds only the BY triage label; without a recorded union step it is a lower bound (A16, check SHOULD 4)."""
+    return f"post-union (union recorded {union_recorded_utc})" if union_recorded_utc else "pre-union lower bound"
+
+
 def now_iso(wall_clock: Callable[[], float] = time.time) -> str:
     return cm._iso(wall_clock())
 
@@ -328,14 +342,15 @@ def not_testable_doc(label: str, cumulative_count: int, **extra) -> dict:
 
 
 def finish(test: str, res: dict, *, out_root: Path, seals_dir: Path, freeze: dict, declaration_sha: str, trials_path: Path, placebo: dict | None,
-           descriptive: dict, header: dict, wall_clock: Callable[[], float] = time.time) -> dict:
+           descriptive: dict, header: dict, wall_clock: Callable[[], float] = time.time, union_recorded_utc: str | None = None) -> dict:
     """Write the write-once results file and its Stage-1 copy, then the trial lines. Returns the runner's summary."""
     out_p, copy = Path(out_root) / RESULT_NAMES[test], Path(seals_dir) / STAGE1_COPY_NAMES[test]
     if out_p.exists() or copy.exists():
         raise Refused(f"{out_p.name} or its Stage-1 copy already exists; results are never overwritten")
     res["labels_stage1"] = {"by": by_label(res["p"], res["cumulative_count_at_run"]), "batch_holm": batch_holm_label(test, res["p"], out_root)}
     doc = {"test": test, "stage": 1, "version": VERSION, "declaration_sha256": declaration_sha, "freeze_spec_sha256": freeze["spec_sha256"],
-           "evidence_role": EVIDENCE_ROLE, "label": LABEL, "run_utc": now_iso(wall_clock), **header, **res}
+           "evidence_role": EVIDENCE_ROLE, "label": LABEL, "run_utc": now_iso(wall_clock),
+           "cumulative_count_label": count_label(union_recorded_utc), **header, **res}
     sha = write_results(out_p, doc)
     write_stage1_copy(out_p, copy)
     log_trials(res, test=test, replication=False, results_path=out_p, results_sha=sha, freeze_sha=freeze["spec_sha256"], declaration_sha=declaration_sha,

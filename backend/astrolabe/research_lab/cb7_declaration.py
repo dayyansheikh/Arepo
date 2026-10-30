@@ -183,7 +183,7 @@ def spec_payload(*, census_json: Path, freeze_utc: str, screen_not_before_utc: s
     return {"version": VERSION, "declaration_sha256": declaration_sha256(), "rules_sha256": rules_sha256(), "sources": file_hashes(),
             "census_json_sha256": h5_seal.sha256_file(census_json), **_pins_from_census(census),
             "dates": {"freeze_utc": freeze_utc, "screen_not_before_utc": screen_not_before_utc, "T7_X_list": t7_x_list(freeze_utc), "T7_S_rep_start": "not applicable"},
-            "queue": {"promote": ["q0148", "q0149", "q0150"], "do_not_promote": ["q0151", "q0152", "q0156"], "conditional_on_x1_advance": ["q0153", "q0154", "q0155"]},
+            "queue": {"promote": ["q0148", "q0150", "q0149"], "do_not_promote": ["q0151", "q0152", "q0156"], "conditional_on_x1_advance": ["q0153", "q0154", "q0155"]},
             "hypotheses": HYPOTHESES_CB7, "counting": COUNTING}
 
 

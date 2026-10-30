@@ -26,7 +26,7 @@ DEPENDENCY_REMOVED = ("q0156_cb7_text_edit_audit: not required. S1 is not testab
                       "(freeze check 2026-10-30, MUST 3; ledger entry of the same date)")
 
 
-def screen_s(cb7_dir: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time) -> dict:
+def screen_s(cb7_dir: Path, seals_dir: Path, *, freeze: dict, census: dict, trials_path: Path, wall_clock: Callable[[], float] = time.time, union_recorded_utc: str | None = None) -> dict:
     """q0148: write the counted S1 line. Refuses unless the census records GS false (or a terminal state of the h8_text run)."""
     from . import cb7_declaration as D  # noqa: PLC0415
 
@@ -47,4 +47,4 @@ def screen_s(cb7_dir: Path, seals_dir: Path, *, freeze: dict, census: dict, tria
                               s1_rep="not run (same reason)", text_edit_audit="not run (not required)", placebo={"skipped": label})
     header = {"inputs": {"census_json_sha256": freeze["spec"].get("census_json_sha256")}, "s1_mde_cents_from_census": s.get("s1_mde_per_marker_cents")}
     return st.finish(TEST, res, out_root=Path(cb7_dir), seals_dir=Path(seals_dir), freeze=freeze, declaration_sha=D.declaration_sha256(), trials_path=Path(trials_path),
-                     placebo=None, descriptive={"gate_GS": why, "dependency_removed": DEPENDENCY_REMOVED}, header=header, wall_clock=wall_clock)
+                     placebo=None, descriptive={"gate_GS": why, "dependency_removed": DEPENDENCY_REMOVED}, header=header, wall_clock=wall_clock, union_recorded_utc=union_recorded_utc)
