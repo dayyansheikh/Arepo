@@ -5822,3 +5822,21 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `surprise_moves.py` and `FROZEN_SURPRISE_SNAPSHOT.json` are unchanged. Nothing written, no wrapper, no queue job yet.
 - Ruling requested (`science-reviewer`): effect of afd67c3a on the analysed records, which version to pin, the retroactive
   deviation text, the pin list. Analysis not before 2026-11-11T13:00Z (job not_before >= 13:30Z).
+
+## Deviation (retroactive): archive-aware load_capture in frozen E011 code, afd67c3a (logged 2026-10-30 18:30Z; pre-analysis, not counted)
+- What: commit afd67c3a (2026-10-15) added to `surprise_snapshot.load_capture`: if `rows_ext.csv.gz` is absent but
+  `ext_manifest.json` exists, call `forecast.require_local`, which raises `ArchivedDataError` (fail loudly). Before, the pass
+  silently set `fee_category="unknown"`, `created_at=None`. Nothing is restored; **this corrects the previous entry's
+  wording ("restores")**.
+- Found: during E011 analysis prep on 2026-10-30, before the analysis (not before 2026-11-11T13:00Z); not logged at the time.
+- Effect: `analyze()` does not call `load_capture`; it reads `alerts.jsonl` / `outcomes.jsonl` only. In live scoring the
+  change can only turn a silently degraded pass into a failed pass; it cannot change any written value. The host ran
+  post-afd67c3a code by 2026-10-20 (a4c2585c); 73 / 73 passes ok as of 2026-10-19. Primary statistic, episode rule, window,
+  thresholds unchanged. Also outcome-neutral and now pinned: `ml_explain.cluster_boot` gained an optional `weights`
+  argument (47b74e36, 10-15); `analyze` uses `weights=None`, same code path.
+- **Pin** (`reviews/E011_CODE_VERSION_RULING_2026-10-30.md`, PIN_HEAD_WITH_DEVIATION_NOTE): `surprise_snapshot.py` sha256
+  `413107af…a4b1` (= ed7dea22 = HEAD; contains the ledger-required cluster fix and afd67c3a), `run_surprise_snapshot.py`
+  `6df4fb39…cf9e`, `detector_eval.py` `7cc20327…0f24`, `surprise_moves.py` `93183416…76ca`, `FROZEN_SURPRISE_SNAPSHOT.json`
+  `5c095deb…b6f2`, `sm_learned_v2.json` `af9b9da2…825d`, `ml_explain.py` `ac00eac8…5399`. No E011 outcome has been read
+  (counts only, readiness 10-19). Pre-run, counts-only: non-ok passes in `passes.jsonl`; window alert lines with
+  `fee_category == "unknown"`. Secondaries (c), (e), (f), (g) are reported "not produced", never filled.
