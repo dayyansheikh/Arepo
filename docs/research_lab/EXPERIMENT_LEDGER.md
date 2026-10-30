@@ -5556,3 +5556,8 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
 - Ops: CB7 no longer needs the 12-day snapshot hold, but LT14's census (q0742, 11-17) still does; keep 12 days until then.
 - Next: science-reviewer freeze check for G and X (and the S questions above); then freeze `model_specs/cb7_v1.json`, pin
   `T7_S_rep_start` (only if S2/S1-rep survive the check), deploy the `textorig` step and q0151 as the check decides. Nothing frozen or queued by this entry.
+- **2026-10-30 ~17:30Z signal engine (ops, DESIGN_V1 §46; no model, window, row cap or target change):** the 10-30 refit
+  (31 models) peaked at RSS 3,870 MB in 6,295 s, above q0512's 3,400 MB reservation and an estimated ~5.6 GB VmPeak under
+  the 6,000 MB address-space cap. q0512 mem_mb 3400 -> 4300, as_cap_mb 6000 -> 8000, timeout_s 10800 -> 14400; the engine
+  now logs `peak_vm_mb` (VmPeak). se27 (3 direction fits; res_7d insufficient_coverage), se28, se29 and se30 (4 targets
+  each) fitted at 13:34Z with `.json.gz` artifacts.

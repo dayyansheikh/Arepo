@@ -363,6 +363,19 @@ def peak_rss_mb() -> float:
     return round(r / (1024 * 1024) if sys.platform == "darwin" else r / 1024, 1)
 
 
+def peak_vm_mb() -> float | None:
+    """Peak virtual size (VmPeak) of this process in MB, read from /proc; None where /proc is absent (macOS).
+
+    The queue caps the address space (RLIMIT_AS), not the resident set, so VmPeak is the number that runs into it."""
+    try:
+        for line in Path("/proc/self/status").read_text().splitlines():
+            if line.startswith("VmPeak:"):
+                return round(int(line.split()[1]) / 1024, 1)
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
 def git_commit() -> str:
     try:
         out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=C.ROOT, capture_output=True, text=True, timeout=15)

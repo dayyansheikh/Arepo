@@ -34,7 +34,7 @@ from astrolabe.signal_engine import store as S  # noqa: E402
 
 
 def out(marker: str, payload: dict, code: int) -> int:
-    payload = {"marker": marker, "exit": code, "peak_rss_mb": S.peak_rss_mb(), **payload}
+    payload = {"marker": marker, "exit": code, "peak_rss_mb": S.peak_rss_mb(), "peak_vm_mb": S.peak_vm_mb(), **payload}
     print(f"{marker} " + json.dumps(S.clean_json(payload), sort_keys=True, default=str))
     return code
 
