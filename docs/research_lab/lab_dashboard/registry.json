@@ -1,6 +1,6 @@
 {
  "schema": "arepo-lab-registry-v1",
- "updated": "2026-10-30T06:58:00Z",
+ "updated": "2026-10-30T07:00:00Z",
  "funnel_note": "Funnel counts cover curated registry entries only; one entry can bundle many tests (HB1 = 72, ECON-95 = 95). The idea stage counts CHnn creative ids only.",
  "note": "Curated by research sessions. Development results only; never live interim results. See README.md.",
  "funnel": [
@@ -1789,19 +1789,19 @@
   {
    "id": "M1",
    "title": "Measurement M1: the carry after a proposed resolution (planned)",
-   "plain": "Planned pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount, against the chance the proposal is overturned? A number with an error bar, frozen in advance; never called a finding. The counting step found enough markets, but almost all trade at 99.9 cents or more, so a coarse result is near-certain (said in advance).",
+   "plain": "Pre-registered measurement from ideas round 19: after a market's outcome is formally proposed, how big is the remaining discount, against the chance the proposal is overturned? A number with an error bar, never called a finding. Design frozen 30 Oct. Almost all such markets trade at 99.9 cents or more, so a coarse result is near-certain (said in advance).",
    "batch": "M1",
    "family": "carry",
    "stage": "designed",
    "status": "waiting",
    "verdict": "pending",
    "effect": null,
-   "next": "Freeze the design text (final check done, fixes applied), then code and registration before 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
+   "next": "Code, code check and registration by 22 Nov; window 24 Nov - 14 Dec; read-out from 15 Jan 2027",
    "next_date": "2026-11-22",
    "candidate": false,
    "sources": {
-    "verdict": "docs/research_lab/reviews/M1_FINAL_VERIFY_2026-10-30.md",
-    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (DRAFT, final text); docs/research_lab/EXPERIMENT_LEDGER.md § M1-J0 (q0731) counts recorded (2026-10-30)",
+    "verdict": "docs/research_lab/reviews/M1_FREEZE_DIFF_CHECK_2026-10-30.md",
+    "next": "docs/research_lab/MEASUREMENT_M1_CH263.md (FROZEN design text); docs/research_lab/EXPERIMENT_LEDGER.md § M1 freeze diff check and DESIGN-TEXT FREEZE (2026-10-30)",
     "status": "docs/research_lab/reviews/CH269_MAP_2026-10-30.md"
    },
    "stage_results": {
