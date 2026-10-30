@@ -1,15 +1,20 @@
 # Measurement M1 (CH263, "the carry"): the favoured side's discount after a UMA proposal state is first seen, against the reversal tail and the recorded cost, held to resolution, k = 0 (DRAFT)
 
-**Status: DRAFT 2026-10-30, second draft (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
-GO_WITH_CHANGES; every MUST and SHOULD applied, mapped in section 17), not frozen, not registered, nothing counted.** Evidence role
+**Status: DRAFT 2026-10-30, third draft (after challenger R1, `reviews/M1_CHALLENGER_R1_2026-10-30.md`,
+GO_WITH_CHANGES, and the pre-freeze re-check, `reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY; every item applied,
+mapped in section 17), not frozen, not registered, nothing counted.** Evidence role
 `prospective_measurement` (rule 26 of `CREATIVE_HYPOTHESES_2026-11-02.md` 0.3; role and conditions set by the binding
 ruling `reviews/R19_RULE26_MEASUREMENT_RULING_2026-10-30.md`, ACCEPT_WITH_CONDITIONS). Drafted on branch `feat/m1-ch263`
 from the `chore/arepo-claude-setup` tip `c0818dfe`, a design-only commit. No M1 code, no queue file, no seal, no host read.
 Before anything is sealed this needs, in order: a challenger review (`science-reviewer`) of this text (R1 done), the
-designer's response (section 17), a re-check of it, the counts-only pre-window check of 9.1 (its decision rules are declared in this text before it runs), a final
-pre-freeze verification, the design-text freeze commit (sha256 in the ledger), the code, a code-freeze check on synthetic
+designer's response (section 17), a re-check of it (done: NOT_READY, fixes applied in 17.5), **the counts-only
+pre-freeze job M1-J0 of 9.1**, a final pre-freeze verification, the design-text freeze commit (sha256 in the ledger), the code, a code-freeze check on synthetic
 data, a host dry run with peak RSS, and the registration commit (spec and code pins plus the ledger block of 16) at least
 24 h before `REGISTERED_UTC` (section 2). Until the pins exist, every line a reader writes is `prospective_unregistered`.
+**J0 runs before the design-text freeze and is counts only (no resolution, outcome or post-k price). Its only effects on
+this text are rules (a) and (b) of 9.1 (the window length) and S2's cell list; nothing else can change from its output.
+After the re-check's fix 2 S2's cell list is fixed by rule in section 6, so J0's S2 effect is only to write the list's
+observed distribution into the frozen text; it adds, drops or merges no cell.**
 
 This is research tooling. AREPO never trades. M1 is a measurement: it reads a resolution as the declared payoff of a
 paper route after the window, it is not a verdict, it is not part of any Holm family, it is counted apart from the
@@ -173,10 +178,13 @@ No cap: weights are declared instead (4).
   cost). The mid-based alternative is not used.
 - **Fee, two lines,** per share at `p = ask_f` by `costs.taker_fee_ps` (formula `rate * (p * (1 - p)) ** exponent`,
   unrounded per share as the model computes it; the venue's 5 dp per-order rounding is immaterial per share), from capture
-  k's sidecar fields:
-  - **L1 (headline):** `costs.taker_rate(category, schedule_rate, fees_enabled, policy="conservative")`, i.e. max(served
+  k's sidecar fields. **Both fee lines and S2 use `cat_k = costs.category_key(capture k's sidecar fee_category)`** (E5's
+  `category_of` is the scope reader only; passed `nonsports_excrypto`, the docs rate would be NaN, `costs.py:48-53, 93`).
+  `exponent` = the `fee_schedule`'s exponent where served, else 1.0; `schedule_rate` = the `fee_schedule`'s rate where
+  served, else None.
+  - **L1 (headline):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled, policy="conservative")`, i.e. max(served
     schedule, docs table), fees disabled giving 0, unknown giving 0.07.
-  - **L2 (rate-0-not-trusted bound):** `costs.taker_rate(category, schedule_rate, fees_enabled=None,
+  - **L2 (rate-0-not-trusted bound):** `costs.taker_rate(cat_k, schedule_rate, fees_enabled=None,
     policy="conservative")`, i.e. max(served schedule, docs category rate) **ignoring the served `fees_enabled`**
     (`taker_rate` returns 0 whenever `fees_enabled is False`, `costs.py:91-92`, so L2 must pass `None`; R1 MUST 7). Docs
     rates (`COST_MODEL.md` 2): 0.04 finance / politics / mentions / tech; 0.05 economics / culture / weather / other;
@@ -212,8 +220,8 @@ numbers labelled `thin` (never suppressed).
 | # | Split | Cells |
 |---|---|---|
 | S1 | liquidity tier at k (CH269's `tier_of`) | lt1k, 1k-10k, 10k-100k, ge100k, tier_na |
-| S2 | category at k (E5's reader) | each category returned inside scope, plus unknown |
-| S3 | ladder position at k | standalone (event has one open binary market), member_winner (favoured side YES), member_loser (favoured side NO); among ladder members S3 equals S5 by construction (disclosed; S3 adds only the standalone cut) |
+| S2 | fee category at k, `cat_k` (5) | the `CATEGORY_TAKER_RATE` keys inside scope: economics, culture, weather, other, finance, politics, mentions, tech, geopolitics; plus `unknown` (empty key, or a key outside those nine) (10 cells, fixed; J0 prints its distribution) |
+| S3 | ladder position at k | standalone (event has one open binary market), member_winner (favoured side YES), member_loser (favoured side NO); among ladder members S3 equals S5 by construction, and S3 "standalone" equals S8 cell "1" by definition (both disclosed; exact identities, not separate information) |
 | S4 | fee class at k | fee_free, fee_on, unknown |
 | S5 | favoured side | YES, NO |
 | S6 | price zone `c` | `c <= 0.001`, (0.001, 0.005], (0.005, 0.01], (0.01, 0.03], (0.03, 0.10], > 0.10 (**structurally empty**: mid_f >= 0.90 implies `ask_f` >= 0.90; kept so the cell list is unchanged, printed as 0) |
@@ -221,6 +229,9 @@ numbers labelled `thin` (never suppressed).
 | S8 | event member count at k | 1, 2-5, 6+ |
 | S9 | tick size at k | 0.001, 0.01, other / missing |
 | S10 | window week | days 1-7, 8-14, 15-21 |
+
+Structural zeros (disclosed): S6 `> 0.10` is empty by construction; at tick 0.01 (S9) `c` is a multiple of 0.01, so the
+S6 x S9 cells (0.001, 0.005] at tick 0.01 are empty by construction.
 
 Hours to liveness end is **not** a split: the sidecar carries no proposal time (CH269 `not_mapped.proposal_time`).
 
@@ -230,6 +241,8 @@ Hours to liveness end is **not** a split: the sidecar carries no proposal time (
 Resample events with replacement (all of an event's final-state units together), B = 10,000, `numpy.random.default_rng(
 20261124)`, percentile 95% interval; the same draws serve every component and split (a split's CI resamples its own events).
 Sensitivity printed beside the headline only: a block bootstrap over the 21 UTC days (same B and seed). No p-value, no test.
+With zero reversals the `r_eff` and `P(loss)` bootstrap intervals are [0, 0]: **printed as degenerate; `T_U` is the bound**
+(7.2).
 **Cross-event dependence** (different events reversing together on the same news day) is not held by the event bootstrap;
 it is handled **only** by this day-block sensitivity (stated; R1 SHOULD 6), and the wider of the two intervals is printed
 beside the headline's.
@@ -243,12 +256,14 @@ A ladder proposed together can reverse together, so units are not independent dr
   the one-sided Clopper-Pearson upper bound on the event reversal rate at level **1 - 0.05 / S = 0.9875** (Bonferroni, so the
   four bounds hold together with probability at least 0.95). The **unit-level tail bound** is
   `T_U = sum_s (N_s / N_F) * p_U,s`, under the worst case that every unit of a reversed event loses its full stake.
+- A stratum with no final-state events contributes 0.
 - **Assumption stated:** within a stratum, an event's reversal probability does not depend on its unit count (homogeneity).
   Across strata it may differ freely. Without it, `T_U` bounds an event-weighted share, not the unit-weighted one.
 - **Printed beside it:** the 10 largest events' final-state unit counts and their `I_e` (so a reader sees whether a few large
   events carry the unit-weighted tail), and the per-stratum events, reversals and `p_U,s`.
-- **The conservative read** `theta_low = mean c - T_U - mean fee (L2) - mean capital` is printed beside the headline,
-  labelled as a bound, not an estimate.
+- **The conservative read** `theta_low = mean c - T_U - mean fee (L2) - mean capital`, the three means taken over the same
+  `N_F` final-state units as `theta`, is printed beside the headline, labelled as a bound, not an estimate (it mixes an
+  estimate, mean `c`, with a bound, `T_U`).
 
 ## 8. Outcome classes, the resolution source and its floor
 
@@ -290,6 +305,9 @@ All jobs are light, `net` lane where they fetch, otherwise local; none runs conc
 Store: `data-dumps/research_lab/m1_ch263/` on the host (write-once files; never edited).
 
 ### 9.1 M1-J0: pre-window counts-only check (before the design-text freeze; uncounted; no resolution, no post-k price)
+- **What J0 is.** A counts-only pre-freeze job. Its only effects on this text are rules (a) and (b) below and S2's cell list
+  (fixed by rule in 6; J0 writes only its observed distribution into the frozen text, adding, dropping or merging no cell).
+  Nothing else (no estimand, weight, split, cost line, class rule, threshold, date other than by (a) / (b)) changes from it.
 - Reads the last 8 days of sidecars, rows and sweep 1 on the host. Applies 3.2 and 3.3 exactly as specified and prints
   **counts only**: eligible units a day; events among eligible units and the member-count distribution (S8); the class
   funnel of 3.2; the cells of S1-S10 (counts, no prices beyond the k-time `c` zone counts of S6); **sweep-1 coverage of the
@@ -299,7 +317,8 @@ Store: `data-dumps/research_lab/m1_ch263/` on the host (write-once files; never 
   takes** (distinct normalised forms, rows with both `propos` and `disput`, transitions proposed -> empty and disputed ->
   proposed between consecutive captures; counts only; R1 MUST 2); **the unavailable classes by category**
   (`no_k_minus_1_row`, `no_previous_capture`, by E5's category of capture k; R1 SHOULD 5, the CH269 counts 1,552 / 1,576
-  being of unclear scope); final-state units per event as projected from units per event (T_U's strata, counts only).
+  being of unclear scope); final-state units per event as projected from units per event (T_U's strata, counts only);
+  **the distribution of `cat_k` over eligible units** (S2's cells, raw `fee_category` values beside their keys).
 - **Decision rules declared now:** (a) eligible units fewer than 100 a day (median full day): window extended to 42 days
   (CH263's line), dates rewritten before the freeze; (b) fewer than 2,000 eligible units projected over 21 days: extended
   to 42 days; (c) whatever the sweep coverage, capacity is printed as covered-subset only with its S6 / S7 composition (5.3);
@@ -313,10 +332,13 @@ Store: `data-dumps/research_lab/m1_ch263/` on the host (write-once files; never 
   `status/<capture_id>.json` (the funnel counts, the capture's completeness, the sweep's presence). Idempotent per capture;
   refuses to overwrite; every line carries `spec_sha`, `code_sha` and role `prospective_measurement`.
 - Keeps only a small state file (market ids with any proposal or dispute state seen since the look-back start) between runs.
-- **Strictly chronological (R1 MUST 1).** Captures are processed in increasing manifest start, one at a time, and a capture
-  is processed only when every earlier window capture is processed or recorded `missing_capture`; catch-up after an outage
-  replays the backlog in the same order. **The state file used at capture k holds only captures before k** (it records the
-  last capture id folded into it and the run refuses if that is not k - 1's predecessor chain). Synthetic tests to be
+- **Strictly chronological (R1 MUST 1; re-check fix 3).** Captures are processed in increasing manifest start, one at a
+  time, and a capture is processed only when every earlier window slot is processed or recorded `missing_capture`; catch-up
+  after an outage replays the backlog in the same order. A slot is recorded `missing_capture` once it has no complete
+  capture 6 h after its grid time; a capture appearing later stays unprocessed (counted `late_capture_ignored`). The run
+  refuses unless the state file's last folded capture is the last processed-or-missing capture before k. Each
+  `status/<capture_id>.json` records that capture id and the state file's sha256 before and after. **The state file used
+  at capture k holds only captures before k.** Synthetic tests to be
   written: (i) out-of-order delivery processes in order and gives the same units as in-order; (ii) a state file containing
   a capture at or after k makes the run refuse; (iii) a catch-up of a 12-capture backlog gives identical unit files to
   live processing. A breach is the named void case 11.2(a).
@@ -348,10 +370,11 @@ M1 is reported **coarse** (with every number still printed) if any of:
 
 Planning (assumptions, not targets): about 4,200 eligible units; with `r_eff` near 0.5% the per-unit SD of `L` is about 7c,
 so the independent-unit SE of `theta` is about 0.11c and the clustered CI half-width plausibly 0.3-0.5c; with zero
-reversals the bootstrap CI narrows to the spread of `c` and `T_U` carries the tail: at level 0.9875 with zero reversals
-`p_U` is about 4.4 / events, so `T_U <= 0.30c` needs about 1,460 final-state events (more if the strata are unbalanced).
-Events among about 4,200 units are unmapped (J0), so **a "coarse" read is likely and is disclosed in advance**; it changes
-no rule. Round 19's "net to +-0.1c at 5,000 units" left out the variance of `L` and is not
+reversals the bootstrap CI narrows to the spread of `c` and `T_U` carries the tail: with zero reversals `p_U,s` is about
+4.38 / E_s, so `T_U` is at least 4.38 / N_F times the sum over non-empty strata of their units per event (at least 1, 2, 4,
+10): about 1,460 units if every event is a single unit, about 24,800 if all four strata are non-empty. With about 4,200
+units, coarse rule 3 is expected to fire and `theta_low` is expected to be dominated by the sparsest stratum; disclosed in
+advance, it changes no rule. Round 19's "net to +-0.1c at 5,000 units" left out the variance of `L` and is not
 used.
 
 ## 11. Void conditions
@@ -360,7 +383,9 @@ M1 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 1. any change to an estimand, weight, split, cost line, class rule, threshold or the read-out date after `REGISTERED_UTC`;
 2. any read of a resolution, label, Gamma outcome field or any data from after a unit's k before `READOUT_UTC` (the J1
    extractor's causality test and the J2 manifest are the checks); named case **(a)**: J1 processed a capture out of
-   chronological order, or used a state file holding a capture at or after k (9.2);
+   chronological order, or used a state file holding a capture at or after k (9.2); audited from the status files'
+   chain (each records the last folded capture id and the state file's sha256 before and after; a broken chain is the
+   breach);
 3. unit selection that uses information from after k;
 4. resolution-source coverage below the floor of 8.3;
 5. unit lines whose `spec_sha` or `code_sha` differs from the pins making up more than 1% of the units (below that they are
@@ -372,9 +397,8 @@ M1 is **void** (recorded in the ledger, its numbers not reported as a measuremen
 - A later verdict test on the carry, the proposal window, the favoured side's discount or any S1-S10 cell is labelled
   **`informed (M1)`**, uses a window that starts after `READOUT_UTC` (disjoint and later), and counts none of M1's data as its
   evidence.
-- If it targets a split or cell chosen after seeing M1, it reports M1's selection width: **10 splits, 32 declared cells plus
-  S2's** (S1 5, S3 3, S4 3, S5 2, S6 6, S7 4, S8 3, S9 3, S10 3; S2's cell list is fixed from J0's category counts and
-  written at the freeze).
+- If it targets a split or cell chosen after seeing M1, it reports M1's selection width: **10 splits, 42 declared cells**
+  (S1 5, S2 10, S3 3, S4 3, S5 2, S6 6, S7 4, S8 3, S9 3, S10 3; S2's list is fixed by rule in 6).
 - M1 may set planning SDs and population counts for a later design; it never sets a threshold after the fact.
 - M1 is in no Holm family, is counted separately from registered tests, and does not change any verdict. Round 19's
   "about 1.8" counted it; the ledger correction entry of 2026-10-30 ~04:36Z (R1 MUST 6) restates the round's registered
@@ -480,3 +504,20 @@ kept (8.3). 4. L1 headline; L2 feeds `theta_low` (5). 5. Replaced by MUST 3's bo
 Host retention, disk, cron and pass health; whether the UMA status field keeps history (J0 counts its forms); Gamma best ask
 against the CLOB book (the agreement table on the covered subset); events per unit (J0); the scope of CH269's 1,552 count
 (J0 by category); `labels.fetch_resolutions` batch behaviour (J3's dry run).
+
+### 17.5 R1 re-check response (`reviews/M1_RECHECK_PREFREEZE_2026-10-30.md`, NOT_READY on `6362f3a7…9dca`)
+
+Order kept: J0 (counts only) runs before the design-text freeze; the status block and 9.1 now say plainly that J0's only
+effects are rules (a) / (b) and S2's cell list (the latter fixed by rule, so J0 only records its distribution). No threshold,
+date, estimand, weight or cost line changed.
+
+| Item | Fix (the reviewer's wording where given) | Where |
+|---|---|---|
+| Order (J0 before freeze; S2 "written at the freeze") | J0 declared a counts-only pre-freeze job with only the effects above; S2 no longer depends on J0 | status block, 9.1, 6, 12 |
+| 1 MUST 3 planning figure | replaced with the reviewer's text (about 1,460 units at single-unit events, about 24,800 with all four strata; coarse rule 3 expected to fire); "A stratum with no final-state events contributes 0." | 10, 7.2 |
+| 2 S2 constant; fee category | S2 and both fee lines use `costs.category_key(capture k's sidecar fee_category)`; S2's cells are the in-scope `CATEGORY_TAKER_RATE` keys plus `unknown`; J0 prints its distribution; exponent from `fee_schedule` where served, else 1.0; selection width now 42 cells | 5, 6, 9.1, 12 |
+| 3 Chronological rule; void audit | the reviewer's `missing_capture` 6 h rule, `late_capture_ignored`, state-file refusal and per-capture sha256 chain; 11.2(a) audited from the chain | 9.2, 11.2 |
+| 4 S8 "1" = S3 standalone | disclosed beside the S3 = S5 note | 6 |
+| 5 Degenerate CI | "printed as degenerate; `T_U` is the bound" | 7.1 |
+| Non-blocking: S6 x S9 zeros | disclosed (tick 0.01 empties (0.001, 0.005]) | 6 |
+| Non-blocking: `theta_low` averaging set | the three means over the same `N_F` final-state units; labelled as mixing an estimate with a bound | 7.2 |
