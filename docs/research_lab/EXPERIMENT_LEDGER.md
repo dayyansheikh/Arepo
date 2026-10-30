@@ -5065,3 +5065,9 @@ together with "Unavailable: fewer than 20 event clusters or fewer than 2,000 eva
   `costs.category_key` of the sidecar `fee_category`; (3) a deterministic missing-capture rule and an auditable state chain;
   (4) S8 "1" = S3 standalone disclosed; (5) degenerate zero-reversal CIs printed as such. Order: J0 counts run before the
   design-text freeze (as the text says), then final verification and freeze, before 2026-11-22.
+
+## LT14 second draft (R1 applied), 2026-10-30 ~04:53Z (experiments autopilot; nothing counted)
+- `LIVE_TESTS_14.md` 4e295556, sha256 `d14981fd…5489`: k = 1 (10k-100k, `H_A` 1.30c kept, rung's source printed), >= 100k tier a
+  reported arm; label-origin gross wording; input-clock audit of the pinned champion (se0 / se1 / se17 appear to pass, se18
+  appears to fail: if se18 became champion before the freeze, LT14 would withdraw); freeze deadline before 2026-11-07T00:00Z;
+  LT13's aliasing rule with M6's controls declared; P(census) lowered 0.80 -> 0.65. Re-check and pre-freeze verification next.
