@@ -1,0 +1,17 @@
+{
+ "spec_id": "live_tests13_v1",
+ "status": "DRAFT, stage A only (census, seal, restore). Not registered; k_tests, the four lists, k_block (chg_1d, chg_1w) and every census_fixed value are null until the header pre-check and the census. The declared constants are in live_tests13_base.DECLARED (one block, hashed into the seal).",
+ "design": "docs/research_lab/LIVE_TESTS_13.md (design text frozen at ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738, amended by appended section 13 to 737f8b1529906093a3f132c13891b32af962a9cd43377b8c7a9c089aa8b2b2a2; ledger 'LT13 DESIGN TEXT AMENDED 13')",
+ "design_text_sha256": "737f8b1529906093a3f132c13891b32af962a9cd43377b8c7a9c089aa8b2b2a2",
+ "design_text_predecessor_sha256": "ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738",
+ "experiments": {"CH253": "the listing batch", "CH252": "withdrawn_pre_census (fee reading unresolved), 1.4.3 rule (b); nothing is built"},
+ "k_block": {"chg_1d": null, "chg_1w": null, "rule": "6: filled from the committed header pre-check BEFORE the seal; true -> the column enters K as an indicator pair; the seal and every census refuse while null"},
+ "k_tests": null,
+ "dropped_tests": null,
+ "census_unavailable": null,
+ "withdrawn_pre_census": ["CH252"],
+ "lists_rule": "k_tests, dropped_tests, census_unavailable and withdrawn_pre_census are mutually exclusive; CH252 only under withdrawn_pre_census",
+ "census_fixed": {"CH253": {"s_bt": null, "s_w": null, "zs_cuts": null, "zs_gap": null, "rgap_q50_s": null, "rgap_q90_s": null, "rho_census": null, "rho_census_nan": null, "exclude_family": null}},
+ "census_fixed_rule": "6 items (1) and (4)-(9), filled with the exact census floats after the census; items (2)-(3) are CH252's and are not computed",
+ "census_gate_values": {"CH253": {"mde_c": null}}
+}

@@ -1237,3 +1237,6 @@ MDE target, placebo or estimand changed.
 | SHOULD 5: twin-state detail ("no target read" means no own target) | 6 (new bullet) |
 | Census code must refuse / must print lists | 6 (two new bullets) |
 | LT12 disclosure (sports classifier shift, crypto unaffected, not a deviation) | proposed ledger line in the review; not an LT13 edit (LT12 is frozen) |
+
+## 13. Amendment after the design-text freeze (2026-10-30; `reviews/LT13_CODE_FREEZE_CHECK_2026-10-30.md`; governs where earlier text differs)
+Predecessor sha256 `ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738`. Made before the LT13 seal and census, from code reading only; no capture, sidecar or census output read. (a) 3.3's control `spread_{i,k−1}` is removed: with K's `spread_k` and the own innovation `spread_k − spread_{k−1}` it is an exact linear identity, so the l. 750-751 rule made every fit NaN by construction. The retained pair spans the same column space, so b_bt, its inference, every gate value, threshold, MDE and window are unchanged and no adjustment is lost; `thin_i` still reads `spread_{i,k−1}`. (b) A control identically zero after demeaning lies in the span of any retained set; it is removed before the rank, printed as `zero_variance_dropped`, and is not a group (1)-(3) drop.

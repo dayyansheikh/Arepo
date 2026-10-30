@@ -1,0 +1,42 @@
+{
+ "id": "q0721_lt13_seal",
+ "title": "LT13 seal (DRAFT): hash every capture (rows, sidecar, manifest) of the census inputs [2026-11-06T00:00Z look-back .. 2026-11-17T04:31Z lag slots] into docs/research_lab/seals/lt13_census_inputs.json with the seal's own slot assignment, the frozen design-text sha256, the declared blocks' hash, the batch-join code sha256 and the committed header pre-check (LIVE_TESTS_13.md 6)",
+ "family": "live_tests_13",
+ "priority": 48,
+ "expected_value": "the LT13 census input identity (committed before the census; the census refuses any other input)",
+ "data": [
+  "host originals ~/arepo/data-dumps/research_lab/snapshots, the q0710 restore tree (LT12) and the q0720 restore tree (read-only; no row is read)"
+ ],
+ "resources": {
+  "mem_mb": 300,
+  "cpu": 1,
+  "lane": "net",
+  "network": "none",
+  "disk_mb": 10
+ },
+ "depends_on": [
+  "q0720_lt13_census_restore"
+ ],
+ "not_before": "2026-11-17T09:00:00Z",
+ "argv": [
+  "scripts/run_live_tests13.py",
+  "seal",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests12_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests13_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests13_census/work_seal",
+  "--out",
+  "../docs/research_lab/seals/lt13_census_inputs.json"
+ ],
+ "timeout_s": 3600,
+ "max_retries": 1,
+ "outputs": [
+  "docs/research_lab/seals/lt13_census_inputs.json"
+ ],
+ "next_action": "commit the seal (git add + commit) and pull it on the host before the census runs; the census refuses a seal that is not tracked or differs from HEAD. The seal refuses while the spec's k_block (chg_1d, chg_1w) is null: commit the header pre-check result (run_live_tests13.py header-precheck, headers only) into model_specs/live_tests13_v1.json first",
+ "notes": "Captures starting at or after 2026-11-17T06:00:00Z are never sealed (refuse_at_or_after_utc); a lag slot whose capture failed or never completed is counted missing. The seal pins batch_join_code_sha256 (the census refuses a seal without it or with another value), the design-text sha256 (the file AND the ledger must carry it) and the sha256 of the imported LT12 / CH251 helper files. DRAFT, not in queue/jobs. Promote only after: LIVE_TESTS_13.md design text frozen at ae594aa1... and amended by appended section 13 to sha256 737f8b1529906093a3f132c13891b32af962a9cd43377b8c7a9c089aa8b2b2a2 (ledger 'LT13 DESIGN TEXT AMENDED 13' carrying both), the LT13 stage A code and the independent science-reviewer code-freeze check of it (census, seal, restore against LIVE_TESTS_13.md 1.4, 6 and 1.14; docs/research_lab/reviews/LT13_CODE_NOTE_2026-10-30.md), and never while E015's, E022's or any LT9-LT12 census, size check or analysis job is running (memory-heavy-jobs rule; 7.5). Counts 0 (descriptive; no trials line). CH252 is withdrawn_pre_census: no reward-feed capture is restored, sealed or read. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 50 where the runner accepts it (exit 75 above the cap)."
+}
