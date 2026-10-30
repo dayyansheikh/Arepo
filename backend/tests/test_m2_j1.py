@@ -694,3 +694,36 @@ def test_amendment23_earlier_sibling_unit_after_its_k_changes_nothing_for_the_la
     assert {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status0.items()} == {n: {k: v for k, v in d.items() if k != "inputs"} for n, d in status1.items()}
     assert mp0.extra["reoverdue_seen"] == mp1.extra["reoverdue_seen"] and mp0.extra["seen_without_k_minus_1_row"] == mp1.extra["seen_without_k_minus_1_row"]
     assert mp0.extra == mp1.extra  # every status count, including left_before_overdue_slot and end_date_missing
+
+
+# --- loaded state with missing unit_events (A24 diff check defects 1-2) -----------------------------------------------------------------
+def test_a24_state_with_unit_ids_but_no_unit_events_refuses(full):
+    _, _, st, _ = full
+    d = read_state(st)[0]
+    assert d["unit_ids"]
+    del d["unit_events"]
+    write_state_header(st, d)
+    snap, rr = full[0], full[1]
+    with pytest.raises(m2.StateOrderError, match="unit_ids but no unit_events"):
+        j1(snap, rr, st)
+    d["unit_events"] = {}
+    write_state_header(st, d)
+    with pytest.raises(m2.StateOrderError, match="unit_ids but no unit_events"):
+        j1(snap, rr, st)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=KeyError,
+    reason="partial unit_events -> bare KeyError (A24 diff check defect 2); only on non-fresh stores; code change deferred to avoid a code_sha change before registration",
+)
+def test_a24_state_with_partial_unit_events_should_refuse_explicitly(tmp_path):
+    snap, rr = build(tmp_path)
+    st = tmp_path / "store"
+    j1(snap, rr, st, now=tcap(13).timestamp())
+    d = read_state(st)[0]
+    assert len(d["unit_events"]) >= 1
+    d["unit_events"].pop(sorted(d["unit_events"])[0])
+    write_state_header(st, d)
+    with pytest.raises(m2.StateOrderError):
+        j1(snap, rr, st)
