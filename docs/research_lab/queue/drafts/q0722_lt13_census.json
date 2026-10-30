@@ -1,0 +1,45 @@
+{
+ "id": "q0722_lt13_census",
+ "title": "LT13 census CC13 (DRAFT): the counts-only census of CH253 on the sealed inputs (LIVE_TESTS_13.md 6): coverage first, then every gate of the CH253 row, the census-fixed values and the prints; CH252 listed under withdrawn_pre_census; no own target is read",
+ "family": "live_tests_13",
+ "priority": 47,
+ "expected_value": "k (CH253 survives or not), census_dropped / census_unavailable (coverage) recorded apart, withdrawn_pre_census [CH252], and every census-fixed value of 6 (s_bt, s_w, terciles, receipt-gap q50 / q90, rho_census, exclude_family)",
+ "data": [
+  "sealed census inputs (read-only; origin-side fields; the twin STATE only through lag_twin_state; no own target of any unit)"
+ ],
+ "resources": {
+  "mem_mb": 750,
+  "cpu": 1,
+  "lane": "cpu",
+  "network": "none"
+ },
+ "depends_on": [
+  "q0721_lt13_seal"
+ ],
+ "not_before": "2026-11-17T09:00:00Z",
+ "argv": [
+  "scripts/run_live_tests13.py",
+  "census",
+  "--seal",
+  "../docs/research_lab/seals/lt13_census_inputs.json",
+  "--snapshot-root",
+  "../data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests12_census/restore/data-dumps/research_lab/snapshots",
+  "--snapshot-root",
+  "../data-dumps/research_lab/live_tests13_census/restore/data-dumps/research_lab/snapshots",
+  "--work",
+  "../data-dumps/research_lab/live_tests13_census/work",
+  "--data-dumps-cap-gb",
+  "50",
+  "--out",
+  "../data-dumps/research_lab/live_tests13_census/CC13.json"
+ ],
+ "timeout_s": 43200,
+ "max_retries": 1,
+ "outputs": [
+  "data-dumps/research_lab/live_tests13_census/CC13.json"
+ ],
+ "next_action": "commit CC13.json with its sha256 in the ledger; record k_tests / dropped_tests / census_unavailable and the census-fixed values (exact floats) in model_specs/live_tests13_v1.json; stage B only if CH253 is in k_tests. If the dry run measures a peak above 750 MB: exclusive (design 6)",
+ "notes": "ONE streaming pass with a registry and a two-capture window; the census is write-once (a marker beside the seal refuses a second run). Stage A ambiguities listed in docs/research_lab/reviews/LT13_CODE_NOTE_2026-10-30.md (A3: the declared control list is exactly collinear, so the aliased-controls rule returns NaN and the MDE gates fail until the design is amended) MUST be resolved before this is promoted. DRAFT, not in queue/jobs. Promote only after: LIVE_TESTS_13.md design text frozen at sha256 ae594aa1a81aa93591d98f3210d907dff4df47ee3ad1dc0bbd44c5dccf59f738 (ledger 'LT13 DESIGN TEXT FROZEN'), the LT13 stage A code and the independent science-reviewer code-freeze check of it (census, seal, restore against LIVE_TESTS_13.md 1.4, 6 and 1.14; docs/research_lab/reviews/LT13_CODE_NOTE_2026-10-30.md), and never while E015's, E022's or any LT9-LT12 census, size check or analysis job is running (memory-heavy-jobs rule; 7.5). Counts 0 (descriptive; no trials line). CH252 is withdrawn_pre_census: no reward-feed capture is restored, sealed or read. Restore, seal and census run ONCE each; max_retries 1 covers a deterministic crash only (no output written). Runs with --data-dumps-cap-gb 50 where the runner accepts it (exit 75 above the cap)."
+}
