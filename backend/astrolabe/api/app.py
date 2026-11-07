@@ -23,6 +23,7 @@ from .routes import lab as lab_routes
 from .routes import lab_admin as lab_admin_routes
 from .routes import lab_webauthn as lab_webauthn_routes
 from .routes import markets, meta, opportunity, overview, replay, signals
+from .routes import public_signals as public_signals_routes
 from .routes import research as research_routes
 from .routes import signals_scan as signals_scan_routes
 
@@ -118,6 +119,7 @@ def create_app() -> FastAPI:
     app.include_router(historical_routes.router)
     app.include_router(research_routes.router)
     app.include_router(signals_scan_routes.router)
+    app.include_router(public_signals_routes.router)
     app.include_router(opportunity.router)
     app.include_router(lab_routes.router)
     app.include_router(lab_admin_routes.router)

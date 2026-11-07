@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     digest_max_retries: int = 2
     digest_lease_seconds: int = 900
 
+    # PUBLIC_SIGNALS_ENABLED: serve GET /api/public/signals, the allow-listed public projection of
+    # the signal engine's latest host Lab snapshot (lab/public_signals.py). Off = 404.
+    public_signals_enabled: bool = False
+
     # --- Lab hardware security keys (WebAuthn step-up; see docs/lab/SECURITY_KEYS.md) ---
     # LAB_REQUIRE_HARDWARE_KEY: "auto" (default) = any account with at least one registered key
     # needs a security-key unlock (step-up) for EVERY signed-in endpoint (account, alerts, saved
