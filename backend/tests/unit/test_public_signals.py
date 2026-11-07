@@ -111,6 +111,24 @@ def payload(**over):
             "top_up": [_market(1, 0.6), _market(2, -0.1), {"market_id": 3}],
             "top_down": [_market(4, -0.5)],
             "summary": {"dir_24h": {"mean": 0.1}},
+            "bands": {
+                "rows": [
+                    {
+                        "band": "strong",
+                        "n": 3000,
+                        "events": 60,
+                        "status": "ok",
+                        "log_loss": 0.4,
+                        "brier": 0.2,
+                        "cal_slope": 1.0,
+                        "cal_intercept": 0.0,
+                        "days": 14,
+                        "hit": 0.9,
+                    },
+                    {"band": "weak", "n": 10, "events": 2, "status": "unavailable", "log_loss": 9},
+                    {"band": "tier_a", "n": 1},
+                ]
+            },
             "track_record": {
                 "days_scored": 17,
                 "rows": [_row(CHAMP, target="dir_6h"), _row(CHAMP)],
@@ -157,6 +175,9 @@ def test_projection_is_allow_listed_and_dir_2h_only():
     assert [m["market_id"] for m in feed["top_down"]] == [4]
     assert feed["top_up"][0]["signal_strength"] == 0.6
     assert feed["top_up"][0]["confidence"] == "strong"
+    strong, weak = feed["bands"]
+    assert strong["status"] == "ok" and strong["log_loss"] == 0.4 and "hit" not in strong
+    assert weak == {"band": "weak", "n": 10, "events": 2, "status": "unavailable"}
     assert [ps.band(x) for x in (0.25, -0.2499, 0.1, -0.0999)] == [
         "strong",
         "moderate",

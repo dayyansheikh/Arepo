@@ -31,6 +31,7 @@ NOTICE = (
 )
 
 _MARKET_FIELDS = ("market_id", "title", "url", "category", "mid", "spread", "hours_to_end")
+_BAND_FIELDS = ("days", "log_loss", "brier", "cal_slope", "cal_intercept")
 _RECORD_FIELDS = ("days", "n", "auc", "brier", "log_loss", "cal_slope", "cal_intercept")
 
 
@@ -84,6 +85,27 @@ def _market(row: dict) -> dict | None:
         out[k] = _num(out[k])
     out["signal_strength"] = s
     out["confidence"] = band(s)
+    return out
+
+
+def _bands(b) -> list:
+    """The champion's confidence-band record (DESIGN_V1 §62): proper scores only, and only for
+    bands meeting the declared minimum size (the host marks the rest ``unavailable``)."""
+    if not isinstance(b, dict):
+        return []
+    out = []
+    for r in b.get("rows") or []:
+        if not (isinstance(r, dict) and r.get("band") in ("strong", "moderate", "weak")):
+            continue
+        row = {
+            "band": r["band"],
+            "n": _num(r.get("n")),
+            "events": _num(r.get("events")),
+            "status": "ok" if r.get("status") == "ok" else "unavailable",
+        }
+        if row["status"] == "ok":
+            row.update({k: _num(r.get(k)) for k in _BAND_FIELDS})
+        out.append(row)
     return out
 
 
@@ -181,6 +203,7 @@ def project(payload: dict, received_at: datetime | None, now: datetime) -> dict:
         ][:MAX_ROWS],
         "track_record": _record(record[0]) if record else None,
         "days_scored": _num((feed.get("track_record") or {}).get("days_scored")),
+        "bands": _bands(feed.get("bands")),
     }
     if stale:
         out["status"] = "stale"
