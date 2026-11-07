@@ -57,6 +57,12 @@ def _hidden_until(model: dict, now: datetime) -> str | None:
     return str(until)[:32] if t > now else None
 
 
+def band(s: float) -> str:
+    """Confidence label on |signal strength|, cut-offs declared in signal-engine DESIGN_V1 §62."""
+    a = abs(s)
+    return "strong" if a >= 0.25 else "moderate" if a >= 0.10 else "weak"
+
+
 def _num(v):
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
@@ -77,6 +83,7 @@ def _market(row: dict) -> dict | None:
     for k in ("market_id", "mid", "spread", "hours_to_end"):
         out[k] = _num(out[k])
     out["signal_strength"] = s
+    out["confidence"] = band(s)
     return out
 
 

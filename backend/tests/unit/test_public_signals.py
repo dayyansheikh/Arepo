@@ -156,6 +156,13 @@ def test_projection_is_allow_listed_and_dir_2h_only():
     assert [m["market_id"] for m in feed["top_up"]] == [1]  # wrong-sign and malformed rows dropped
     assert [m["market_id"] for m in feed["top_down"]] == [4]
     assert feed["top_up"][0]["signal_strength"] == 0.6
+    assert feed["top_up"][0]["confidence"] == "strong"
+    assert [ps.band(x) for x in (0.25, -0.2499, 0.1, -0.0999)] == [
+        "strong",
+        "moderate",
+        "moderate",
+        "weak",
+    ]
     assert feed["track_record"]["auc"] == 0.76 and feed["days_scored"] == 17 and not feed["stale"]
 
 
