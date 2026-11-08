@@ -12,6 +12,7 @@ import { VIEWPORTS, auditOverflow, expectNoHorizontalOverflow } from "./helpers"
 const ROUTES = [
   "/",
   "/signals",
+  "/signals/live",
   "/markets",
   "/markets/2694364",
   "/markets/2822017",
